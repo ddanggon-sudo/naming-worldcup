@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>네이밍 월드컵</title>
+<style>
+  :root {
+    --primary: #6C63FF;
+    --primary-light: #EEF0FF;
+    --accent: #FF6584;
+    --gold: #F5A623;
+    --bg: #F8F9FE;
+    --card: #FFFFFF;
+    --text: #2D2D2D;
+    --sub: #6B7280;
+    --border: #E5E7EB;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(108,99,255,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; padding-top: 48px; }
+
+  /* 사용자 전환 바 */
+  .user-bar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 101;
+  }
+  .user-bar-label { font-size: 11px; color: var(--sub); font-weight: 500; letter-spacing: .2px; }
+  .user-toggle {
+    display: flex; background: var(--bg); border-radius: 99px;
+    padding: 4px; gap: 3px; border: 1px solid var(--border);
+  }
+  .user-toggle-btn {
+    padding: 5px 20px; border-radius: 99px; font-size: 13px; font-weight: 700;
+    border: none; cursor: pointer; background: transparent; color: var(--sub);
+    transition: background .2s, color .2s, transform .1s;
+    display: flex; align-items: center; gap: 5px; line-height: 1;
+  }
+  .user-toggle-btn:active { transform: scale(0.95); }
+  #user-btn-dad.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(108,99,255,0.3); }
+  #user-btn-mom.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(255,101,132,0.3); }
+
+  /* 네비게이션 */
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); z-index: 100; }
+  nav button { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--sub); padding: 4px 12px; transition: color .2s; }
+  nav button.active { color: var(--primary); font-weight: 700; }
+  nav button span { font-size: 20px; }
+
+  /* 페이지 */
+  .page { display: none; max-width: 480px; margin: 0 auto; padding: 20px 16px; }
+  .page.active { display: block; }
+
+  /* 공통 헤더 */
+  h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .sub-title { font-size: 13px; color: var(--sub); margin-bottom: 20px; }
+
+  /* 카드 */
+  .card { background: var(--card); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+
+  /* 폼 요소 (전역 label — 최소한만 유지) */
+  label { font-size: 16px; font-weight: 800; color: var(--sub); display: block; margin-bottom: 8px; }
+  input[type=text], select {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 15px; color: var(--text);
+    background: var(--bg); outline: none; transition: border-color .2s;
+  }
+  input[type=text]:focus, select:focus { border-color: var(--primary); }
+
+  /* ─── 이름 생성 페이지 전용 폼 스타일 ─── */
+
+  /* 생성 페이지 섹션 카드 */
+  #page-generate .card {
+    padding: 20px 18px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(108,99,255,0.06);
+    margin-bottom: 12px;
+  }
+
+  /* 생성 페이지 레이블 → 섹션 헤딩 스타일 */
+  #page-generate > .card > label,
+  #page-generate > .card > label:first-child {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #page-generate > .card > label span {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+    color: var(--sub);
+    font-weight: 400;
+  }
+
+  /* 체크박스/라디오 그룹 → 칩(pill) 스타일 */
+  .check-group { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .check-item {
+    display: inline-flex; align-items: center; cursor: pointer;
+    font-weight: 400; margin-bottom: 0;
+  }
+  /* 실제 input은 숨기고 칩 레이블로만 표현 */
+  .check-item input[type=checkbox],
+  .check-item input[type=radio] {
+    position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+  }
+  .check-item-label {
+    display: inline-block;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sub);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .check-item input[type=checkbox]:checked + .check-item-label,
+  .check-item input[type=radio]:checked + .check-item-label {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(108,99,255,0.28);
+  }
+  .check-item:hover .check-item-label {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .check-item input[type=checkbox]:checked:hover + .check-item-label,
+  .check-item input[type=radio]:checked:hover + .check-item-label {
+    background: #5b53e8;
+    border-color: #5b53e8;
+    color: #fff;
+  }
+  /* sibling-input: full-row item inside chip group */
+  .sibling-input { margin-top: 4px; display: none; width: 100%; flex-basis: 100%; }
+  .sibling-input.visible { display: block; }
+
+  /* 버튼 */
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .1s, box-shadow .2s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-accent { background: var(--accent); color: #fff; }
+
+  /* 이름 생성 버튼 — 두드러지는 그라디언트 스타일 */
+  #btn-generate {
+    background: linear-gradient(135deg, #6C63FF 0%, #9b8fff 100%);
+    color: #fff;
+    padding: 16px;
+    font-size: 17px;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(108,99,255,0.38);
+    letter-spacing: .2px;
+    margin-top: 4px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  #btn-generate:hover {
+    box-shadow: 0 6px 24px rgba(108,99,255,0.50);
+    transform: translateY(-2px);
+  }
+  #btn-generate:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(108,99,255,0.28); }
+  #btn-generate:disabled { opacity: 0.55; transform: none; box-shadow: none; }
+  .btn-gold { background: var(--gold); color: #fff; }
+  .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sm { width: auto; padding: 7px 14px; font-size: 13px; border-radius: 8px; }
+  .btn-save { background: #FFF0F4; border: 2px solid var(--accent); color: var(--accent); border-radius: var(--radius); padding: 4px 16px; font-size: 12px; font-weight: 700; width: auto; display: block; margin: 0 auto; cursor: pointer; transition: background .15s, transform .1s, box-shadow .15s; }
+  .btn-save:hover { background: #FFD6E0; box-shadow: 0 4px 12px rgba(255,101,132,0.25); transform: translateY(-1px); }
+  .btn-save:active { background: #FFB8CA; transform: scale(.97); box-shadow: none; }
+
+  /* 이름 결과 카드 */
+  .name-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 6px rgba(108,99,255,0.08);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    transition: box-shadow .2s, transform .15s;
+  }
+  .name-card:hover {
+    box-shadow: 0 4px 16px rgba(108,99,255,0.14);
+    transform: translateY(-1px);
+  }
+  .name-card-info { flex: 1; min-width: 0; }
+  .name-card-info h3 {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .name-card-info .hanja { font-size: 11px; color: var(--sub); margin-bottom: 5px; }
+  .name-card-info .meaning { font-size: 13px; color: var(--text); margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+  .name-card-info .reason { font-size: 12px; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; margin-top: 4px; }
+  .name-card-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex-shrink: 0; padding-top: 2px; }
+  /* 결과 카드 저장 버튼 */
+  .name-card-actions .btn-sm.btn-primary {
+    background: transparent;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    border-radius: 99px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .name-card-actions .btn-sm.btn-primary:hover {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(108,99,255,0.3);
+  }
+
+  /* 월드컵 — 진행 화면 */
+  .wc-progress { margin-bottom: 20px; }
+  .wc-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .wc-progress-label { font-size: 13px; font-weight: 700; color: var(--text); }
+  .wc-progress-counter { font-size: 12px; font-weight: 600; color: var(--primary); background: var(--primary-light); padding: 2px 10px; border-radius: 99px; }
+  .wc-progress-bar { height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .wc-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #9b8fff); border-radius: 99px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+  .wc-round-hint { text-align: center; font-size: 12px; color: var(--sub); margin-bottom: 14px; letter-spacing: .3px; }
+
+  .wc-arena { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 8px; margin-bottom: 12px; align-items: stretch; }
+
+  .wc-card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 24px 14px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.10);
+    border: 2.5px solid transparent;
+    cursor: pointer;
+    transition: border-color .2s, transform .18s, box-shadow .18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .wc-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(108,99,255,0.04) 0%, transparent 60%);
+    border-radius: 18px;
+    pointer-events: none;
+  }
+  .wc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(108,99,255,0.18); }
+  .wc-card:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(108,99,255,0.12); }
+
+  .wc-card .wc-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: .6px;
+    padding: 3px 9px; border-radius: 99px; margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .wc-badge-champ { background: rgba(245,166,35,0.12); color: var(--gold); border: 1px solid rgba(245,166,35,0.3); }
+  .wc-badge-challenger { background: rgba(255,101,132,0.10); color: var(--accent); border: 1px solid rgba(255,101,132,0.25); }
+
+  .wc-card .wc-name { font-size: 28px; font-weight: 900; color: var(--primary); margin-bottom: 5px; line-height: 1.2; }
+  .wc-card .wc-hanja { font-size: 12px; color: var(--sub); margin-bottom: 10px; min-height: 16px; }
+  .wc-card .wc-meaning {
+    font-size: 12px; color: var(--sub); line-height: 1.55;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    flex: 1;
+  }
+  .wc-card .wc-save-inline {
+    margin-top: 14px;
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--sub);
+    border-radius: 8px;
+    padding: 7px 0;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .wc-card .wc-save-inline:hover { background: #FFF0F4; border-color: var(--accent); color: var(--accent); }
+  .wc-card .wc-save-inline:active { background: #FFD6E0; transform: scale(0.97); }
+
+  .wc-vs-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    gap: 6px;
+  }
+  .wc-vs {
+    width: 36px; height: 36px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .wc-controls { display: flex; gap: 8px; margin-top: 14px; }
+  .wc-controls .btn { flex: 1; padding: 11px; font-size: 13px; }
+  .wc-controls .wc-btn-reset { flex: 1; }
+  #btn-wc-back:hover, #btn-grand-back:hover { background: var(--primary-light); }
+  .wc-btn-reset:hover { background: #FFF0F4; border-color: var(--accent); color: var(--accent); }
+
+  /* 결과 화면 */
+  .result-box {
+    background: linear-gradient(145deg, #6C63FF 0%, #9b8fff 100%);
+    border-radius: 20px;
+    padding: 36px 24px 28px;
+    text-align: center;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.28);
+    position: relative;
+    overflow: hidden;
+  }
+  .result-box::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .result-box::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: -30px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .result-box .trophy { font-size: 52px; margin-bottom: 12px; display: block; animation: trophyPop .5s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes trophyPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .result-box .winner-name { font-size: 38px; font-weight: 900; color: #fff; margin-bottom: 6px; letter-spacing: -1px; }
+  .result-box .winner-hanja { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
+  .result-box .winner-meaning { font-size: 14px; color: rgba(255,255,255,0.88); line-height: 1.6; }
+
+  .rarity-box { background: var(--card); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .rarity-box h4 { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .rarity-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .rarity-row:last-of-type { border-bottom: none; }
+  .rarity-label { font-size: 13px; color: var(--sub); }
+  .rarity-value { font-size: 14px; font-weight: 700; color: var(--text); }
+  .rarity-desc { font-size: 12px; color: var(--sub); line-height: 1.5; margin-top: 8px; }
+
+  .wc-save-prompt-box { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 12px; text-align: center; }
+  .wc-save-prompt-box p { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+  .wc-save-actions { display: flex; gap: 10px; }
+  .wc-save-actions .btn { flex: 1; padding: 13px; }
+
+  /* 프로필 */
+  .profile-stat {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .stat-box {
+    flex: 1;
+    padding: 16px 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    position: relative;
+  }
+  .stat-box + .stat-box::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 1px;
+    background: var(--border);
+  }
+  .stat-box .stat-num {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .stat-box .stat-label {
+    font-size: 11px;
+    color: var(--sub);
+    font-weight: 500;
+    letter-spacing: .2px;
+  }
+
+  /* 보관함 카드 */
+  .saved-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 0;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  .saved-card:hover { box-shadow: 0 4px 20px rgba(108,99,255,0.16); }
+
+  /* 최종확정 카드: 좌측 골드 테두리 액센트 */
+  .saved-card.is-final {
+    border-left: 4px solid var(--gold);
+  }
+  .saved-card.author-dad { border-left: 4px solid var(--primary); }
+  .saved-card.author-mom { border-left: 4px solid var(--accent); }
+  .saved-card.is-final.author-dad,
+  .saved-card.is-final.author-mom { border-left: 4px solid var(--gold); }
+
+  .saved-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 10px;
+  }
+
+  .saved-card-name-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .saved-card-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .saved-card-name .hanja-inline {
+    font-size: 13px;
+    color: var(--sub);
+    font-weight: 400;
+    margin-left: 5px;
+  }
+
+  .saved-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    letter-spacing: .2px;
+    white-space: nowrap;
+  }
+  .badge-manual {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+  }
+  .badge-dad { background: #EEF0FF; color: #4338CA; border: 1px solid rgba(108,99,255,0.25); }
+  .badge-mom { background: #FFF0F4; color: #be185d; border: 1px solid rgba(255,101,132,0.25); }
+  .badge-final {
+    background: var(--gold);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(245,166,35,0.4);
+  }
+  .badge-rarity {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid rgba(108,99,255,0.2);
+  }
+
+  .saved-card-body {
+    padding: 0 16px 12px;
+  }
+
+  .saved-card-meta {
+    font-size: 11px;
+    color: var(--sub);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .saved-card-meta-dot {
+    width: 2px; height: 2px;
+    background: var(--border);
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .saved-card-meaning {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+    margin-bottom: 8px;
+  }
+
+  /* 인구 데이터 pill */
+  .saved-card-population {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--sub);
+    margin-bottom: 10px;
+  }
+  .saved-card-population strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .saved-card-population .pop-icon {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .saved-card-footer {
+    border-top: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .saved-card-actions { display: flex; gap: 8px; }
+
+  /* 삭제 버튼: 작고 음소거된 스타일 */
+  .btn-delete {
+    width: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--sub);
+    border-radius: 7px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn-delete:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #FFF0F4;
+  }
+  .btn-delete:active { transform: scale(.97); }
+
+  /* 로딩 */
+  .loading { display: none; text-align: center; padding: 36px 20px; }
+  .loading.visible { display: block; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 로딩 도트 애니메이션 */
+  .loading-dots { display: inline-flex; gap: 5px; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .loading-dots span {
+    width: 8px; height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-block;
+    animation: dotBounce 1.2s ease-in-out infinite;
+    opacity: 0.3;
+  }
+  .loading-dots span:nth-child(1) { animation-delay: 0s; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotBounce {
+    0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
+    40% { transform: scale(1.15); opacity: 1; }
+  }
+
+  /* 모달 */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+  .modal-backdrop.visible { display: flex; }
+  .modal { background: var(--card); border-radius: var(--radius) var(--radius) 0 0; padding: 24px; width: 100%; max-width: 480px; }
+  .modal h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--sub); margin-bottom: 20px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* 유틸 */
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .tag { display: inline-block; font-size: 11px; background: var(--primary-light); color: var(--primary); border-radius: 6px; padding: 2px 7px; margin: 2px; }
+  .empty { text-align: center; padding: 40px 0; color: var(--sub); font-size: 14px; }
+  select.small { width: auto; padding: 6px 10px; font-size: 13px; }
+
+  /* 빈 결과 안내 카드 */
+  .empty-result-card { background: var(--card); border-radius: var(--radius); padding: 32px 20px; text-align: center; box-shadow: var(--shadow); margin-top: 16px; }
+  .empty-result-card .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-result-card p { font-size: 14px; color: var(--sub); line-height: 1.6; }
+
+  /* 월드컵 이름 수 안내 */
+  .wc-count-hint {
+    font-size: 12px;
+    color: var(--sub);
+    text-align: center;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* 월드컵 시작 버튼 영역 */
+  #btn-worldcup-wrap {
+    background: var(--primary-light);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+  #btn-worldcup-wrap .btn-accent {
+    background: linear-gradient(135deg, var(--accent) 0%, #ff8fa3 100%);
+    box-shadow: 0 4px 16px rgba(255,101,132,0.35);
+    border-radius: 14px;
+    font-size: 16px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  #btn-worldcup-wrap .btn-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(255,101,132,0.46);
+  }
+
+  /* wc-meaning line-clamp — 위 .wc-card 블록에서 통합 관리 */
+
+  /* 토스트 */
+  #toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
+    padding: 12px 24px; border-radius: 99px; box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+    z-index: 999; pointer-events: none; transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+    opacity: 0; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* 프로필 CTA 버튼 */
+  .empty-profile-cta { margin-top: 14px; }
+
+  /* 직접 추가 모달 폼 */
+  .add-form { display: flex; flex-direction: column; gap: 14px; }
+  .add-form-row { display: flex; gap: 10px; align-items: flex-end; }
+  .add-form-field { display: flex; flex-direction: column; }
+  .add-form-label { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 6px; line-height: 1; }
+  .add-form-label em { font-style: normal; color: var(--accent); margin-left: 2px; }
+  .add-form-opt { font-weight: 400; color: var(--sub); }
+  .add-form-field input { margin-top: 0; }
+
+  /* 왕중왕전 로비 이름 수 부족 안내 */
+  .grand-empty-box { text-align: center; padding: 28px 16px; }
+  .grand-empty-box .grand-empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .grand-empty-box p { font-size: 14px; color: var(--sub); line-height: 1.7; }
+
+  /* 웰컴 오버레이 */
+  .welcome-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 24px;
+    opacity: 1; transition: opacity .3s ease;
+  }
+  .welcome-overlay.hidden { opacity: 0; pointer-events: none; }
+  .welcome-emoji { font-size: 52px; margin-bottom: 20px; }
+  .welcome-title { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 8px; text-align: center; }
+  .welcome-sub { font-size: 14px; color: var(--sub); margin-bottom: 40px; text-align: center; line-height: 1.6; }
+  .welcome-btns { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 280px; }
+  .welcome-btn {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 18px 24px; border-radius: 16px; border: none; cursor: pointer;
+    font-size: 18px; font-weight: 800; transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .welcome-btn:active { transform: scale(0.97); }
+  .welcome-btn-dad { background: var(--primary); color: #fff; box-shadow: 0 4px 20px rgba(108,99,255,0.35); }
+  .welcome-btn-dad:hover { box-shadow: 0 6px 24px rgba(108,99,255,0.45); transform: translateY(-2px); }
+  .welcome-btn-mom { background: var(--accent); color: #fff; box-shadow: 0 4px 20px rgba(255,101,132,0.35); }
+  .welcome-btn-mom:hover { box-shadow: 0 6px 24px rgba(255,101,132,0.45); transform: translateY(-2px); }
+  .welcome-btn-emoji { font-size: 26px; line-height: 1; }
+</style>
+</head>
+<body>
+
+<!-- 웰컴 오버레이 -->
+<div class="welcome-overlay" id="welcome-overlay">
+  <div class="welcome-emoji">👶</div>
+  <div class="welcome-title">네이밍 월드컵</div>
+  <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
+  <div class="welcome-btns">
+    <button class="welcome-btn welcome-btn-dad" onclick="selectWelcomeUser('아빠')">
+      <span class="welcome-btn-emoji">👨</span> 아빠
+    </button>
+    <button class="welcome-btn welcome-btn-mom" onclick="selectWelcomeUser('엄마')">
+      <span class="welcome-btn-emoji">👩</span> 엄마
+    </button>
+  </div>
+</div>
+
+<!-- 사용자 전환 바 -->
+<div class="user-bar">
+  <span class="user-bar-label">작업자</span>
+  <div class="user-toggle">
+    <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
+    <button class="user-toggle-btn" id="user-btn-mom" onclick="switchUser('엄마')">👩 엄마</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 1: 이름 생성
+════════════════════════════════════════ -->
+<section id="page-generate" class="page active">
+  <h1>✨ 네이밍 월드컵</h1>
+  <p class="sub-title">기준을 설정하면 AI가 이름을 추천해드려요</p>
+
+  <div class="card">
+    <label>성(姓)</label>
+    <input type="text" id="last-name" placeholder="예: 김, 이, 박" maxlength="2">
+  </div>
+
+  <div class="card">
+    <label>성별</label>
+    <div class="check-group">
+      <label class="check-item">
+        <input type="radio" name="gender" id="gender-girl" value="여아" checked>
+        <span class="check-item-label">여아</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="gender" id="gender-boy" value="남아">
+        <span class="check-item-label">남아</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>이름 글자 수</label>
+    <div class="check-group">
+      <label class="check-item">
+        <input type="radio" name="syllable" id="syl-2" value="두자 이름" checked>
+        <span class="check-item-label">두자 이름 (예: 지우, 서준)</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="syllable" id="syl-3" value="세자 이름">
+        <span class="check-item-label">세자 이름 (예: 하늘이, 지수빈)</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="syllable" id="syl-1" value="외자 이름">
+        <span class="check-item-label">외자 이름 (예: 준, 빛)</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>이름 기준 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 복수 선택 가능)</span></label>
+    <div class="check-group">
+      <label class="check-item"><input type="checkbox" class="criteria" value="매일 부르기 편해야 함"><span class="check-item-label">매일 부르기 편해야 함</span></label>
+      <label class="check-item"><input type="checkbox" class="criteria" value="유행을 덜 타야 함"><span class="check-item-label">유행을 덜 타야 함</span></label>
+      <label class="check-item"><input type="checkbox" class="criteria" value="어른이 되어도 잘 어울려야 함"><span class="check-item-label">어른이 되어도 잘 어울려야 함</span></label>
+      <label class="check-item">
+        <input type="checkbox" class="criteria" id="sib-check" value="형제 이름과 조화로워야 함">
+        <span class="check-item-label">형제 이름과 조화로워야 함</span>
+      </label>
+      <div class="sibling-input" id="sibling-input-wrap">
+        <input type="text" id="sibling-names" placeholder="형제 이름 입력 (예: 지훈, 서연)">
+      </div>
+      <label class="check-item"><input type="checkbox" class="criteria" value="놀림받기 쉬운 요소가 없어야 함"><span class="check-item-label">놀림받기 쉬운 요소가 없어야 함</span></label>
+      <label class="check-item"><input type="checkbox" class="criteria" value="발음이 자연스러워야 함"><span class="check-item-label">발음이 자연스러워야 함</span></label>
+      <label class="check-item"><input type="checkbox" class="criteria" value="너무 흔하지 않아야 함"><span class="check-item-label">너무 흔하지 않아야 함</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>이름 인상 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 복수 선택 가능)</span></label>
+    <div class="check-group">
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="부드러운 느낌"><span class="check-item-label">부드러운 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="밝은 느낌"><span class="check-item-label">밝은 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="똑똑한 느낌"><span class="check-item-label">똑똑한 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="강한 느낌"><span class="check-item-label">강한 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="세련된 느낌"><span class="check-item-label">세련된 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="차분한 느낌"><span class="check-item-label">차분한 느낌</span></label>
+      <label class="check-item"><input type="checkbox" class="impression-cb" value="개성 있는 느낌"><span class="check-item-label">개성 있는 느낌</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>생성 개수</label>
+    <select id="count">
+      <option value="10">10개</option>
+      <option value="20">20개</option>
+      <option value="30">30개</option>
+      <option value="40">40개</option>
+      <option value="50">50개</option>
+    </select>
+  </div>
+
+  <button class="btn btn-primary" id="btn-generate" onclick="generateNames()">✨ 이름 생성하기</button>
+  <!-- 생성 상태: js에서 동적 텍스트 변경 -->
+
+  <div class="loading" id="loading-generate">
+    <div class="spinner"></div>
+    <div class="loading-dots" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <p style="color:var(--sub);font-size:14px;font-weight:500">AI가 이름을 생성하고 있어요...</p>
+  </div>
+
+  <div id="result-list" class="mt-16"></div>
+</section>
+
+<!-- ════════════════════════════════════════
+     PAGE 2: 이름 월드컵
+════════════════════════════════════════ -->
+<section id="page-worldcup" class="page">
+  <div id="wc-running">
+    <h1>🏆 네이밍 월드컵</h1>
+    <p class="sub-title">더 마음에 드는 이름을 선택하세요</p>
+
+    <div class="wc-progress">
+      <div class="wc-progress-header">
+        <span class="wc-progress-label">진행률</span>
+        <span class="wc-progress-counter" id="wc-progress-text">0 / 0</span>
+      </div>
+      <div class="wc-progress-bar"><div class="wc-progress-fill" id="wc-progress-fill" style="width:0%"></div></div>
+    </div>
+
+    <p class="wc-round-hint">카드를 탭해서 더 마음에 드는 이름을 고르세요</p>
+
+    <div class="wc-arena">
+      <div class="wc-card" id="wc-left" onclick="chooseLeft()">
+        <div class="wc-badge wc-badge-champ" id="wc-left-badge">챔피언</div>
+        <div class="wc-name" id="wc-left-name">-</div>
+        <div class="wc-hanja" id="wc-left-hanja"></div>
+        <div class="wc-meaning" id="wc-left-meaning"></div>
+        <button class="wc-save-inline" onclick="event.stopPropagation(); saveWcName('left')">♡ 저장</button>
+      </div>
+
+      <div class="wc-vs-wrap">
+        <div class="wc-vs">VS</div>
+      </div>
+
+      <div class="wc-card" id="wc-right" onclick="chooseRight()">
+        <div class="wc-badge wc-badge-challenger">도전자</div>
+        <div class="wc-name" id="wc-right-name">-</div>
+        <div class="wc-hanja" id="wc-right-hanja"></div>
+        <div class="wc-meaning" id="wc-right-meaning"></div>
+        <button class="wc-save-inline" onclick="event.stopPropagation(); saveWcName('right')">♡ 저장</button>
+      </div>
+    </div>
+
+    <div class="wc-controls">
+      <button class="btn btn-outline" id="btn-wc-back" style="display:none" onclick="wcUndo()">← 이전으로</button>
+      <button class="btn btn-outline wc-btn-reset" onclick="resetWorldcup()">↩ 처음부터</button>
+    </div>
+  </div>
+
+  <div id="wc-result" style="display:none">
+    <h1>🏆 월드컵 결과</h1>
+    <p class="sub-title">최종 우승 이름이 결정되었습니다!</p>
+
+    <div class="result-box">
+      <span class="trophy">🏆</span>
+      <div class="winner-name" id="wc-winner-name"></div>
+      <div class="winner-hanja" id="wc-winner-hanja"></div>
+      <div class="winner-meaning" id="wc-winner-meaning"></div>
+    </div>
+
+    <div class="rarity-box" id="wc-rarity-box">
+      <h4>이름 희귀도</h4>
+      <div class="loading visible" id="loading-rarity"><div class="spinner"></div></div>
+      <div id="rarity-content" style="display:none">
+        <div class="rarity-row">
+          <span class="rarity-label" id="rarity-pop-label">사용인구 (2008년 이후)</span>
+          <span class="rarity-value" id="rarity-pop">-</span>
+        </div>
+        <div class="rarity-row">
+          <span class="rarity-label">희귀도</span>
+          <span class="rarity-value" id="rarity-grade">-</span>
+        </div>
+        <div id="rarity-source" style="font-size:11px;color:var(--sub);margin-top:10px;text-align:right"></div>
+      </div>
+    </div>
+
+    <div class="wc-save-prompt-box" id="wc-save-prompt">
+      <p>이 이름을 보관함에 저장할까요?</p>
+      <div class="wc-save-actions">
+        <button class="btn btn-primary" onclick="saveWinner()">저장하기</button>
+        <button class="btn btn-outline" onclick="skipSave()">저장 안 함</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     PAGE 3: 왕중왕전
+════════════════════════════════════════ -->
+<section id="page-grand" class="page">
+  <div id="grand-lobby">
+    <h1>👑 왕중왕전</h1>
+    <p class="sub-title">저장된 이름들로 최후의 1개를 결정하세요</p>
+    <div id="grand-name-list" class="card"></div>
+    <button class="btn btn-gold mt-12" id="btn-grand-start" onclick="startGrand()">👑 왕중왕전 시작하기</button>
+  </div>
+
+  <div id="grand-running" style="display:none">
+    <h1>👑 왕중왕전</h1>
+    <p class="sub-title">더 마음에 드는 이름을 선택하세요</p>
+
+    <div class="wc-progress">
+      <div class="wc-progress-header">
+        <span class="wc-progress-label">진행률</span>
+        <span class="wc-progress-counter" id="grand-progress-text">0 / 0</span>
+      </div>
+      <div class="wc-progress-bar"><div class="wc-progress-fill" id="grand-progress-fill" style="width:0%"></div></div>
+    </div>
+
+    <p class="wc-round-hint">카드를 탭해서 더 마음에 드는 이름을 고르세요</p>
+
+    <div class="wc-arena">
+      <div class="wc-card" id="grand-left" onclick="grandChooseLeft()">
+        <div class="wc-badge wc-badge-champ" id="grand-left-badge">챔피언</div>
+        <div class="wc-name" id="grand-left-name">-</div>
+        <div class="wc-hanja" id="grand-left-hanja"></div>
+        <div class="wc-meaning" id="grand-left-meaning"></div>
+      </div>
+
+      <div class="wc-vs-wrap">
+        <div class="wc-vs">VS</div>
+      </div>
+
+      <div class="wc-card" id="grand-right" onclick="grandChooseRight()">
+        <div class="wc-badge wc-badge-challenger">도전자</div>
+        <div class="wc-name" id="grand-right-name">-</div>
+        <div class="wc-hanja" id="grand-right-hanja"></div>
+        <div class="wc-meaning" id="grand-right-meaning"></div>
+      </div>
+    </div>
+
+    <div class="wc-controls">
+      <button class="btn btn-outline" id="btn-grand-back" style="display:none" onclick="grandUndo()">← 이전으로</button>
+      <button class="btn btn-outline wc-btn-reset" onclick="resetGrand()">↩ 처음부터</button>
+    </div>
+  </div>
+
+  <div id="grand-result" style="display:none">
+    <h1>👑 왕중왕전 결과</h1>
+    <p class="sub-title">모든 이름 중 최고가 결정되었습니다!</p>
+
+    <div class="result-box" style="background: linear-gradient(145deg, #F5A623 0%, #f7c06b 100%); box-shadow: 0 8px 32px rgba(245,166,35,0.30);">
+      <span class="trophy">👑</span>
+      <div class="winner-name" id="grand-winner-name"></div>
+      <div class="winner-hanja" id="grand-winner-hanja"></div>
+      <div class="winner-meaning" id="grand-winner-meaning"></div>
+    </div>
+
+    <div class="rarity-box">
+      <h4>이름 희귀도</h4>
+      <div class="loading visible" id="loading-grand-rarity"><div class="spinner"></div></div>
+      <div id="grand-rarity-content" style="display:none">
+        <div class="rarity-row">
+          <span class="rarity-label" id="grand-rarity-pop-label">사용인구 (2008년 이후)</span>
+          <span class="rarity-value" id="grand-rarity-pop">-</span>
+        </div>
+        <div class="rarity-row">
+          <span class="rarity-label">희귀도</span>
+          <span class="rarity-value" id="grand-rarity-grade">-</span>
+        </div>
+        <div id="grand-rarity-source" style="font-size:11px;color:var(--sub);margin-top:10px;text-align:right"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-gold" onclick="finalizeGrand()">👑 이 이름으로 최종 확정</button>
+    <button class="btn btn-outline mt-12" onclick="resetGrand()">↩ 왕중왕전 다시하기</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     PAGE 4: 프로필
+════════════════════════════════════════ -->
+<section id="page-profile" class="page">
+  <h1>📦 이름 보관함</h1>
+  <p class="sub-title">저장된 이름들을 관리하세요</p>
+  <div id="migrate-status" style="display:none;font-size:12px;color:var(--primary);margin-bottom:10px;text-align:center;padding:6px 10px;background:var(--primary-light);border-radius:8px;"></div>
+
+  <div class="profile-stat">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">저장된 이름</div>
+    </div>
+  </div>
+
+  <div class="flex-between" style="margin-bottom:14px">
+    <span style="font-weight:700;font-size:15px">저장된 이름</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="openAddNameModal()">+ 직접 추가</button>
+      <select class="small" id="author-filter" onchange="renderSavedNames()">
+        <option value="all">전체</option>
+        <option value="아빠">아빠</option>
+        <option value="엄마">엄마</option>
+      </select>
+      <select class="small" id="sort-select" onchange="renderSavedNames()">
+        <option value="newest">최신순</option>
+        <option value="abc">가나다순</option>
+        <option value="final">최종확정 먼저</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="saved-names-list"></div>
+</section>
+
+<!-- 이름 직접 추가 모달 -->
+<div class="modal-backdrop" id="add-name-modal">
+  <div class="modal">
+    <h3>이름 직접 추가</h3>
+    <p>AI 생성 없이 원하는 이름을 바로 저장해요.</p>
+    <div class="add-form">
+      <div class="add-form-row">
+        <div class="add-form-field" style="flex:0 0 80px">
+          <span class="add-form-label">성(姓) <em>*</em></span>
+          <input type="text" id="add-last-name" placeholder="김" maxlength="3" style="text-align:center">
+        </div>
+        <div class="add-form-field" style="flex:1">
+          <span class="add-form-label">이름 <em>*</em></span>
+          <input type="text" id="add-name" placeholder="지우">
+        </div>
+      </div>
+      <div class="add-form-field">
+        <span class="add-form-label">성별 <em>*</em></span>
+        <div style="display:flex;gap:16px;margin-top:6px">
+          <label class="check-item"><input type="radio" name="add-gender" value="여아" checked><span class="check-item-label">여아</span></label>
+          <label class="check-item"><input type="radio" name="add-gender" value="남아"><span class="check-item-label">남아</span></label>
+        </div>
+      </div>
+      <div class="add-form-field">
+        <span class="add-form-label">한자 <span class="add-form-opt">(선택)</span></span>
+        <input type="text" id="add-hanja" placeholder="예: 智雨" style="margin-top:6px">
+      </div>
+      <div class="add-form-field">
+        <span class="add-form-label">뜻 / 메모 <span class="add-form-opt">(선택)</span></span>
+        <input type="text" id="add-meaning" placeholder="예: 지혜롭고 촉촉한 이름" style="margin-top:6px">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-outline" onclick="closeAddNameModal()">취소</button>
+      <button class="btn btn-primary" onclick="confirmAddName()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal-backdrop" id="delete-modal">
+  <div class="modal">
+    <h3>이름 삭제</h3>
+    <p id="delete-modal-msg">이 이름을 삭제하시겠습니까?<br>삭제 후 복구할 수 없습니다.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">취소</button>
+      <button class="btn btn-accent" onclick="confirmDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<!-- 네비게이션 -->
+<nav>
+  <button onclick="goPage('generate')" id="nav-generate" class="active"><span>✨</span>이름생성</button>
+  <button onclick="goPage('worldcup')" id="nav-worldcup"><span>🏆</span>월드컵</button>
+  <button onclick="goPage('grand')" id="nav-grand"><span>👑</span>왕중왕전</button>
+  <button onclick="goPage('profile')" id="nav-profile"><span>📦</span>보관함</button>
+</nav>
+
+<script>
+// ════════════════════════════════
+// 상태
+// ════════════════════════════════
+let generatedNames = [];
+let wcState = null;   // 월드컵 상태
+let grandState = null; // 왕중왕전 상태
+let deleteTargetId = null;
+
+const API = '';  // 같은 서버에서 서빙되므로 빈 문자열
+
+// ════════════════════════════════
+// 사용자 전환
+// ════════════════════════════════
+function getCurrentUser() {
+  return localStorage.getItem('current_author') || '아빠';
+}
+function switchUser(name) {
+  localStorage.setItem('current_author', name);
+  renderUserBar();
+}
+function renderUserBar() {
+  const u = getCurrentUser();
+  document.getElementById('user-btn-dad').classList.toggle('active', u === '아빠');
+  document.getElementById('user-btn-mom').classList.toggle('active', u === '엄마');
+}
+function selectWelcomeUser(name) {
+  localStorage.setItem('current_author', name);
+  renderUserBar();
+  const overlay = document.getElementById('welcome-overlay');
+  overlay.classList.add('hidden');
+  setTimeout(() => overlay.style.display = 'none', 300);
+}
+// 첫 접속 시에만 웰컴 오버레이 표시
+if (localStorage.getItem('current_author')) {
+  const overlay = document.getElementById('welcome-overlay');
+  overlay.style.display = 'none';
+}
+renderUserBar();
+
+// ════════════════════════════════
+// 헬퍼 유틸
+// ════════════════════════════════
+const uuid = () => typeof crypto !== 'undefined' && crypto.randomUUID
+  ? crypto.randomUUID()
+  : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function debounce(fn, ms) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// ════════════════════════════════
+// 네비게이션
+// ════════════════════════════════
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'profile') { renderProfile(); migrateAndRefreshRarity(); }
+  if (name === 'grand') renderGrandLobby();
+}
+
+// ════════════════════════════════
+// STEP 1: 이름 생성
+// ════════════════════════════════
+document.getElementById('sib-check').addEventListener('change', function() {
+  document.getElementById('sibling-input-wrap').classList.toggle('visible', this.checked);
+});
+
+async function generateNames() {
+  const lastName = document.getElementById('last-name').value.trim();
+  if (!lastName) { alert('성(姓)을 입력해주세요.'); return; }
+
+  const sylRadio = document.querySelector('input[name="syllable"]:checked');
+  const syllables = sylRadio ? [sylRadio.value] : ['두자 이름'];
+
+  const criteria = [...document.querySelectorAll('.criteria:checked')].map(c => c.value);
+  const siblingNames = document.getElementById('sib-check').checked
+    ? document.getElementById('sibling-names').value.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+
+  const baseBody = {
+    last_name: lastName,
+    gender: document.querySelector('input[name="gender"]:checked')?.value || '남아',
+    syllables,
+    criteria,
+    sibling_names: siblingNames,
+    impression: [...document.querySelectorAll('.impression-cb:checked')].map(c => c.value),
+  };
+
+  const totalCount = parseInt(document.getElementById('count').value, 10);
+  const BATCH = 3;
+  const batches = Math.ceil(totalCount / BATCH);
+
+  generatedNames = [];
+  setLoading('loading-generate', true);
+  document.querySelector('#loading-generate p').textContent = `이름 생성 중... 0/${totalCount}개 (0%)`;
+  const btnGenerate = document.getElementById('btn-generate');
+  btnGenerate.disabled = true;
+  btnGenerate.textContent = '⏳ 생성 중...';
+  document.getElementById('result-list').innerHTML = '';
+
+  try {
+    for (let b = 0; b < batches; b++) {
+      if (generatedNames.length >= totalCount) break;
+      const batchCount = Math.min(BATCH, totalCount - generatedNames.length);
+      try {
+        const res = await fetch(API + '/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...baseBody,
+            count: batchCount,
+            exclude: generatedNames.map(n => n.name),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '생성 실패');
+
+        const batchNames = data.names || [];
+        if (batchNames.length === 0) continue;
+
+        for (const n of batchNames) {
+          if (generatedNames.length >= totalCount) break;
+          const enriched = { ...n, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
+          generatedNames.push(enriched);
+        }
+      } catch(batchErr) {
+        console.warn(`배치 ${b + 1} 실패, 건너뜀:`, batchErr.message);
+      }
+
+      // 로딩 텍스트 진행 상황 업데이트
+      const pct = Math.round((generatedNames.length / totalCount) * 100);
+      document.querySelector('#loading-generate p').textContent =
+        `이름 생성 중... ${generatedNames.length}/${totalCount}개 (${pct}%)`;
+    }
+
+    if (generatedNames.length === 0) {
+      document.getElementById('result-list').innerHTML = `
+        <div class="empty-result-card">
+          <div class="empty-icon">🔍</div>
+          <p>조건에 맞는 이름을 찾지 못했어요.<br>조건을 바꿔서 다시 시도해 보세요.</p>
+        </div>`;
+      throw new Error('이름을 생성하지 못했습니다. 다시 시도해주세요.');
+    }
+
+    if (generatedNames.length >= 2) startWorldcup();
+  } catch(e) {
+    if (generatedNames.length > 0) alert('오류: ' + e.message);
+  } finally {
+    setLoading('loading-generate', false);
+    btnGenerate.disabled = false;
+    btnGenerate.textContent = '✨ 이름 생성하기';
+  }
+}
+
+function appendNameCard(n, i) {
+  const el = document.getElementById('result-list');
+  const card = document.createElement('div');
+  card.className = 'name-card';
+  card.style.animation = 'fadeIn .3s ease';
+  card.innerHTML = `
+    <div class="name-card-info">
+      <div class="hanja">${n.hanja || ''}</div>
+      <h3>${n.name}</h3>
+      <div class="meaning">${n.meaning || ''}</div>
+      <div class="reason" style="margin-top:4px">${n.reason || ''}</div>
+    </div>
+    <div class="name-card-actions">
+      <button class="btn btn-primary btn-sm" onclick="saveGeneratedName(${i})">♡ 저장</button>
+    </div>
+  `;
+  el.appendChild(card);
+}
+
+function saveGeneratedName(idx) {
+  const n = generatedNames[idx];
+  const saved = getSavedNames();
+  const full = n.last_name + n.name;
+  if (saved.find(s => s.full_name === full)) { showToast('이미 저장된 이름이에요.'); return; }
+  saved.push({
+    id: uuid(),
+    name: n.name,
+    hanja: n.hanja || '',
+    full_name: full,
+    last_name: n.last_name,
+    gender: n.gender,
+    meaning: n.meaning || '',
+    reason: n.reason || '',
+    rarity: null,
+    estimated_population: null,
+    data_year: null,
+    criteria_used: n.criteria_used || [],
+    impression: n.impression || '',
+    is_final: false,
+    author: getCurrentUser(),
+    saved_at: new Date().toISOString(),
+  });
+  setSavedNames(saved);
+  showToast(`"${full}" 저장 완료!`);
+}
+
+// ════════════════════════════════
+// STEP 2: 이름 월드컵
+// ════════════════════════════════
+function startWorldcup() {
+  if (generatedNames.length < 2) { alert('이름이 2개 이상 필요합니다.'); return; }
+  const shuffled = shuffle(generatedNames);
+  wcState = {
+    names: shuffled,
+    champion: shuffled[0],
+    challengerIndex: 1,
+    totalRounds: shuffled.length - 1,
+    currentRound: 0,
+    history: [],
+  };
+  goPage('worldcup');
+  showWcRunning();
+  renderWcRound();
+}
+
+function showWcRunning() {
+  document.getElementById('wc-running').style.display = 'block';
+  document.getElementById('wc-result').style.display = 'none';
+}
+
+function renderWcRound() {
+  const s = wcState;
+  const champ = s.champion;
+  const challenger = s.names[s.challengerIndex];
+  document.getElementById('wc-left-name').textContent = (champ.last_name || '') + champ.name;
+  document.getElementById('wc-left-hanja').textContent = champ.hanja || '';
+  document.getElementById('wc-left-meaning').textContent = champ.meaning || '';
+  document.getElementById('wc-right-name').textContent = (challenger.last_name || '') + challenger.name;
+  document.getElementById('wc-right-hanja').textContent = challenger.hanja || '';
+  document.getElementById('wc-right-meaning').textContent = challenger.meaning || '';
+  const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
+  document.getElementById('wc-progress-fill').style.width = pct + '%';
+  document.getElementById('wc-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
+}
+
+function chooseLeft() { if (!wcState) return; wcAdvance(wcState.champion); }
+function chooseRight() { if (!wcState) return; wcAdvance(wcState.names[wcState.challengerIndex]); }
+
+function saveWcName(side) {
+  if (!wcState) return;
+  const n = side === 'left' ? wcState.champion : wcState.names[wcState.challengerIndex];
+  const saved = getSavedNames();
+  const full = (n.last_name || '') + n.name;
+  if (saved.find(s => s.full_name === full)) { showToast('이미 저장된 이름이에요.'); return; }
+  saved.push({
+    id: uuid(),
+    name: n.name,
+    hanja: n.hanja || '',
+    full_name: full,
+    last_name: n.last_name || '',
+    gender: n.gender || '여아',
+    meaning: n.meaning || '',
+    reason: n.reason || '',
+    rarity: null,
+    estimated_population: null,
+    data_year: null,
+    criteria_used: n.criteria_used || [],
+    impression: n.impression || '',
+    is_final: false,
+    author: getCurrentUser(),
+    saved_at: new Date().toISOString(),
+  });
+  setSavedNames(saved);
+  showToast(`"${full}" 저장 완료!`);
+}
+
+function wcAdvance(winner) {
+  wcState.history.push({ champion: wcState.champion, challengerIndex: wcState.challengerIndex, currentRound: wcState.currentRound });
+  wcState.champion = winner;
+  wcState.currentRound++;
+  wcState.challengerIndex++;
+  document.getElementById('btn-wc-back').style.display = 'block';
+  if (wcState.challengerIndex >= wcState.names.length) {
+    showWcResult();
+  } else {
+    renderWcRound();
+  }
+}
+
+function wcUndo() {
+  if (!wcState || !wcState.history.length) return;
+  const prev = wcState.history.pop();
+  wcState.champion = prev.champion;
+  wcState.challengerIndex = prev.challengerIndex;
+  wcState.currentRound = prev.currentRound;
+  if (!wcState.history.length) document.getElementById('btn-wc-back').style.display = 'none';
+  renderWcRound();
+}
+
+function resetWorldcup() {
+  wcState = null;
+  showWcRunning();
+  document.getElementById('wc-left-name').textContent = '-';
+  document.getElementById('wc-right-name').textContent = '-';
+  document.getElementById('wc-progress-fill').style.width = '0%';
+  document.getElementById('wc-progress-text').textContent = '0 / 0';
+}
+
+async function showWcResult() {
+  const w = wcState.champion;
+  document.getElementById('wc-running').style.display = 'none';
+  document.getElementById('wc-result').style.display = 'block';
+  document.getElementById('wc-save-prompt').style.display = 'block';
+  document.getElementById('wc-winner-name').textContent = (w.last_name || '') + w.name;
+  document.getElementById('wc-winner-hanja').textContent = w.hanja || '';
+  document.getElementById('wc-winner-meaning').textContent = w.meaning || '';
+  setLoading('loading-rarity', true);
+  document.getElementById('rarity-content').style.display = 'none';
+  try {
+    const res = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: w.name, gender: w.gender || '남아' }),
+    });
+    const d = await res.json();
+    const isReal = d.source === 'koreanname.me';
+    document.getElementById('rarity-pop-label').textContent = isReal ? '사용인구 (2008년 이후)' : '사용인구 (AI 추정)';
+    document.getElementById('rarity-pop').textContent = (d.estimated_population || 0).toLocaleString() + '명';
+    document.getElementById('rarity-grade').textContent = d.rarity || '-';
+    document.getElementById('rarity-source').textContent = isReal ? '출처: 대법원 전자가족관계시스템' : '출처: AI 추정값 · 실제와 다를 수 있음';
+    wcState.rarityData = d;
+  } catch(e) {
+    document.getElementById('rarity-desc').textContent = '희귀도 정보를 불러오지 못했습니다.';
+  } finally {
+    setLoading('loading-rarity', false);
+    document.getElementById('rarity-content').style.display = 'block';
+  }
+}
+
+function saveWinner() {
+  const w = wcState.champion;
+  const saved = getSavedNames();
+  const full = (w.last_name || '') + w.name;
+  if (!saved.find(s => s.full_name === full)) {
+    saved.push({
+      id: uuid(),
+      name: w.name,
+      hanja: w.hanja || '',
+      full_name: full,
+      last_name: w.last_name || '',
+      gender: w.gender || '남아',
+      meaning: w.meaning || '',
+      reason: w.reason || '',
+      rarity: wcState.rarityData?.rarity || null,
+      estimated_population: wcState.rarityData?.estimated_population || null,
+      data_year: wcState.rarityData?.data_year || null,
+      criteria_used: w.criteria_used || [],
+      impression: w.impression || '',
+      is_final: false,
+      author: getCurrentUser(),
+      saved_at: new Date().toISOString(),
+    });
+    setSavedNames(saved);
+  }
+  document.getElementById('wc-save-prompt').style.display = 'none';
+  showToast(`"${full}" 저장 완료! 보관함에서 확인하세요.`);
+}
+
+function skipSave() { goPage('generate'); }
+
+// ════════════════════════════════
+// STEP 3: 왕중왕전
+// ════════════════════════════════
+function renderGrandLobby() {
+  const saved = getSavedNames();
+  const el = document.getElementById('grand-name-list');
+  const btn = document.getElementById('btn-grand-start');
+  document.getElementById('grand-lobby').style.display = 'block';
+  document.getElementById('grand-running').style.display = 'none';
+  document.getElementById('grand-result').style.display = 'none';
+
+  if (saved.length === 0) {
+    el.innerHTML = `<div class="grand-empty-box"><div class="grand-empty-icon">📭</div><p>아직 저장된 이름이 없어요.<br>이름 생성 후 ♡ 저장하면 여기에 모입니다.</p></div>`;
+    btn.disabled = true;
+    return;
+  }
+  if (saved.length === 1) {
+    el.innerHTML = `<div class="grand-empty-box"><div class="grand-empty-icon">📝</div><p>왕중왕전은 2개 이상의 이름이 필요해요.<br>이름을 더 저장해보세요.</p></div>`;
+    btn.disabled = true;
+    return;
+  }
+  el.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">저장된 이름 ${saved.length}개</p>` +
+    saved.map(n => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-weight:700">${n.full_name} <span style="font-weight:400;color:var(--sub);font-size:12px">${n.hanja}</span></span>
+      ${n.is_final ? '<span class="badge badge-final">최종확정</span>' : ''}
+    </div>`).join('');
+  btn.disabled = false;
+}
+
+function startGrand() {
+  const saved = getSavedNames();
+  if (saved.length < 2) { alert('저장된 이름이 2개 이상 필요합니다.'); return; }
+  const shuffled = shuffle(saved);
+  grandState = {
+    names: shuffled,
+    champion: shuffled[0],
+    challengerIndex: 1,
+    totalRounds: shuffled.length - 1,
+    currentRound: 0,
+    history: [],
+  };
+  document.getElementById('grand-lobby').style.display = 'none';
+  document.getElementById('grand-running').style.display = 'block';
+  document.getElementById('grand-result').style.display = 'none';
+  renderGrandRound();
+}
+
+function renderGrandRound() {
+  const s = grandState;
+  const champ = s.champion;
+  const challenger = s.names[s.challengerIndex];
+  document.getElementById('grand-left-name').textContent = (champ.last_name || '') + champ.name;
+  document.getElementById('grand-left-hanja').textContent = champ.hanja || '';
+  document.getElementById('grand-left-meaning').textContent = champ.meaning || '';
+  document.getElementById('grand-right-name').textContent = (challenger.last_name || '') + challenger.name;
+  document.getElementById('grand-right-hanja').textContent = challenger.hanja || '';
+  document.getElementById('grand-right-meaning').textContent = challenger.meaning || '';
+  const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
+  document.getElementById('grand-progress-fill').style.width = pct + '%';
+  document.getElementById('grand-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
+}
+
+function grandChooseLeft() { if (!grandState) return; grandAdvance(grandState.champion); }
+function grandChooseRight() { if (!grandState) return; grandAdvance(grandState.names[grandState.challengerIndex]); }
+
+function grandUndo() {
+  if (!grandState || !grandState.history.length) return;
+  const prev = grandState.history.pop();
+  grandState.champion = prev.champion;
+  grandState.challengerIndex = prev.challengerIndex;
+  grandState.currentRound = prev.currentRound;
+  if (!grandState.history.length) document.getElementById('btn-grand-back').style.display = 'none';
+  renderGrandRound();
+}
+
+function grandAdvance(winner) {
+  grandState.history.push({ champion: grandState.champion, challengerIndex: grandState.challengerIndex, currentRound: grandState.currentRound });
+  grandState.champion = winner;
+  grandState.currentRound++;
+  grandState.challengerIndex++;
+  document.getElementById('btn-grand-back').style.display = 'block';
+  if (grandState.challengerIndex >= grandState.names.length) {
+    showGrandResult();
+  } else {
+    renderGrandRound();
+  }
+}
+
+function resetGrand() {
+  grandState = null;
+  renderGrandLobby();
+}
+
+async function showGrandResult() {
+  const w = grandState.champion;
+  document.getElementById('grand-running').style.display = 'none';
+  document.getElementById('grand-result').style.display = 'block';
+  document.getElementById('grand-winner-name').textContent = w.full_name || w.name;
+  document.getElementById('grand-winner-hanja').textContent = w.hanja || '';
+  document.getElementById('grand-winner-meaning').textContent = w.meaning || '';
+  setLoading('loading-grand-rarity', true);
+  document.getElementById('grand-rarity-content').style.display = 'none';
+  try {
+    const res = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: w.name, gender: w.gender || '남아' }),
+    });
+    const d = await res.json();
+    const isRealGrand = d.source === 'koreanname.me';
+    document.getElementById('grand-rarity-pop-label').textContent = isRealGrand ? '사용인구 (2008년 이후)' : '사용인구 (AI 추정)';
+    document.getElementById('grand-rarity-pop').textContent = (d.estimated_population || 0).toLocaleString() + '명';
+    document.getElementById('grand-rarity-grade').textContent = d.rarity || '-';
+    document.getElementById('grand-rarity-source').textContent = isRealGrand ? '출처: 대법원 전자가족관계시스템' : '출처: AI 추정값 · 실제와 다를 수 있음';
+    grandState.rarityData = d;
+  } catch(e) {
+    document.getElementById('grand-rarity-desc').textContent = '희귀도 정보를 불러오지 못했습니다.';
+  } finally {
+    setLoading('loading-grand-rarity', false);
+    document.getElementById('grand-rarity-content').style.display = 'block';
+  }
+}
+
+function finalizeGrand() {
+  const w = grandState.champion;
+  const saved = getSavedNames();
+  const updated = saved.map(n => ({ ...n, is_final: n.id === w.id }));
+  setSavedNames(updated);
+  showToast(`"${w.full_name || w.name}"을(를) 최종 확정했습니다!`);
+  goPage('profile');
+}
+
+// ════════════════════════════════
+// STEP 4: 프로필
+// ════════════════════════════════
+
+let _migrating = false;
+async function migrateAndRefreshRarity() {
+  if (_migrating) return;
+  const saved = getSavedNames();
+
+  // 구 형식(rarity_description 보유) 또는 rarity 미보유 항목 탐색
+  const targets = saved.filter(n => 'rarity_description' in n || n.estimated_population === null);
+  if (!targets.length) return;
+
+  _migrating = true;
+  const statusEl = document.getElementById('migrate-status');
+  statusEl.style.display = 'block';
+
+  let done = 0;
+  for (const n of targets) {
+    statusEl.textContent = `⟳ 인구 데이터 업데이트 중... (${done}/${targets.length})`;
+    try {
+      const res = await fetch(API + '/api/worldcup/rarity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: n.name, gender: n.gender || '여아' }),
+      });
+      const d = await res.json();
+      n.estimated_population = d.estimated_population ?? null;
+      n.rarity = d.rarity ?? null;
+      n.data_year = d.data_year ?? null;
+    } catch (_) {}
+    delete n.rarity_description;
+    done++;
+  }
+
+  setSavedNames(saved);
+  renderSavedNames();
+  statusEl.textContent = `✓ ${done}개 이름 데이터 업데이트 완료`;
+  setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+  _migrating = false;
+}
+
+function renderProfile() {
+  const saved = getSavedNames();
+  document.getElementById('stat-total').textContent = saved.length;
+  renderSavedNames();
+}
+
+function renderSavedNames() {
+  const sort = document.getElementById('sort-select').value;
+  const authorFilter = document.getElementById('author-filter').value;
+  let saved = getSavedNames();
+  if (authorFilter !== 'all') saved = saved.filter(n => n.author === authorFilter);
+  if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
+  if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  if (sort === 'final') saved = saved.slice().sort((a, b) => (b.is_final ? 1 : 0) - (a.is_final ? 1 : 0));
+
+  const el = document.getElementById('saved-names-list');
+  if (!saved.length) {
+    el.innerHTML = `<div class="empty">저장된 이름이 없습니다.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 생성하러 가기</button></div></div>`;
+    return;
+  }
+  el.innerHTML = saved.map(n => {
+    const metaParts = [
+      n.gender,
+      Array.isArray(n.impression) ? n.impression.join(', ') : (n.impression || ''),
+      new Date(n.saved_at).toLocaleDateString('ko-KR'),
+    ].filter(v => v);
+    const metaHtml = metaParts.map((p, i) =>
+      i === 0 ? `<span>${p}</span>` : `<span class="saved-card-meta-dot"></span><span>${p}</span>`
+    ).join('');
+    return `
+    <div class="saved-card${n.is_final ? ' is-final' : ''}${n.author === '아빠' ? ' author-dad' : n.author === '엄마' ? ' author-mom' : ''}">
+      <div class="saved-card-header">
+        <div class="saved-card-name-wrap">
+          <div class="saved-card-name">${n.full_name}${n.hanja ? `<span class="hanja-inline">${n.hanja}</span>` : ''}</div>
+        </div>
+        <div class="saved-card-badges">
+          ${n.is_final ? '<span class="badge badge-final">👑 최종확정</span>' : ''}
+          ${n.author === '아빠' ? '<span class="badge badge-dad">👨 아빠</span>' : n.author === '엄마' ? '<span class="badge badge-mom">👩 엄마</span>' : ''}
+          ${n.is_manual ? '<span class="badge badge-manual">직접 추가</span>' : ''}
+          ${n.rarity ? `<span class="badge badge-rarity">${n.rarity}</span>` : ''}
+        </div>
+      </div>
+      <div class="saved-card-body">
+        <div class="saved-card-meta">${metaHtml}</div>
+        ${n.meaning ? `<div class="saved-card-meaning">${n.meaning}</div>` : ''}
+        ${n.estimated_population != null ? `
+          <div class="saved-card-population">
+            <span class="pop-icon">👥</span>
+            사용 인구 <strong>${Number(n.estimated_population).toLocaleString()}명</strong>
+            <span style="color:var(--border);margin:0 2px">|</span>
+            <span>2008년 이후</span>
+          </div>` : ''}
+        ${n.criteria_used?.length ? `<div style="margin-top:4px">` + n.criteria_used.map(c => `<span class="tag">${c}</span>`).join('') + `</div>` : ''}
+      </div>
+      <div class="saved-card-footer">
+        <button class="btn-delete" onclick="openDeleteModal('${n.id}','${n.full_name}')">삭제</button>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function setFinal(id) {
+  // 왕중왕전에서만 호출됨
+  const saved = getSavedNames().map(n => ({ ...n, is_final: n.id === id }));
+  setSavedNames(saved);
+  renderProfile();
+}
+
+
+function openAddNameModal() {
+  document.getElementById('add-last-name').value = '';
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-hanja').value = '';
+  document.getElementById('add-meaning').value = '';
+  document.querySelector('input[name="add-gender"][value="여아"]').checked = true;
+  document.getElementById('add-name-modal').classList.add('visible');
+  setTimeout(() => document.getElementById('add-last-name').focus(), 100);
+}
+
+function closeAddNameModal() {
+  document.getElementById('add-name-modal').classList.remove('visible');
+}
+
+async function confirmAddName() {
+  const lastName = document.getElementById('add-last-name').value.trim();
+  const name = document.getElementById('add-name').value.trim();
+  if (!lastName) { alert('성(姓)을 입력해주세요.'); return; }
+  if (!name) { alert('이름을 입력해주세요.'); return; }
+  const gender = document.querySelector('input[name="add-gender"]:checked').value;
+  const hanja = document.getElementById('add-hanja').value.trim();
+  const meaning = document.getElementById('add-meaning').value.trim();
+  const fullName = lastName + name;
+
+  const saved = getSavedNames();
+  if (saved.find(s => s.full_name === fullName)) { alert(`"${fullName}"은(는) 이미 보관함에 있어요.`); return; }
+
+  const newEntry = {
+    id: uuid(),
+    name, hanja, full_name: fullName, last_name: lastName,
+    gender, meaning, reason: '',
+    rarity: null, estimated_population: null, data_year: null,
+    criteria_used: [], impression: '',
+    is_final: false, is_manual: true,
+    author: getCurrentUser(),
+    saved_at: new Date().toISOString(),
+  };
+  saved.push(newEntry);
+  setSavedNames(saved);
+  closeAddNameModal();
+  renderProfile();
+  showToast(`"${fullName}" 저장 완료! 희귀도 조회 중...`);
+
+  try {
+    const res = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, gender }),
+    });
+    const d = await res.json();
+    const all = getSavedNames();
+    const target = all.find(s => s.id === newEntry.id);
+    if (target) {
+      target.rarity = d.rarity ?? null;
+      target.estimated_population = d.estimated_population ?? null;
+      target.data_year = d.data_year ?? null;
+      setSavedNames(all);
+      renderProfile();
+    }
+  } catch (_) {}
+}
+
+function openDeleteModal(id, name) {
+  deleteTargetId = id;
+  document.getElementById('delete-modal-msg').textContent = `"${name}"을(를) 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.`;
+  document.getElementById('delete-modal').classList.add('visible');
+}
+function closeDeleteModal() {
+  deleteTargetId = null;
+  document.getElementById('delete-modal').classList.remove('visible');
+}
+function confirmDelete() {
+  if (!deleteTargetId) return;
+  const saved = getSavedNames().filter(n => n.id !== deleteTargetId);
+  setSavedNames(saved);
+  closeDeleteModal();
+  renderProfile();
+}
+
+// ════════════════════════════════
+// localStorage 헬퍼
+// ════════════════════════════════
+function getSavedNames() {
+  try { return JSON.parse(localStorage.getItem('saved_names') || '[]'); } catch (_) { return []; }
+}
+function setSavedNames(arr) { localStorage.setItem('saved_names', JSON.stringify(arr)); }
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch (_) { return {}; }
+}
+
+// ════════════════════════════════
+// 유틸
+// ════════════════════════════════
+function setLoading(id, visible) {
+  document.getElementById(id).classList.toggle('visible', visible);
+}
+
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2000);
+}
+</script>
+</body>
+</html>
