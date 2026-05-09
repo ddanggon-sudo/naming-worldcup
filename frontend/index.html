@@ -1474,7 +1474,9 @@ if (localStorage.getItem('current_author')) {
   overlay.style.display = 'none';
 }
 renderUserBar();
-loadNamesFromDB();
+loadNamesFromDB().then(() => {
+  if (document.querySelector('#page-profile.active')) renderProfile();
+});
 
 // ════════════════════════════════
 // 헬퍼 유틸
