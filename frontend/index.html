@@ -1013,6 +1013,7 @@
   <div class="flex-between" style="margin-bottom:14px">
     <span style="font-weight:700;font-size:15px">저장된 이름</span>
     <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-outline btn-sm" onclick="syncFromDB()" id="btn-sync" title="다른 기기에서 저장한 이름 불러오기">↻ 동기화</button>
       <button class="btn btn-primary btn-sm" onclick="openAddNameModal()">+ 직접 추가</button>
       <select class="small" id="author-filter" onchange="renderSavedNames()">
         <option value="all">전체</option>
@@ -1166,12 +1167,8 @@ function goPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
 
-  if (name === 'profile') {
-    loadNamesFromDB().then(() => { renderProfile(); migrateAndRefreshRarity(); });
-  }
-  if (name === 'grand') {
-    loadNamesFromDB().then(() => renderGrandLobby());
-  }
+  if (name === 'profile') { renderProfile(); migrateAndRefreshRarity(); }
+  if (name === 'grand') renderGrandLobby();
 }
 
 // ════════════════════════════════
@@ -1650,6 +1647,17 @@ async function migrateAndRefreshRarity() {
   statusEl.textContent = `✓ ${done}개 이름 데이터 업데이트 완료`;
   setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
   _migrating = false;
+}
+
+async function syncFromDB() {
+  const btn = document.getElementById('btn-sync');
+  btn.textContent = '↻ 동기화 중...';
+  btn.disabled = true;
+  await loadNamesFromDB();
+  renderProfile();
+  btn.textContent = '↻ 동기화';
+  btn.disabled = false;
+  showToast('동기화 완료!');
 }
 
 function renderProfile() {
