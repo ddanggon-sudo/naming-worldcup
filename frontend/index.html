@@ -1323,8 +1323,8 @@ async function saveGeneratedName(idx) {
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
   });
-  await setSavedNames(saved);
-  showToast(`"${full}" 저장 완료!`);
+  const ok = await setSavedNames(saved);
+  if (ok) showToast(`"${full}" 저장 완료!`);
 }
 
 // ════════════════════════════════
@@ -1393,8 +1393,8 @@ async function saveWcName(side) {
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
   });
-  await setSavedNames(saved);
-  showToast(`"${full}" 저장 완료!`);
+  const ok = await setSavedNames(saved);
+  if (ok) showToast(`"${full}" 저장 완료!`);
 }
 
 function wcAdvance(winner) {
@@ -1782,7 +1782,8 @@ async function confirmAddName() {
     saved_at: new Date().toISOString(),
   };
   saved.push(newEntry);
-  await setSavedNames(saved);
+  const ok = await setSavedNames(saved);
+  if (!ok) return;
   closeAddNameModal();
   renderProfile();
   showToast(`"${fullName}" 저장 완료! 희귀도 조회 중...`);
@@ -1896,11 +1897,11 @@ async function loadNamesFromDB() {
     _namesCache = (await res.json()).map(fromRow);
   } catch (e) {
     console.error('[Supabase] 로드 실패:', e);
-    _namesCache = [];
+    // 실패 시 캐시 유지 (초기화하지 않음)
   }
 }
 
-function getSavedNames() { return _namesCache; }
+function getSavedNames() { return [..._namesCache]; }
 
 async function setSavedNames(newArr) {
   const old = _namesCache;
@@ -1920,7 +1921,10 @@ async function setSavedNames(newArr) {
     console.error('[Supabase] 동기화 실패:', e);
     showToast('⚠️ 저장 중 오류가 발생했습니다.');
     _namesCache = old;
+    renderProfile();
+    return false;
   }
+  return true;
 }
 
 // ════════════════════════════════
