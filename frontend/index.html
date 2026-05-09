@@ -1131,6 +1131,7 @@ if (localStorage.getItem('current_author')) {
   overlay.style.display = 'none';
 }
 renderUserBar();
+loadNamesFromDB();
 
 // ════════════════════════════════
 // 헬퍼 유틸
@@ -1161,8 +1162,12 @@ function goPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
 
-  if (name === 'profile') { renderProfile(); migrateAndRefreshRarity(); }
-  if (name === 'grand') renderGrandLobby();
+  if (name === 'profile') {
+    loadNamesFromDB().then(() => { renderProfile(); migrateAndRefreshRarity(); });
+  }
+  if (name === 'grand') {
+    loadNamesFromDB().then(() => renderGrandLobby());
+  }
 }
 
 // ════════════════════════════════
@@ -1792,14 +1797,103 @@ function confirmDelete() {
 }
 
 // ════════════════════════════════
-// localStorage 헬퍼
+// Supabase 연동
 // ════════════════════════════════
-function getSavedNames() {
-  try { return JSON.parse(localStorage.getItem('saved_names') || '[]'); } catch (_) { return []; }
+const SUPABASE_URL = 'https://lsrlwmwtxaggmcahdhez.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxzcmx3bXd0eGFnZ21jYWhkaGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzg4ODEsImV4cCI6MjA5MzkxNDg4MX0.ejHTZiBYsMBN4cBcVJ6D5JYuEnrsIPMUQHm9Y3HuLoc';
+
+let _namesCache = [];
+
+function toRow(n) {
+  return {
+    id: n.id,
+    name: n.name || '',
+    hanja: n.hanja || null,
+    full_name: n.full_name || null,
+    last_name: n.last_name || null,
+    gender: n.gender || null,
+    meaning: n.meaning || null,
+    reason: n.reason || null,
+    rarity: n.rarity || null,
+    estimated_population: n.estimated_population != null ? Number(n.estimated_population) : null,
+    data_year: n.data_year != null ? Number(n.data_year) : null,
+    criteria_used: Array.isArray(n.criteria_used) ? n.criteria_used : [],
+    impression: Array.isArray(n.impression) ? n.impression.join(',') : (n.impression || null),
+    is_final: !!n.is_final,
+    is_manual: !!n.is_manual,
+    author: n.author || null,
+    saved_at: n.saved_at || new Date().toISOString(),
+  };
 }
-function setSavedNames(arr) { localStorage.setItem('saved_names', JSON.stringify(arr)); }
-function getProfile() {
-  try { return JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch (_) { return {}; }
+
+function fromRow(r) {
+  return {
+    id: r.id,
+    name: r.name || '',
+    hanja: r.hanja || '',
+    full_name: r.full_name || ((r.last_name || '') + r.name),
+    last_name: r.last_name || '',
+    gender: r.gender || '',
+    meaning: r.meaning || '',
+    reason: r.reason || '',
+    rarity: r.rarity || null,
+    estimated_population: r.estimated_population ?? null,
+    data_year: r.data_year ?? null,
+    criteria_used: Array.isArray(r.criteria_used) ? r.criteria_used : [],
+    impression: r.impression || '',
+    is_final: !!r.is_final,
+    is_manual: !!r.is_manual,
+    author: r.author || '',
+    saved_at: r.saved_at || r.created_at,
+  };
+}
+
+async function _sbFetch(path, opts = {}) {
+  const headers = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+  };
+  if (opts.method && opts.method !== 'GET') headers['Prefer'] = 'return=minimal';
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, { ...opts, headers });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase ${res.status}: ${text}`);
+  }
+  return res;
+}
+
+async function loadNamesFromDB() {
+  try {
+    const res = await _sbFetch('/naming_list?order=saved_at.asc');
+    _namesCache = (await res.json()).map(fromRow);
+  } catch (e) {
+    console.error('[Supabase] 로드 실패:', e);
+    _namesCache = [];
+  }
+}
+
+function getSavedNames() { return _namesCache; }
+
+async function setSavedNames(newArr) {
+  const old = _namesCache;
+  _namesCache = [...newArr];
+  try {
+    const oldById = Object.fromEntries(old.map(n => [n.id, n]));
+    const newById = Object.fromEntries(newArr.map(n => [n.id, n]));
+    const toInsert = newArr.filter(n => !oldById[n.id]);
+    const toDelete = old.filter(n => !newById[n.id]);
+    const toUpdate = newArr.filter(n => oldById[n.id] && JSON.stringify(oldById[n.id]) !== JSON.stringify(n));
+    await Promise.all([
+      ...toInsert.map(n => _sbFetch('/naming_list', { method: 'POST', body: JSON.stringify(toRow(n)) })),
+      ...toDelete.map(n => _sbFetch(`/naming_list?id=eq.${n.id}`, { method: 'DELETE' })),
+      ...toUpdate.map(n => _sbFetch(`/naming_list?id=eq.${n.id}`, { method: 'PATCH', body: JSON.stringify(toRow(n)) })),
+    ]);
+  } catch (e) {
+    console.error('[Supabase] 동기화 실패:', e);
+    showToast('⚠️ 저장 중 오류가 발생했습니다.');
+    _namesCache = old;
+  }
 }
 
 // ════════════════════════════════
