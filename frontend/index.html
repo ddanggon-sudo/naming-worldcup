@@ -804,6 +804,12 @@
   </div>
 
   <div class="card">
+    <label>선호 이름 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 쉼표로 여러 개 입력 가능)</span></label>
+    <input type="text" id="preferred-names" placeholder="예: 서준, 하은, 지우">
+    <p style="margin:6px 0 0;font-size:12px;color:var(--sub)">평소 좋다고 생각한 이름을 참고해 비슷한 느낌의 이름을 추천해 드려요.</p>
+  </div>
+
+  <div class="card">
     <label>생성 개수</label>
     <select id="count">
       <option value="10">10개</option>
@@ -1196,6 +1202,9 @@ async function generateNames() {
     ? document.getElementById('sibling-names').value.split(',').map(s => s.trim()).filter(Boolean)
     : [];
 
+  const preferredNames = document.getElementById('preferred-names').value
+    .split(',').map(s => s.trim()).filter(Boolean);
+
   const baseBody = {
     last_name: lastName,
     gender: document.querySelector('input[name="gender"]:checked')?.value || '남아',
@@ -1203,6 +1212,7 @@ async function generateNames() {
     criteria,
     sibling_names: siblingNames,
     impression: [...document.querySelectorAll('.impression-cb:checked')].map(c => c.value),
+    preferred_names: preferredNames,
   };
 
   const totalCount = parseInt(document.getElementById('count').value, 10);

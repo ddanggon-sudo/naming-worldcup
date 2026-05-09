@@ -106,7 +106,7 @@ async function chat(prompt) {
 
 const SYLLABLE_MAP = { '외자 이름': 1, '두자 이름': 2, '세자 이름': 3 };
 
-function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, count, exclude }) {
+function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count, exclude }) {
   const syllableNums   = syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean);
   const syllableStr    = syllableNums.length
     ? syllableNums.map(n => `${n}글자`).join(' 또는 ')
@@ -116,6 +116,8 @@ function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, im
   const excludeStr     = exclude.length ? `\n\n이미 추천한 이름이므로 제외: ${exclude.join(', ')}` : '';
   const impressions    = Array.isArray(impression) ? impression : (impression ? [impression] : []);
   const impressionStr  = impressions.length ? impressions.join(', ') : '제한 없음';
+  const preferred      = Array.isArray(preferred_names) ? preferred_names : [];
+  const preferredStr   = preferred.length ? preferred.join(', ') : '없음';
 
   return `당신은 한국 아기 이름 전문가입니다.
 
@@ -124,6 +126,7 @@ function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, im
 - 성별: ${gender}
 - 이름 글자 수: 반드시 ${syllableStr}인 이름만 추천 (성 제외, 이 규칙은 절대 어기지 마세요)
 - 이름 인상: ${impressionStr}
+- 선호 이름 (참고용): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 느낌·음감·스타일의 이름을 추천해 주세요' : ''}
 - 형제 이름: ${siblingStr}
 - 선택한 기준:
 ${criteriaStr}${excludeStr}
@@ -161,6 +164,7 @@ app.post('/api/generate', async (req, res) => {
     last_name, gender,
     syllables = [], criteria = [], sibling_names = [],
     impression = [],
+    preferred_names = [],
     count = 5,
     exclude = [],
   } = req.body;
@@ -170,7 +174,7 @@ app.post('/api/generate', async (req, res) => {
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
   const clampedCount = Math.min(20, Math.max(1, Number(count) || 5));
 
-  const prompt = buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, count: clampedCount, exclude });
+  const prompt = buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count: clampedCount, exclude });
 
   try {
     const raw = await chat(prompt);
