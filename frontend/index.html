@@ -675,6 +675,302 @@
   .grand-empty-box .grand-empty-icon { font-size: 32px; margin-bottom: 10px; }
   .grand-empty-box p { font-size: 14px; color: var(--sub); line-height: 1.7; }
 
+  /* ───────────────────────────────────────
+     왕중왕전 전용 테마
+  ─────────────────────────────────────── */
+
+  /* 로비 히어로 배너 */
+  .grand-hero {
+    background: linear-gradient(145deg, #2C1A00 0%, #5A3400 55%, #7A4800 100%);
+    border-radius: 20px;
+    padding: 28px 20px 24px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .grand-hero::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .grand-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .grand-hero-crown {
+    font-size: 44px;
+    display: block;
+    margin-bottom: 10px;
+    animation: crownFloat 3s ease-in-out infinite;
+  }
+  @keyframes crownFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .grand-hero-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+  .grand-hero-sub {
+    font-size: 13px;
+    color: rgba(245,166,35,0.7);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  /* 로비 이름 목록 패널 */
+  .grand-roster-panel {
+    background: var(--card);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border: 1px solid rgba(245,166,35,0.18);
+  }
+  .grand-roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(245,166,35,0.06) 0%, transparent 100%);
+  }
+  .grand-roster-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: .7px;
+  }
+  .grand-roster-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--gold);
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+
+  /* 로비 시작 버튼 래퍼 */
+  .grand-start-wrap {
+    padding: 4px 0 2px;
+  }
+  #btn-grand-start {
+    background: linear-gradient(135deg, #F5A623 0%, #e8920a 100%);
+    color: #fff;
+    padding: 16px;
+    font-size: 17px;
+    font-weight: 800;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(245,166,35,0.45);
+    letter-spacing: .2px;
+    transition: transform .15s, box-shadow .15s;
+    border: none;
+  }
+  #btn-grand-start:hover:not(:disabled) {
+    box-shadow: 0 6px 28px rgba(245,166,35,0.60);
+    transform: translateY(-2px);
+  }
+  #btn-grand-start:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(245,166,35,0.28); }
+  #btn-grand-start:disabled { opacity: 0.48; transform: none; box-shadow: none; cursor: not-allowed; }
+
+  /* 진행 중: 골드 진행 바 */
+  #grand-running .wc-progress-fill {
+    background: linear-gradient(90deg, #F5A623, #f7c06b);
+  }
+  #grand-running .wc-progress-counter {
+    background: rgba(245,166,35,0.12);
+    color: #c07800;
+    border: 1px solid rgba(245,166,35,0.3);
+  }
+  #grand-running .wc-round-hint {
+    color: #c07800;
+    background: rgba(245,166,35,0.08);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 600;
+  }
+
+  /* 진행 중: 카드 골드 호버 */
+  #grand-running .wc-card:hover {
+    border-color: var(--gold);
+    box-shadow: 0 8px 28px rgba(245,166,35,0.22);
+  }
+  #grand-running .wc-card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+  }
+
+  /* 진행 중: VS 원 골드 */
+  #grand-running .wc-vs {
+    background: rgba(245,166,35,0.12);
+    color: #c07800;
+    border: 1px solid rgba(245,166,35,0.3);
+    font-size: 12px;
+  }
+
+  /* 남은 이름 칩 스트립 */
+  .grand-remaining-strip {
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .grand-remaining-label {
+    font-size: 11px;
+    color: var(--sub);
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-align: center;
+    letter-spacing: .2px;
+  }
+  .grand-remaining-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+  }
+  .grand-chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: rgba(245,166,35,0.09);
+    color: #c07800;
+    border: 1px solid rgba(245,166,35,0.22);
+    white-space: nowrap;
+    transition: background .15s;
+  }
+  .grand-chip.grand-chip-current {
+    background: var(--gold);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(245,166,35,0.35);
+  }
+
+  /* 결과 화면 */
+  .grand-result-box {
+    background: linear-gradient(145deg, #2C1A00 0%, #7A4800 60%, #F5A623 100%);
+    border-radius: 22px;
+    padding: 32px 24px 26px;
+    text-align: center;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 40px rgba(245,166,35,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  /* shimmer sweep */
+  .grand-result-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg,
+      transparent 30%,
+      rgba(255,255,255,0.09) 50%,
+      transparent 70%);
+    animation: shimmerSweep 2.8s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmerSweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  /* decorative circles */
+  .grand-result-box::after {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 65%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .grand-result-crown {
+    font-size: 56px;
+    display: block;
+    margin-bottom: 10px;
+    animation: crownPop .6s cubic-bezier(.34,1.56,.64,1) both, crownFloat 3s 1s ease-in-out infinite;
+  }
+  @keyframes crownPop {
+    from { transform: scale(0.4) rotate(-15deg); opacity: 0; }
+    to { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .grand-result-name {
+    font-size: 40px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    animation: fadeInUp .5s .2s both;
+  }
+  .grand-result-hanja {
+    font-size: 14px;
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 8px;
+    animation: fadeInUp .5s .3s both;
+  }
+  .grand-result-meaning {
+    font-size: 14px;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.65;
+    animation: fadeInUp .5s .4s both;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 결과 버튼 영역 */
+  .grand-result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  #btn-grand-finalize {
+    background: linear-gradient(135deg, #F5A623 0%, #e8920a 100%);
+    color: #fff;
+    padding: 16px;
+    font-size: 17px;
+    font-weight: 800;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(245,166,35,0.45);
+    letter-spacing: .2px;
+    border: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+  #btn-grand-finalize:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(245,166,35,0.60);
+  }
+  #btn-grand-finalize:active { transform: scale(0.97); }
+  .grand-btn-retry {
+    background: transparent;
+    border: 1.5px solid rgba(245,166,35,0.5);
+    color: #c07800;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    width: 100%;
+  }
+  .grand-btn-retry:hover { background: rgba(245,166,35,0.07); border-color: var(--gold); }
+  .grand-btn-retry:active { transform: scale(0.98); }
+
   /* 웰컴 오버레이 */
   .welcome-overlay {
     position: fixed; inset: 0; z-index: 999;
@@ -921,26 +1217,47 @@
      PAGE 3: 왕중왕전
 ════════════════════════════════════════ -->
 <section id="page-grand" class="page">
+
+  <!-- [로비] grand-lobby -->
   <div id="grand-lobby">
-    <h1>👑 왕중왕전</h1>
-    <p class="sub-title">저장된 이름들로 최후의 1개를 결정하세요</p>
-    <div id="grand-name-list" class="card"></div>
-    <button class="btn btn-gold mt-12" id="btn-grand-start" onclick="startGrand()">👑 왕중왕전 시작하기</button>
+    <!-- 히어로 배너 -->
+    <div class="grand-hero">
+      <span class="grand-hero-crown">👑</span>
+      <div class="grand-hero-title">왕중왕전</div>
+      <div class="grand-hero-sub">저장된 모든 이름이 격돌합니다<br>최후의 1개를 지금 결정하세요</div>
+    </div>
+
+    <!-- 참가자 명단 패널 -->
+    <div class="grand-roster-panel">
+      <div class="grand-roster-header">
+        <span class="grand-roster-title">참가자 명단</span>
+        <span class="grand-roster-count" id="grand-roster-count-badge">0명</span>
+      </div>
+      <div id="grand-name-list"></div>
+    </div>
+
+    <!-- 시작 버튼 -->
+    <div class="grand-start-wrap">
+      <button class="btn" id="btn-grand-start" onclick="startGrand()">👑 왕중왕전 시작하기</button>
+    </div>
   </div>
 
+  <!-- [진행 중] grand-running -->
   <div id="grand-running" style="display:none">
-    <h1>👑 왕중왕전</h1>
-    <p class="sub-title">더 마음에 드는 이름을 선택하세요</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <span style="font-size:18px">👑</span>
+      <h1 style="font-size:20px;margin:0">왕중왕전 진행 중</h1>
+    </div>
 
-    <div class="wc-progress">
+    <div class="wc-progress" style="margin-top:14px">
       <div class="wc-progress-header">
-        <span class="wc-progress-label">진행률</span>
+        <span class="wc-progress-label" style="font-weight:700;color:#c07800">대결 진행률</span>
         <span class="wc-progress-counter" id="grand-progress-text">0 / 0</span>
       </div>
       <div class="wc-progress-bar"><div class="wc-progress-fill" id="grand-progress-fill" style="width:0%"></div></div>
     </div>
 
-    <p class="wc-round-hint">카드를 탭해서 더 마음에 드는 이름을 고르세요</p>
+    <p class="wc-round-hint">탭해서 더 마음에 드는 이름을 고르세요</p>
 
     <div class="wc-arena">
       <div class="wc-card" id="grand-left" onclick="grandChooseLeft()">
@@ -962,26 +1279,35 @@
       </div>
     </div>
 
+    <!-- 남은 이름 칩 스트립 -->
+    <div class="grand-remaining-strip" id="grand-remaining-strip">
+      <div class="grand-remaining-label">남은 이름</div>
+      <div class="grand-remaining-chips" id="grand-remaining-chips"></div>
+    </div>
+
     <div class="wc-controls">
       <button class="btn btn-outline" id="btn-grand-back" style="display:none" onclick="grandUndo()">← 이전으로</button>
       <button class="btn btn-outline wc-btn-reset" onclick="resetGrand()">↩ 처음부터</button>
     </div>
   </div>
 
+  <!-- [결과] grand-result -->
   <div id="grand-result" style="display:none">
-    <h1>👑 왕중왕전 결과</h1>
-    <p class="sub-title">모든 이름 중 최고가 결정되었습니다!</p>
-
-    <div class="result-box" style="background: linear-gradient(145deg, #F5A623 0%, #f7c06b 100%); box-shadow: 0 8px 32px rgba(245,166,35,0.30);">
-      <span class="trophy">👑</span>
-      <div class="winner-name" id="grand-winner-name"></div>
-      <div class="winner-hanja" id="grand-winner-hanja"></div>
-      <div class="winner-meaning" id="grand-winner-meaning"></div>
+    <div style="text-align:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px">최후의 승자</span>
     </div>
 
-    <div class="rarity-box">
-      <h4>이름 희귀도</h4>
-      <div class="loading visible" id="loading-grand-rarity"><div class="spinner"></div></div>
+    <!-- 왕중왕전 전용 결과 박스 -->
+    <div class="grand-result-box">
+      <span class="grand-result-crown">👑</span>
+      <div class="grand-result-name" id="grand-winner-name"></div>
+      <div class="grand-result-hanja" id="grand-winner-hanja"></div>
+      <div class="grand-result-meaning" id="grand-winner-meaning"></div>
+    </div>
+
+    <div class="rarity-box" style="border:1px solid rgba(245,166,35,0.2)">
+      <h4 style="color:#c07800">이름 희귀도</h4>
+      <div class="loading visible" id="loading-grand-rarity"><div class="spinner" style="border-top-color:var(--gold)"></div></div>
       <div id="grand-rarity-content" style="display:none">
         <div class="rarity-row">
           <span class="rarity-label" id="grand-rarity-pop-label">사용인구 (2008년 이후)</span>
@@ -995,9 +1321,13 @@
       </div>
     </div>
 
-    <button class="btn btn-gold" onclick="finalizeGrand()">👑 이 이름으로 최종 확정</button>
-    <button class="btn btn-outline mt-12" onclick="resetGrand()">↩ 왕중왕전 다시하기</button>
+    <!-- 두 버튼: 명확한 위계 -->
+    <div class="grand-result-actions">
+      <button class="btn" id="btn-grand-finalize" onclick="finalizeGrand()">👑 이 이름으로 최종 확정</button>
+      <button class="grand-btn-retry" onclick="resetGrand()">↩ 왕중왕전 다시하기</button>
+    </div>
   </div>
+
 </section>
 
 <!-- ════════════════════════════════════════
@@ -1498,24 +1828,29 @@ function renderGrandLobby() {
   const saved = getSavedNames();
   const el = document.getElementById('grand-name-list');
   const btn = document.getElementById('btn-grand-start');
+  const countBadge = document.getElementById('grand-roster-count-badge');
   document.getElementById('grand-lobby').style.display = 'block';
   document.getElementById('grand-running').style.display = 'none';
   document.getElementById('grand-result').style.display = 'none';
 
   if (saved.length === 0) {
+    if (countBadge) countBadge.textContent = '0명';
     el.innerHTML = `<div class="grand-empty-box"><div class="grand-empty-icon">📭</div><p>아직 저장된 이름이 없어요.<br>이름 생성 후 ♡ 저장하면 여기에 모입니다.</p></div>`;
     btn.disabled = true;
     return;
   }
   if (saved.length === 1) {
+    if (countBadge) countBadge.textContent = '1명';
     el.innerHTML = `<div class="grand-empty-box"><div class="grand-empty-icon">📝</div><p>왕중왕전은 2개 이상의 이름이 필요해요.<br>이름을 더 저장해보세요.</p></div>`;
     btn.disabled = true;
     return;
   }
-  el.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">저장된 이름 ${saved.length}개</p>` +
-    saved.map(n => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-weight:700">${n.full_name} <span style="font-weight:400;color:var(--sub);font-size:12px">${n.hanja}</span></span>
-      ${n.is_final ? '<span class="badge badge-final">최종확정</span>' : ''}
+  if (countBadge) countBadge.textContent = saved.length + '명';
+  el.innerHTML = saved.map((n, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);gap:8px">
+      <span style="font-size:12px;font-weight:700;color:rgba(245,166,35,0.6);min-width:20px;flex-shrink:0">${i + 1}</span>
+      <span style="flex:1;font-weight:700;font-size:14px">${n.full_name}<span style="font-weight:400;color:var(--sub);font-size:11px;margin-left:5px">${n.hanja || ''}</span></span>
+      ${n.is_final ? '<span class="badge badge-final" style="flex-shrink:0">최종확정</span>' : ''}
     </div>`).join('');
   btn.disabled = false;
 }
@@ -1551,6 +1886,26 @@ function renderGrandRound() {
   const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
   document.getElementById('grand-progress-fill').style.width = pct + '%';
   document.getElementById('grand-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
+
+  // 남은 이름 칩 스트립 갱신
+  const chipsEl = document.getElementById('grand-remaining-chips');
+  const stripEl = document.getElementById('grand-remaining-strip');
+  if (chipsEl) {
+    // 챔피언 + 아직 나오지 않은 도전자들
+    const remaining = [s.champion, ...s.names.slice(s.challengerIndex)];
+    const champFullName = (champ.last_name || '') + champ.name;
+    const chalFullName = (challenger.last_name || '') + challenger.name;
+    if (remaining.length <= 12) {
+      stripEl.style.display = 'block';
+      chipsEl.innerHTML = remaining.map(n => {
+        const full = (n.last_name || '') + n.name;
+        const isCurrent = (full === champFullName || full === chalFullName);
+        return `<span class="grand-chip${isCurrent ? ' grand-chip-current' : ''}">${full}</span>`;
+      }).join('');
+    } else {
+      stripEl.style.display = 'none';
+    }
+  }
 }
 
 function grandChooseLeft() { if (!grandState) return; grandAdvance(grandState.champion); }
