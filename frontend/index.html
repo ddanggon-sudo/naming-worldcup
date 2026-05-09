@@ -1136,9 +1136,13 @@ loadNamesFromDB();
 // ════════════════════════════════
 // 헬퍼 유틸
 // ════════════════════════════════
-const uuid = () => typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+const uuid = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+};
 
 function shuffle(arr) {
   const a = [...arr];
@@ -1283,7 +1287,7 @@ function appendNameCard(n, i) {
   el.appendChild(card);
 }
 
-function saveGeneratedName(idx) {
+async function saveGeneratedName(idx) {
   const n = generatedNames[idx];
   const saved = getSavedNames();
   const full = n.last_name + n.name;
@@ -1306,7 +1310,7 @@ function saveGeneratedName(idx) {
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
   });
-  setSavedNames(saved);
+  await setSavedNames(saved);
   showToast(`"${full}" 저장 완료!`);
 }
 
@@ -1352,7 +1356,7 @@ function renderWcRound() {
 function chooseLeft() { if (!wcState) return; wcAdvance(wcState.champion); }
 function chooseRight() { if (!wcState) return; wcAdvance(wcState.names[wcState.challengerIndex]); }
 
-function saveWcName(side) {
+async function saveWcName(side) {
   if (!wcState) return;
   const n = side === 'left' ? wcState.champion : wcState.names[wcState.challengerIndex];
   const saved = getSavedNames();
@@ -1376,7 +1380,7 @@ function saveWcName(side) {
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
   });
-  setSavedNames(saved);
+  await setSavedNames(saved);
   showToast(`"${full}" 저장 완료!`);
 }
 
@@ -1443,7 +1447,7 @@ async function showWcResult() {
   }
 }
 
-function saveWinner() {
+async function saveWinner() {
   const w = wcState.champion;
   const saved = getSavedNames();
   const full = (w.last_name || '') + w.name;
@@ -1466,7 +1470,7 @@ function saveWinner() {
       author: getCurrentUser(),
       saved_at: new Date().toISOString(),
     });
-    setSavedNames(saved);
+    await setSavedNames(saved);
   }
   document.getElementById('wc-save-prompt').style.display = 'none';
   showToast(`"${full}" 저장 완료! 보관함에서 확인하세요.`);
@@ -1597,11 +1601,11 @@ async function showGrandResult() {
   }
 }
 
-function finalizeGrand() {
+async function finalizeGrand() {
   const w = grandState.champion;
   const saved = getSavedNames();
   const updated = saved.map(n => ({ ...n, is_final: n.id === w.id }));
-  setSavedNames(updated);
+  await setSavedNames(updated);
   showToast(`"${w.full_name || w.name}"을(를) 최종 확정했습니다!`);
   goPage('profile');
 }
@@ -1641,7 +1645,7 @@ async function migrateAndRefreshRarity() {
     done++;
   }
 
-  setSavedNames(saved);
+  await setSavedNames(saved);
   renderSavedNames();
   statusEl.textContent = `✓ ${done}개 이름 데이터 업데이트 완료`;
   setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
@@ -1709,10 +1713,9 @@ function renderSavedNames() {
   `;}).join('');
 }
 
-function setFinal(id) {
-  // 왕중왕전에서만 호출됨
+async function setFinal(id) {
   const saved = getSavedNames().map(n => ({ ...n, is_final: n.id === id }));
-  setSavedNames(saved);
+  await setSavedNames(saved);
   renderProfile();
 }
 
@@ -1755,7 +1758,7 @@ async function confirmAddName() {
     saved_at: new Date().toISOString(),
   };
   saved.push(newEntry);
-  setSavedNames(saved);
+  await setSavedNames(saved);
   closeAddNameModal();
   renderProfile();
   showToast(`"${fullName}" 저장 완료! 희귀도 조회 중...`);
@@ -1773,7 +1776,7 @@ async function confirmAddName() {
       target.rarity = d.rarity ?? null;
       target.estimated_population = d.estimated_population ?? null;
       target.data_year = d.data_year ?? null;
-      setSavedNames(all);
+      await setSavedNames(all);
       renderProfile();
     }
   } catch (_) {}
@@ -1788,10 +1791,10 @@ function closeDeleteModal() {
   deleteTargetId = null;
   document.getElementById('delete-modal').classList.remove('visible');
 }
-function confirmDelete() {
+async function confirmDelete() {
   if (!deleteTargetId) return;
   const saved = getSavedNames().filter(n => n.id !== deleteTargetId);
-  setSavedNames(saved);
+  await setSavedNames(saved);
   closeDeleteModal();
   renderProfile();
 }
