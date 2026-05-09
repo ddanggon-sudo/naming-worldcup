@@ -1475,7 +1475,10 @@ if (localStorage.getItem('current_author')) {
 }
 renderUserBar();
 let _dbReady = false;
-const _dbReadyPromise = loadNamesFromDB().then(() => { _dbReady = true; });
+loadNamesFromDB().then(() => {
+  _dbReady = true;
+  renderProfile();
+});
 
 // ════════════════════════════════
 // 헬퍼 유틸
@@ -1504,17 +1507,13 @@ function debounce(fn, ms) {
 // ════════════════════════════════
 // 네비게이션
 // ════════════════════════════════
-async function goPage(name) {
+function goPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
 
-  if (name === 'profile') {
-    if (!_dbReady) await _dbReadyPromise;
-    renderProfile();
-    migrateAndRefreshRarity();
-  }
+  if (name === 'profile') { renderProfile(); migrateAndRefreshRarity(); }
   if (name === 'grand') renderGrandLobby();
 }
 
