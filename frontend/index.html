@@ -18,8 +18,30 @@
     --radius: 14px;
     --shadow: 0 2px 12px rgba(108,99,255,0.10);
   }
+  /* ── 아빠 테마 (파란/인디고) ── */
+  body.theme-dad {
+    --primary: #4A7CF7;
+    --primary-light: #EBF0FF;
+    --accent: #6C63FF;
+    --bg: #F0F4FF;
+    --shadow: 0 2px 12px rgba(74,124,247,0.12);
+  }
+  /* ── 엄마 테마 (핑크/로즈) ── */
+  body.theme-mom {
+    --primary: #FF6584;
+    --primary-light: #FFF0F3;
+    --accent: #FF9BAD;
+    --bg: #FFF5F7;
+    --shadow: 0 2px 12px rgba(255,101,132,0.12);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; padding-top: 56px; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding-bottom: 80px; padding-top: 56px;
+    transition: background-color 0.35s ease;
+  }
 
   /* 사용자 전환 바 */
   .user-bar {
@@ -1501,8 +1523,13 @@ const API = '';  // 같은 서버에서 서빙되므로 빈 문자열
 function getCurrentUser() {
   return localStorage.getItem('current_author') || '아빠';
 }
+function applyTheme(user) {
+  document.body.classList.toggle('theme-dad', user === '아빠');
+  document.body.classList.toggle('theme-mom', user === '엄마');
+}
 function switchUser(name) {
   localStorage.setItem('current_author', name);
+  applyTheme(name);
   renderUserBar();
 }
 function renderUserBar() {
@@ -1512,6 +1539,7 @@ function renderUserBar() {
 }
 function selectWelcomeUser(name) {
   localStorage.setItem('current_author', name);
+  applyTheme(name);
   renderUserBar();
   const overlay = document.getElementById('welcome-overlay');
   overlay.classList.add('hidden');
@@ -1522,6 +1550,7 @@ if (localStorage.getItem('current_author')) {
   const overlay = document.getElementById('welcome-overlay');
   overlay.style.display = 'none';
 }
+applyTheme(getCurrentUser());
 renderUserBar();
 
 // ════════════════════════════════
