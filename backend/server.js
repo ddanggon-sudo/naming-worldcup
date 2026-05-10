@@ -308,6 +308,35 @@ app.post('/api/worldcup/rarity', async (req, res) => {
   }
 });
 
+// ── GET /api/tts/test ─────────────────────────────────────────
+app.get('/api/tts/test', async (req, res) => {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) return res.json({ ok: false, reason: 'ELEVENLABS_API_KEY 없음' });
+
+  const VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+  try {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: '민준아',
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (r.ok) {
+      const buf = Buffer.from(await r.arrayBuffer());
+      return res.json({ ok: true, bytes: buf.length, voice_id: VOICE_ID });
+    } else {
+      const e = await r.json();
+      return res.json({ ok: false, status: r.status, detail: e });
+    }
+  } catch (e) {
+    return res.json({ ok: false, error: e.message });
+  }
+});
+
 // ── POST /api/tts ──────────────────────────────────────────────
 
 app.post('/api/tts', async (req, res) => {
