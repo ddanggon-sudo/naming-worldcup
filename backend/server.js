@@ -314,28 +314,38 @@ app.post('/api/tts', async (req, res) => {
   const { text } = req.body;
   if (!text || typeof text !== 'string') return res.status(400).json({ detail: 'text required' });
 
-  const apiKey = process.env.GOOGLE_TTS_KEY;
+  const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ detail: 'no_key' });
+
+  // Rachel — eleven_multilingual_v2 (한국어 자연스러운 여성 음성)
+  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
   try {
     const r = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          input: { text },
-          voice: { languageCode: 'ko-KR', name: 'ko-KR-Neural2-A' },
-          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.88, pitch: 1.5 },
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.65,
+            similarity_boost: 0.75,
+            style: 0.2,
+            use_speaker_boost: true,
+          },
         }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
       }
     );
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'TTS error'); }
-    const { audioContent } = await r.json();
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail?.message || 'TTS error'); }
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(Buffer.from(audioContent, 'base64'));
+    r.body.pipe(res);
   } catch (e) {
     console.error('[tts]', e.message);
     res.status(500).json({ detail: e.message });
