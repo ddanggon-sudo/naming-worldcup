@@ -715,6 +715,25 @@
   }
   #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
+  /* 생성 진행 팝업 */
+  #progress-toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,40,0.92); color: #fff;
+    padding: 10px 20px; border-radius: 99px;
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 998; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+    backdrop-filter: blur(6px);
+  }
+  #progress-toast.show { opacity: 1; }
+  .progress-spinner {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
   /* 프로필 CTA 버튼 */
   .empty-profile-cta { margin-top: 14px; }
 
@@ -1495,6 +1514,7 @@
 
 <!-- 토스트 -->
 <div id="toast"></div>
+<div id="progress-toast"><div class="progress-spinner"></div><span id="progress-msg">이름 생성 중...</span></div>
 
 <!-- 네비게이션 -->
 <nav>
@@ -1628,8 +1648,7 @@ async function generateNames() {
   const totalCount = parseInt(document.getElementById('count').value, 10);
 
   generatedNames = [];
-  setLoading('loading-generate', true);
-  document.querySelector('#loading-generate p').textContent = '이름 생성 중...';
+  showProgressToast('이름 생성 중...');
   const btnGenerate = document.getElementById('btn-generate');
   btnGenerate.disabled = true;
   btnGenerate.textContent = '⏳ 생성 중...';
@@ -1668,9 +1687,7 @@ async function generateNames() {
           if (generatedNames.length >= totalCount) continue;
           const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
           generatedNames.push(enriched);
-          appendNameCard(enriched, generatedNames.length - 1);
-          document.querySelector('#loading-generate p').textContent =
-            `이름 생성 중... ${generatedNames.length}/${totalCount}개`;
+          showProgressToast(`이름 생성 중... ${generatedNames.length}/${totalCount}개`);
         } catch (err) {
           if (err.message !== '생성 실패') console.warn('SSE 파싱:', err.message);
           else throw err;
@@ -1691,7 +1708,7 @@ async function generateNames() {
   } catch(e) {
     if (generatedNames.length > 0) alert('오류: ' + e.message);
   } finally {
-    setLoading('loading-generate', false);
+    hideProgressToast();
     btnGenerate.disabled = false;
     btnGenerate.textContent = '✨ 이름 생성하기';
   }
@@ -2418,6 +2435,13 @@ function showToast(msg) {
   t.classList.add('show');
   if (_toastTimer) clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2000);
+}
+function showProgressToast(msg) {
+  document.getElementById('progress-msg').textContent = msg;
+  document.getElementById('progress-toast').classList.add('show');
+}
+function hideProgressToast() {
+  document.getElementById('progress-toast').classList.remove('show');
 }
 </script>
 </body>
