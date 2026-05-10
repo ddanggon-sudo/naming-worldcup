@@ -1760,6 +1760,7 @@ async function saveGeneratedName(idx) {
       target.estimated_population = d.estimated_population ?? null;
       target.data_year = d.data_year ?? null;
       await setSavedNames(all);
+      renderProfile();
     }
   } catch (_) {}
 }
