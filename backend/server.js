@@ -165,7 +165,7 @@ app.post('/api/generate', async (req, res) => {
   if (!last_name || typeof last_name !== 'string') return res.status(400).json({ detail: '성(姓)을 입력해주세요.' });
   if (!/^[가-힣a-zA-Z]{1,5}$/.test(last_name)) return res.status(400).json({ detail: '성(姓)은 한글/영문 1~5자만 허용됩니다.' });
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
-  const clampedCount = Math.min(20, Math.max(1, Number(count) || 5));
+  const clampedCount = Math.min(30, Math.max(1, Number(count) || 10));
 
   const prompt = buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count: clampedCount, exclude });
   const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
