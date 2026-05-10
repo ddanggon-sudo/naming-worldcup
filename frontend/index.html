@@ -2480,12 +2480,29 @@ function getVocative(name) {
   return name + (hasBatchim(last) ? '아' : '야');
 }
 
+let _koVoice = null;
+function loadKoreanVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const ko = voices.filter(v => v.lang.startsWith('ko'));
+  const femaleKw = ['heami', 'yuna', '경', 'female', 'woman', 'kyung'];
+  for (const kw of femaleKw) {
+    const found = ko.find(v => v.name.toLowerCase().includes(kw));
+    if (found) { _koVoice = found; return; }
+  }
+  _koVoice = ko[0] || null;
+}
+if (window.speechSynthesis) {
+  loadKoreanVoice();
+  window.speechSynthesis.onvoiceschanged = loadKoreanVoice;
+}
+
 function speakAsync(text) {
   return new Promise(resolve => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ko-KR';
     u.rate = 0.82;
-    u.pitch = 1.1;
+    u.pitch = 1.2;
+    if (_koVoice) u.voice = _koVoice;
     u.onend = resolve;
     u.onerror = resolve;
     window.speechSynthesis.speak(u);
@@ -2495,15 +2512,9 @@ function speakAsync(text) {
 async function announceNames(leftName, rightName) {
   if (!_voiceOn || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const left  = getVocative(leftName)  + '~';
-  const right = getVocative(rightName) + '~';
-  await speakAsync(left);
-  await new Promise(r => setTimeout(r, 1000));
-  await speakAsync(left);
-  await new Promise(r => setTimeout(r, 600));
-  await speakAsync(right);
-  await new Promise(r => setTimeout(r, 1000));
-  await speakAsync(right);
+  await speakAsync(getVocative(leftName));
+  await new Promise(r => setTimeout(r, 700));
+  await speakAsync(getVocative(rightName));
 }
 
 updateVoiceBtns();
