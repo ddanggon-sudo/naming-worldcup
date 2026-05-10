@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>네이밍 월드컵</title>
+<title>PickMeBaby</title>
 <style>
   :root {
     --primary: #6C63FF;
@@ -25,9 +25,10 @@
   .user-bar {
     position: fixed; top: 0; left: 0; right: 0; height: 48px;
     background: var(--card); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 101;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; z-index: 101;
   }
-  .user-bar-label { font-size: 11px; color: var(--sub); font-weight: 500; letter-spacing: .2px; }
+  .user-bar-logo { height: 26px; width: auto; display: block; }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1002,8 +1003,7 @@
     opacity: 1; transition: opacity .3s ease;
   }
   .welcome-overlay.hidden { opacity: 0; pointer-events: none; }
-  .welcome-emoji { font-size: 52px; margin-bottom: 20px; }
-  .welcome-title { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 8px; text-align: center; }
+  .welcome-logo { width: 220px; max-width: 75%; margin-bottom: 36px; }
   .welcome-sub { font-size: 14px; color: var(--sub); margin-bottom: 40px; text-align: center; line-height: 1.6; }
   .welcome-btns { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 280px; }
   .welcome-btn {
@@ -1024,8 +1024,7 @@
 
 <!-- 웰컴 오버레이 -->
 <div class="welcome-overlay" id="welcome-overlay">
-  <div class="welcome-emoji">👶</div>
-  <div class="welcome-title">네이밍 월드컵</div>
+  <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="welcome-logo">
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
     <button class="welcome-btn welcome-btn-dad" onclick="selectWelcomeUser('아빠')">
@@ -1039,7 +1038,7 @@
 
 <!-- 사용자 전환 바 -->
 <div class="user-bar">
-  <span class="user-bar-label">작업자</span>
+  <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="user-bar-logo">
   <div class="user-toggle">
     <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
     <button class="user-toggle-btn" id="user-btn-mom" onclick="switchUser('엄마')">👩 엄마</button>
@@ -1157,7 +1156,7 @@
 ════════════════════════════════════════ -->
 <section id="page-worldcup" class="page">
   <div id="wc-running">
-    <h1>🏆 네이밍 월드컵</h1>
+    <h1>🏆 이름 월드컵</h1>
     <p class="sub-title">더 마음에 드는 이름을 선택하세요</p>
 
     <div class="wc-progress">
