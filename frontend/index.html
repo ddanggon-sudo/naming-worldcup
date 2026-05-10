@@ -1601,6 +1601,30 @@ function goPage(name) {
 }
 
 // ════════════════════════════════
+// ════════════════════════════════
+// 이름 등장 횟수 추적
+// ════════════════════════════════
+const FREQ_KEY = 'name_freq_map';
+
+function getFreqMap() {
+  try { return JSON.parse(localStorage.getItem(FREQ_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveFreqMap(map) {
+  localStorage.setItem(FREQ_KEY, JSON.stringify(map));
+}
+
+function incrementFreq(name) {
+  const map = getFreqMap();
+  map[name] = (map[name] || 0) + 1;
+  saveFreqMap(map);
+}
+
+function getFrequentNames() {
+  const map = getFreqMap();
+  return Object.keys(map).filter(n => map[n] >= 3);
+}
+
 // STEP 1: 이름 생성
 // ════════════════════════════════
 document.getElementById('sib-check').addEventListener('change', function() {
@@ -1640,11 +1664,13 @@ async function generateNames() {
   btnGenerate.textContent = '⏳ 탐색 중...';
   document.getElementById('result-list').innerHTML = '';
 
+  const freqExclude = getFrequentNames();
+
   try {
     const res = await fetch(API + '/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...baseBody, count: totalCount, exclude: [] }),
+      body: JSON.stringify({ ...baseBody, count: totalCount, exclude: freqExclude }),
     });
 
     if (!res.ok) {
@@ -1671,6 +1697,9 @@ async function generateNames() {
           const name = JSON.parse(dataLine);
           if (name.error) throw new Error(name.error);
           if (generatedNames.length >= totalCount) continue;
+          const freqMap = getFreqMap();
+          if ((freqMap[name.name] || 0) >= 3) continue; // 3회 이상 등장 → 건너뜀
+          incrementFreq(name.name);
           const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
           generatedNames.push(enriched);
           showProgressToast(`이름 탐색 중... ${generatedNames.length}/${totalCount}개`);
