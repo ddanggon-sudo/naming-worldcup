@@ -308,6 +308,40 @@ app.post('/api/worldcup/rarity', async (req, res) => {
   }
 });
 
+// ── POST /api/tts ──────────────────────────────────────────────
+
+app.post('/api/tts', async (req, res) => {
+  const { text } = req.body;
+  if (!text || typeof text !== 'string') return res.status(400).json({ detail: 'text required' });
+
+  const apiKey = process.env.GOOGLE_TTS_KEY;
+  if (!apiKey) return res.status(503).json({ detail: 'no_key' });
+
+  try {
+    const r = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: 'ko-KR', name: 'ko-KR-Neural2-A' },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: 0.88, pitch: 1.5 },
+        }),
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'TTS error'); }
+    const { audioContent } = await r.json();
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(audioContent, 'base64'));
+  } catch (e) {
+    console.error('[tts]', e.message);
+    res.status(500).json({ detail: e.message });
+  }
+});
+
 // ── 정의되지 않은 API 경로 ─────────────────────────────────────
 app.use('/api', (req, res) => res.status(404).json({ detail: 'Not found' }));
 
