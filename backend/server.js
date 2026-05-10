@@ -317,7 +317,7 @@ app.post('/api/tts', async (req, res) => {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ detail: 'no_key' });
 
-  // Aria — eleven_v3, 부드럽고 높은 여성 음성
+  // Aria — eleven_multilingual_v2, 부드럽고 높은 여성 음성
   const VOICE_ID = '9BWtsMINqrJLrRacOk9x';
 
   try {
@@ -331,24 +331,28 @@ app.post('/api/tts', async (req, res) => {
         },
         body: JSON.stringify({
           text,
-          model_id: 'eleven_v3',
+          model_id: 'eleven_multilingual_v2',
           voice_settings: {
             stability: 0.35,
             similarity_boost: 0.65,
             style: 0.55,
             use_speaker_boost: true,
-            speed: 0.9,
           },
         }),
         signal: AbortSignal.timeout(8000),
       }
     );
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail?.message || 'TTS error'); }
+    if (!r.ok) {
+      const e = await r.json();
+      console.error('[tts] ElevenLabs 오류:', r.status, JSON.stringify(e));
+      throw new Error(e.detail?.message || e.detail || 'TTS error');
+    }
+    console.log('[tts] 성공:', text);
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     r.body.pipe(res);
   } catch (e) {
-    console.error('[tts]', e.message);
+    console.error('[tts] 실패:', e.message);
     res.status(500).json({ detail: e.message });
   }
 });
