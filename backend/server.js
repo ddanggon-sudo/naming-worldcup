@@ -347,13 +347,14 @@ app.post('/api/tts', async (req, res) => {
       console.error('[tts] ElevenLabs 오류:', r.status, JSON.stringify(e));
       throw new Error(e.detail?.message || e.detail || 'TTS error');
     }
-    console.log('[tts] 성공:', text);
+    const audioBuf = Buffer.from(await r.arrayBuffer());
+    console.log('[tts] 성공:', text, audioBuf.length, 'bytes');
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    r.body.pipe(res);
+    res.send(audioBuf);
   } catch (e) {
     console.error('[tts] 실패:', e.message);
-    res.status(500).json({ detail: e.message });
+    if (!res.headersSent) res.status(500).json({ detail: e.message });
   }
 });
 
