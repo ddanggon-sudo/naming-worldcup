@@ -29,8 +29,13 @@
     padding: 0 14px; z-index: 101;
   }
   .user-bar-brand { display: flex; flex-direction: column; gap: 1px; }
-  .user-bar-logo { height: 22px; width: auto; display: block; }
-  .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; padding-left: 2px; }
+  .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; padding-left: 1px; }
+  .text-logo { font-weight: 900; letter-spacing: -0.5px; line-height: 1; }
+  .tl-pick { color: var(--primary); }
+  .tl-me { color: var(--accent); }
+  .tl-baby { color: var(--text); }
+  .text-logo-bar { font-size: 17px; }
+  .text-logo-welcome { font-size: 44px; margin-bottom: 4px; }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1005,7 +1010,7 @@
     opacity: 1; transition: opacity .3s ease;
   }
   .welcome-overlay.hidden { opacity: 0; pointer-events: none; }
-  .welcome-logo { width: 180px; max-width: 70%; margin-bottom: 6px; }
+  .welcome-logo { display: none; }
   .welcome-tagline {
     font-size: 15px; font-weight: 600; letter-spacing: 0.5px;
     color: #4B5563; margin-bottom: 36px;
@@ -1030,7 +1035,9 @@
 
 <!-- 웰컴 오버레이 -->
 <div class="welcome-overlay" id="welcome-overlay">
-  <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="welcome-logo">
+  <div class="text-logo text-logo-welcome">
+    <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
+  </div>
   <p class="welcome-tagline">AI 아기 이름 토너먼트</p>
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
@@ -1046,7 +1053,9 @@
 <!-- 사용자 전환 바 -->
 <div class="user-bar">
   <div class="user-bar-brand">
-    <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="user-bar-logo">
+    <div class="text-logo text-logo-bar">
+      <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
+    </div>
     <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
   </div>
   <div class="user-toggle">
