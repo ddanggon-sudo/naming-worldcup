@@ -1509,13 +1509,11 @@ function goPage(name) {
   document.getElementById('nav-' + name).classList.add('active');
 
   if (name === 'profile') {
-    if (_dbReady) {
+    document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
+    loadNamesFromDB().then(() => {
       renderProfile();
-    } else {
-      document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
-      _dbLoadPromise.then(() => renderProfile());
-    }
-    migrateAndRefreshRarity();
+      migrateAndRefreshRarity();
+    });
   }
   if (name === 'grand') renderGrandLobby();
 }
@@ -2289,9 +2287,8 @@ async function setSavedNames(newArr) {
   return true;
 }
 
-// DB 초기화: Supabase 상수가 모두 선언된 후 실행
-let _dbReady = false;
-const _dbLoadPromise = loadNamesFromDB().then(() => { _dbReady = true; });
+// 페이지 로드 시 캐시 선행 로드 (월드컵 등 다른 기능용)
+loadNamesFromDB();
 
 // ════════════════════════════════
 // 유틸
