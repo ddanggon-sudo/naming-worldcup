@@ -313,7 +313,7 @@ app.get('/api/tts/test', async (req, res) => {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.json({ ok: false, reason: 'ELEVENLABS_API_KEY 없음' });
 
-  const VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel — 무료 기본 음성
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
       method: 'POST',
@@ -346,8 +346,8 @@ app.post('/api/tts', async (req, res) => {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ detail: 'no_key' });
 
-  // Aria — eleven_multilingual_v2, 부드럽고 높은 여성 음성
-  const VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+  // Rachel — 무료 기본 여성 음성, eleven_multilingual_v2
+  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
   try {
     const r = await fetch(
