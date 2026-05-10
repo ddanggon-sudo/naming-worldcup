@@ -25,8 +25,12 @@
   .user-bar {
     position: fixed; top: 0; left: 0; right: 0; height: 56px;
     background: var(--card); border-bottom: 1px solid var(--border);
+    z-index: 101;
+  }
+  .user-bar-inner {
+    max-width: 480px; margin: 0 auto; height: 100%;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 14px; z-index: 101;
+    padding: 0 14px;
   }
   .user-bar-brand { display: flex; flex-direction: column; gap: 1px; }
   .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; padding-left: 1px; }
@@ -51,7 +55,8 @@
   #user-btn-mom.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(255,101,132,0.3); }
 
   /* 네비게이션 */
-  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); z-index: 100; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); z-index: 100; }
+  .nav-inner { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-around; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); }
   nav button { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--sub); padding: 4px 12px; transition: color .2s; }
   nav button.active { color: var(--primary); font-weight: 700; }
   nav button span { font-size: 20px; }
@@ -1052,15 +1057,17 @@
 
 <!-- 사용자 전환 바 -->
 <div class="user-bar">
-  <div class="user-bar-brand">
-    <div class="text-logo text-logo-bar">
-      <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
+  <div class="user-bar-inner">
+    <div class="user-bar-brand">
+      <div class="text-logo text-logo-bar">
+        <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
+      </div>
+      <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
     </div>
-    <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
-  </div>
-  <div class="user-toggle">
+    <div class="user-toggle">
     <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
     <button class="user-toggle-btn" id="user-btn-mom" onclick="switchUser('엄마')">👩 엄마</button>
+    </div>
   </div>
 </div>
 
@@ -1469,10 +1476,12 @@
 
 <!-- 네비게이션 -->
 <nav>
-  <button onclick="goPage('generate')" id="nav-generate" class="active"><span>✨</span>이름생성</button>
-  <button onclick="goPage('worldcup')" id="nav-worldcup"><span>🏆</span>월드컵</button>
-  <button onclick="goPage('grand')" id="nav-grand"><span>👑</span>왕중왕전</button>
-  <button onclick="goPage('profile')" id="nav-profile"><span>📦</span>보관함</button>
+  <div class="nav-inner">
+    <button onclick="goPage('generate')" id="nav-generate" class="active"><span>✨</span>이름생성</button>
+    <button onclick="goPage('worldcup')" id="nav-worldcup"><span>🏆</span>월드컵</button>
+    <button onclick="goPage('grand')" id="nav-grand"><span>👑</span>왕중왕전</button>
+    <button onclick="goPage('profile')" id="nav-profile"><span>📦</span>보관함</button>
+  </div>
 </nav>
 
 <script>
