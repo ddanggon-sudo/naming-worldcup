@@ -56,12 +56,8 @@
   }
   .user-bar-brand { display: flex; flex-direction: column; gap: 1px; }
   .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; padding-left: 1px; }
-  .text-logo { font-weight: 900; letter-spacing: -0.5px; line-height: 1; }
-  .tl-pick { color: var(--primary); }
-  .tl-me { color: var(--accent); }
-  .tl-baby { color: var(--text); }
-  .text-logo-bar { font-size: 17px; }
-  .text-logo-welcome { font-size: 44px; margin-bottom: 4px; }
+  .site-logo-bar { height: 20px; width: auto; display: block; }
+  .site-logo-welcome { height: 52px; width: auto; display: block; margin-bottom: 4px; }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1088,9 +1084,7 @@
 
 <!-- 웰컴 오버레이 -->
 <div class="welcome-overlay" id="welcome-overlay">
-  <div class="text-logo text-logo-welcome">
-    <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
-  </div>
+  <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-welcome">
   <p class="welcome-tagline">AI 아기 이름 토너먼트</p>
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
@@ -1107,9 +1101,7 @@
 <div class="user-bar">
   <div class="user-bar-inner">
     <div class="user-bar-brand">
-      <div class="text-logo text-logo-bar">
-        <span class="tl-pick">Pick</span><span class="tl-me">Me</span><span class="tl-baby">Baby</span>
-      </div>
+      <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-bar">
       <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
     </div>
     <div class="user-toggle">
