@@ -2277,7 +2277,7 @@ async function loadNamesFromDB() {
   }
 }
 
-function getSavedNames() { return [..._namesCache]; }
+function getSavedNames() { return JSON.parse(JSON.stringify(_namesCache)); }
 
 async function setSavedNames(newArr) {
   const old = _namesCache;
