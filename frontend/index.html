@@ -1133,23 +1133,6 @@
     </div>
   </div>
 
-  <div class="card">
-    <label>이름 글자 수</label>
-    <div class="check-group">
-      <label class="check-item">
-        <input type="radio" name="syllable" id="syl-2" value="두자 이름" checked>
-        <span class="check-item-label">두자 이름 (예: 지우, 서준)</span>
-      </label>
-      <label class="check-item">
-        <input type="radio" name="syllable" id="syl-3" value="세자 이름">
-        <span class="check-item-label">세자 이름 (예: 하늘이, 지수빈)</span>
-      </label>
-      <label class="check-item">
-        <input type="radio" name="syllable" id="syl-1" value="외자 이름">
-        <span class="check-item-label">외자 이름 (예: 준, 빛)</span>
-      </label>
-    </div>
-  </div>
 
   <div class="card">
     <label>이름 기준 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 복수 선택 가능)</span></label>
@@ -1630,8 +1613,7 @@ async function generateNames() {
   const lastName = document.getElementById('last-name').value.trim();
   if (!lastName) { alert('성(姓)을 입력해주세요.'); return; }
 
-  const sylRadio = document.querySelector('input[name="syllable"]:checked');
-  const syllables = sylRadio ? [sylRadio.value] : ['두자 이름'];
+  const syllables = ['두자 이름'];
 
   const criteria = [...document.querySelectorAll('.criteria:checked')].map(c => c.value);
   const siblingNames = document.getElementById('sib-check').checked
