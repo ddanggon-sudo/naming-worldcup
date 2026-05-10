@@ -1622,7 +1622,7 @@ function incrementFreq(name) {
 
 function getFrequentNames() {
   const map = getFreqMap();
-  return Object.keys(map).filter(n => map[n] >= 3);
+  return Object.keys(map).filter(n => map[n] >= 2);
 }
 
 // STEP 1: 이름 생성
@@ -1698,7 +1698,7 @@ async function generateNames() {
           if (name.error) throw new Error(name.error);
           if (generatedNames.length >= totalCount) continue;
           const freqMap = getFreqMap();
-          if ((freqMap[name.name] || 0) >= 3) continue; // 3회 이상 등장 → 건너뜀
+          if ((freqMap[name.name] || 0) >= 2) continue; // 2회 이상 등장 → 건너뜀
           incrementFreq(name.name);
           const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
           generatedNames.push(enriched);
