@@ -1510,10 +1510,7 @@ function goPage(name) {
 
   if (name === 'profile') {
     document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
-    loadNamesFromDB().then(() => {
-      renderProfile();
-      migrateAndRefreshRarity();
-    });
+    loadNamesFromDB().then(() => renderProfile());
   }
   if (name === 'grand') renderGrandLobby();
 }
@@ -1640,7 +1637,7 @@ async function saveGeneratedName(idx) {
   const saved = getSavedNames();
   const full = n.last_name + n.name;
   if (saved.find(s => s.full_name === full)) { showToast('이미 저장된 이름이에요.'); return; }
-  saved.push({
+  const newEntry = {
     id: uuid(),
     name: n.name,
     hanja: n.hanja || '',
@@ -1657,9 +1654,27 @@ async function saveGeneratedName(idx) {
     is_final: false,
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
-  });
+  };
+  saved.push(newEntry);
   const ok = await setSavedNames(saved);
-  if (ok) showToast(`"${full}" 저장 완료!`);
+  if (!ok) return;
+  showToast(`"${full}" 저장 완료! 희귀도 조회 중...`);
+  try {
+    const res = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: n.name, gender: n.gender }),
+    });
+    const d = await res.json();
+    const all = getSavedNames();
+    const target = all.find(s => s.id === newEntry.id);
+    if (target) {
+      target.rarity = d.rarity ?? null;
+      target.estimated_population = d.estimated_population ?? null;
+      target.data_year = d.data_year ?? null;
+      await setSavedNames(all);
+    }
+  } catch (_) {}
 }
 
 // ════════════════════════════════
@@ -2034,6 +2049,7 @@ async function syncFromDB() {
   btn.textContent = '↻ 동기화';
   btn.disabled = false;
   showToast('동기화 완료!');
+  migrateAndRefreshRarity(); // 희귀도 데이터 없는 기존 항목 백그라운드 업데이트
 }
 
 function renderProfile() {
