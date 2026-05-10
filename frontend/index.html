@@ -1626,50 +1626,56 @@ async function generateNames() {
   };
 
   const totalCount = parseInt(document.getElementById('count').value, 10);
-  const BATCH = 3;
-  const batches = Math.ceil(totalCount / BATCH);
 
   generatedNames = [];
   setLoading('loading-generate', true);
-  document.querySelector('#loading-generate p').textContent = `이름 생성 중... 0/${totalCount}개 (0%)`;
+  document.querySelector('#loading-generate p').textContent = '이름 생성 중...';
   const btnGenerate = document.getElementById('btn-generate');
   btnGenerate.disabled = true;
   btnGenerate.textContent = '⏳ 생성 중...';
   document.getElementById('result-list').innerHTML = '';
 
   try {
-    for (let b = 0; b < batches; b++) {
-      if (generatedNames.length >= totalCount) break;
-      const batchCount = Math.min(BATCH, totalCount - generatedNames.length);
-      try {
-        const res = await fetch(API + '/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...baseBody,
-            count: batchCount,
-            exclude: generatedNames.map(n => n.name),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || '생성 실패');
+    const res = await fetch(API + '/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...baseBody, count: totalCount, exclude: [] }),
+    });
 
-        const batchNames = data.names || [];
-        if (batchNames.length === 0) continue;
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.detail || '생성 실패');
+    }
 
-        for (const n of batchNames) {
-          if (generatedNames.length >= totalCount) break;
-          const enriched = { ...n, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let sseBuf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      sseBuf += decoder.decode(value, { stream: true });
+
+      const parts = sseBuf.split('\n\n');
+      sseBuf = parts.pop() ?? '';
+
+      for (const part of parts) {
+        const dataLine = part.replace(/^data:\s*/, '').trim();
+        if (!dataLine || dataLine === '[DONE]') continue;
+        try {
+          const name = JSON.parse(dataLine);
+          if (name.error) throw new Error(name.error);
+          if (generatedNames.length >= totalCount) continue;
+          const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
           generatedNames.push(enriched);
+          appendNameCard(enriched, generatedNames.length - 1);
+          document.querySelector('#loading-generate p').textContent =
+            `이름 생성 중... ${generatedNames.length}/${totalCount}개`;
+        } catch (err) {
+          if (err.message !== '생성 실패') console.warn('SSE 파싱:', err.message);
+          else throw err;
         }
-      } catch(batchErr) {
-        console.warn(`배치 ${b + 1} 실패, 건너뜀:`, batchErr.message);
       }
-
-      // 로딩 텍스트 진행 상황 업데이트
-      const pct = Math.round((generatedNames.length / totalCount) * 100);
-      document.querySelector('#loading-generate p').textContent =
-        `이름 생성 중... ${generatedNames.length}/${totalCount}개 (${pct}%)`;
     }
 
     if (generatedNames.length === 0) {

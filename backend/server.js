@@ -19,8 +19,8 @@ const client = new OpenAI({
 });
 
 const MODELS = [
-  'google/gemini-2.5-pro',   // 메인
-  'google/gemini-2.5-flash', // 빠른 폴백
+  'openai/gpt-4o-mini',      // 메인 (빠름)
+  'google/gemini-2.5-flash', // 폴백
   'openai/gpt-4o',           // 최후 폴백
 ];
 
@@ -132,21 +132,14 @@ function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, im
 ${criteriaStr}${excludeStr}
 
 위 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
-각 이름마다 아래 항목을 포함한 JSON 배열로만 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
+아래 형식으로 한 줄에 하나씩 JSON 객체를 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
 
-[
-  {
-    "name": "한글 이름(성 제외)",
-    "hanja": "한자",
-    "meaning": "이름 뜻 (1~2문장)",
-    "reason": "위 기준에 맞는 이유 (1문장)"
-  }
-]
+{"name":"한글이름","hanja":"한자","meaning":"이름 뜻(1~2문장)","reason":"이유(1문장)"}
 
 규칙:
-- name 필드의 글자 수는 반드시 ${syllableStr}이어야 합니다
-- 중복 없이 다양한 느낌으로 추천
-- 반드시 JSON 배열만 반환`;
+- name 글자 수는 반드시 ${syllableStr}
+- 중복 없이 다양한 느낌으로 ${count}개
+- 반드시 한 줄에 완전한 JSON 객체 하나만, 배열 없이`;
 }
 
 function filterBySyllables(names, syllables) {
@@ -175,16 +168,67 @@ app.post('/api/generate', async (req, res) => {
   const clampedCount = Math.min(20, Math.max(1, Number(count) || 5));
 
   const prompt = buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count: clampedCount, exclude });
+  const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
 
-  try {
-    const raw = await chat(prompt);
-    const names = extractJson(raw);
-    const filtered = filterBySyllables(Array.isArray(names) ? names : [], syllables);
-    res.json({ names: filtered });
-  } catch (e) {
-    console.error('generate error:', e.message);
-    res.status(500).json({ detail: e.message });
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  for (const model of MODELS) {
+    try {
+      console.log(`[generate/stream] ${model}`);
+      const stream = await client.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.9,
+        stream: true,
+      });
+
+      let buf = '';
+      for await (const chunk of stream) {
+        buf += chunk.choices?.[0]?.delta?.content ?? '';
+        // think 태그 제거
+        buf = buf.replace(/<think>[\s\S]*?<\/think>/g, '');
+        // 완성된 줄 처리
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t.startsWith('{')) continue;
+          try {
+            const obj = JSON.parse(t);
+            if (!obj.name) continue;
+            if (allowed.size && !allowed.has([...obj.name].length)) continue;
+            res.write(`data: ${JSON.stringify(obj)}\n\n`);
+          } catch (_) {}
+        }
+      }
+      // 남은 버퍼 처리
+      const t = buf.trim();
+      if (t.startsWith('{')) {
+        try {
+          const obj = JSON.parse(t);
+          if (obj.name && (!allowed.size || allowed.has([...obj.name].length))) {
+            res.write(`data: ${JSON.stringify(obj)}\n\n`);
+          }
+        } catch (_) {}
+      }
+
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    } catch (e) {
+      const status = e?.status ?? e?.response?.status;
+      console.warn(`[generate/stream] ${model} 실패 (${status ?? e.code})`);
+      const retryable = status === 429 || status === 503 || status === 500
+        || e.code === 'ETIMEDOUT' || e.code === 'ECONNRESET';
+      if (!retryable) break;
+    }
   }
+
+  res.write('data: {"error":"모든 모델이 응답하지 않습니다. 잠시 후 다시 시도해주세요."}\n\n');
+  res.end();
 });
 
 // ── POST /api/worldcup/rarity ──────────────────────────────────
