@@ -1111,8 +1111,8 @@
      PAGE 1: 이름 생성
 ════════════════════════════════════════ -->
 <section id="page-generate" class="page active">
-  <h1>✨ 이름 만들기</h1>
-  <p class="sub-title">기준을 설정하면 AI가 이름을 추천해드려요</p>
+  <h1>✨ 이름 탐색</h1>
+  <p class="sub-title">미처 생각 못했던 이름을 AI가 찾아드려요</p>
 
   <div class="card">
     <label>성(姓)</label>
@@ -1164,9 +1164,9 @@
   </div>
 
   <div class="card">
-    <label>선호 이름 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 쉼표로 여러 개 입력 가능)</span></label>
+    <label>참고 이름 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 쉼표로 여러 개 입력 가능)</span></label>
     <input type="text" id="preferred-names" placeholder="예: 서준, 하은, 지우">
-    <p style="margin:6px 0 0;font-size:12px;color:var(--sub)">평소 좋다고 생각한 이름을 참고해 비슷한 느낌의 이름을 추천해 드려요.</p>
+    <p style="margin:6px 0 0;font-size:12px;color:var(--sub)">좋아하는 이름의 느낌·스타일을 기준으로, 아직 생각해보지 못한 새로운 이름을 탐색해요.</p>
   </div>
 
   <div class="card">
@@ -1187,7 +1187,7 @@
     </div>
   </div>
 
-  <button class="btn btn-primary" id="btn-generate" onclick="generateNames()">✨ 이름 생성하기</button>
+  <button class="btn btn-primary" id="btn-generate" onclick="generateNames()">🔍 새 이름 탐색하기</button>
   <!-- 생성 상태: js에서 동적 텍스트 변경 -->
 
   <div class="loading" id="loading-generate">
@@ -1195,7 +1195,7 @@
     <div class="loading-dots" aria-hidden="true">
       <span></span><span></span><span></span>
     </div>
-    <p style="color:var(--sub);font-size:14px;font-weight:500">AI가 이름을 생성하고 있어요...</p>
+    <p style="color:var(--sub);font-size:14px;font-weight:500">AI가 새로운 이름을 탐색하고 있어요...</p>
   </div>
 
   <div id="result-list" class="mt-16"></div>
@@ -1501,12 +1501,12 @@
 
 <!-- 토스트 -->
 <div id="toast"></div>
-<div id="progress-toast"><div class="progress-spinner"></div><span id="progress-msg">이름 생성 중...</span></div>
+<div id="progress-toast"><div class="progress-spinner"></div><span id="progress-msg">이름 탐색 중...</span></div>
 
 <!-- 네비게이션 -->
 <nav>
   <div class="nav-inner">
-    <button onclick="goPage('generate')" id="nav-generate" class="active"><span>✨</span>이름생성</button>
+    <button onclick="goPage('generate')" id="nav-generate" class="active"><span>🔍</span>이름탐색</button>
     <button onclick="goPage('worldcup')" id="nav-worldcup"><span>🏆</span>월드컵</button>
     <button onclick="goPage('grand')" id="nav-grand"><span>👑</span>왕중왕전</button>
     <button onclick="goPage('profile')" id="nav-profile"><span>📦</span>보관함</button>
@@ -1634,10 +1634,10 @@ async function generateNames() {
   const totalCount = parseInt(document.querySelector('input[name="count"]:checked')?.value || '10', 10);
 
   generatedNames = [];
-  showProgressToast('이름 생성 중...');
+  showProgressToast('이름 탐색 중...');
   const btnGenerate = document.getElementById('btn-generate');
   btnGenerate.disabled = true;
-  btnGenerate.textContent = '⏳ 생성 중...';
+  btnGenerate.textContent = '⏳ 탐색 중...';
   document.getElementById('result-list').innerHTML = '';
 
   try {
@@ -1673,7 +1673,7 @@ async function generateNames() {
           if (generatedNames.length >= totalCount) continue;
           const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
           generatedNames.push(enriched);
-          showProgressToast(`이름 생성 중... ${generatedNames.length}/${totalCount}개`);
+          showProgressToast(`이름 탐색 중... ${generatedNames.length}/${totalCount}개`);
         } catch (err) {
           if (err.message !== '생성 실패') console.warn('SSE 파싱:', err.message);
           else throw err;
@@ -1696,7 +1696,7 @@ async function generateNames() {
   } finally {
     hideProgressToast();
     btnGenerate.disabled = false;
-    btnGenerate.textContent = '✨ 이름 생성하기';
+    btnGenerate.textContent = '🔍 새 이름 탐색하기';
   }
 }
 

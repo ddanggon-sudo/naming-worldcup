@@ -119,19 +119,25 @@ function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, im
   const preferred      = Array.isArray(preferred_names) ? preferred_names : [];
   const preferredStr   = preferred.length ? preferred.join(', ') : '없음';
 
-  return `당신은 한국 아기 이름 전문가입니다.
+  return `당신은 한국 아기 이름 탐험가입니다. 사용자는 이미 알고 있는 이름이 아닌, 미처 생각하지 못했던 새로운 이름을 발견하고 싶어합니다.
+
+[탐색 원칙]
+- 서준, 지우, 하은, 민준, 서아, 지아, 예준, 수아, 하준, 지유 같은 최근 10년 인기 1~30위 이름은 반드시 피하세요
+- 아름답고 의미 있지만 잘 알려지지 않은, 사용자가 미처 생각하지 못했을 만한 이름을 찾아주세요
+- 첫 음절이 서로 다른 이름들로 구성해 다양성을 극대화하세요
+- 다채로운 한자 조합과 음감을 탐색하세요
 
 [요청 조건]
 - 성: ${last_name}
 - 성별: ${gender}
 - 이름 글자 수: 반드시 ${syllableStr}인 이름만 추천 (성 제외, 이 규칙은 절대 어기지 마세요)
 - 이름 인상: ${impressionStr}
-- 선호 이름 (참고용): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 느낌·음감·스타일의 이름을 추천해 주세요' : ''}
+- 참고 이름 (느낌·스타일 기준): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 분위기이되, 이 이름들 자체는 추천하지 마세요. 같은 첫 음절도 피하세요' : ''}
 - 형제 이름: ${siblingStr}
 - 선택한 기준:
 ${criteriaStr}${excludeStr}
 
-위 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
+위 탐색 원칙과 요청 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
 아래 형식으로 한 줄에 하나씩 JSON 객체를 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
 
 {"name":"한글이름","hanja":"한자","meaning":"이름 뜻(1~2문장)","reason":"이유(1문장)"}
