@@ -317,8 +317,8 @@ app.post('/api/tts', async (req, res) => {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ detail: 'no_key' });
 
-  // Rachel — eleven_multilingual_v2 (한국어 자연스러운 여성 음성)
-  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+  // Aria — eleven_v3, 부드럽고 높은 여성 음성
+  const VOICE_ID = '9BWtsMINqrJLrRacOk9x';
 
   try {
     const r = await fetch(
@@ -331,12 +331,13 @@ app.post('/api/tts', async (req, res) => {
         },
         body: JSON.stringify({
           text,
-          model_id: 'eleven_multilingual_v2',
+          model_id: 'eleven_v3',
           voice_settings: {
-            stability: 0.65,
-            similarity_boost: 0.75,
-            style: 0.2,
+            stability: 0.35,
+            similarity_boost: 0.65,
+            style: 0.55,
             use_speaker_boost: true,
+            speed: 0.9,
           },
         }),
         signal: AbortSignal.timeout(8000),

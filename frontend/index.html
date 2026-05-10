@@ -2536,7 +2536,7 @@ async function announceNames(leftName, rightName) {
   if (!_voiceOn) return;
   window.speechSynthesis?.cancel();
   await speakAsync(getVocative(leftName));
-  await new Promise(r => setTimeout(r, 700));
+  await new Promise(r => setTimeout(r, 350));
   await speakAsync(getVocative(rightName));
 }
 
