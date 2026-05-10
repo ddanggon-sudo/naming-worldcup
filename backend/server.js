@@ -19,9 +19,9 @@ const client = new OpenAI({
 });
 
 const MODELS = [
-  'openai/gpt-oss-20b:free',           // 빠름 (~10s)
-  'openai/gpt-oss-120b:free',           // 느린 폴백
-  'qwen/qwen3-next-80b-a3b-instruct:free', // 429 많음
+  'google/gemini-2.5-pro',   // 메인
+  'google/gemini-2.5-flash', // 빠른 폴백
+  'openai/gpt-4o',           // 최후 폴백
 ];
 
 const app = express();
