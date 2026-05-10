@@ -54,10 +54,10 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 14px;
   }
-  .user-bar-brand { display: flex; flex-direction: column; gap: 1px; }
-  .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; padding-left: 1px; }
-  .site-logo-bar { height: 20px; width: auto; display: block; }
-  .site-logo-welcome { height: 52px; width: auto; display: block; margin-bottom: 4px; }
+  .user-bar-brand { display: flex; align-items: center; }
+  .logo-btn { background: none; border: none; padding: 0; cursor: pointer; display: block; }
+  .site-logo-bar { height: 38px; width: auto; display: block; }
+  .site-logo-welcome { height: 72px; width: auto; display: block; margin-bottom: 12px; }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1084,7 +1084,9 @@
 
 <!-- 웰컴 오버레이 -->
 <div class="welcome-overlay" id="welcome-overlay">
-  <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-welcome">
+  <button class="logo-btn" onclick="goPage('generate')">
+    <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-welcome">
+  </button>
   <p class="welcome-tagline">AI 아기 이름 토너먼트</p>
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
@@ -1101,8 +1103,9 @@
 <div class="user-bar">
   <div class="user-bar-inner">
     <div class="user-bar-brand">
-      <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-bar">
-      <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
+      <button class="logo-btn" onclick="goPage('generate')">
+        <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-bar">
+      </button>
     </div>
     <div class="user-toggle">
     <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
