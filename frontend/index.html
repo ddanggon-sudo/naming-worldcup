@@ -265,6 +265,13 @@
   .wc-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .wc-progress-label { font-size: 13px; font-weight: 700; color: var(--text); }
   .wc-progress-counter { font-size: 12px; font-weight: 600; color: var(--primary); background: var(--primary-light); padding: 2px 10px; border-radius: 99px; }
+  .btn-voice {
+    background: none; border: 1.5px solid var(--border); border-radius: 99px;
+    padding: 2px 10px; font-size: 13px; cursor: pointer; line-height: 1.6;
+    color: var(--sub); transition: border-color .15s, color .15s;
+  }
+  .btn-voice:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-voice.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
   .wc-progress-bar { height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
   .wc-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #9b8fff); border-radius: 99px; transition: width .5s cubic-bezier(.4,0,.2,1); }
 
@@ -1236,7 +1243,10 @@
     <div class="wc-progress">
       <div class="wc-progress-header">
         <span class="wc-progress-label">진행률</span>
-        <span class="wc-progress-counter" id="wc-progress-text">0 / 0</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn-voice" id="voice-btn-wc" onclick="toggleVoice()">🔇</button>
+          <span class="wc-progress-counter" id="wc-progress-text">0 / 0</span>
+        </div>
       </div>
       <div class="wc-progress-bar"><div class="wc-progress-fill" id="wc-progress-fill" style="width:0%"></div></div>
     </div>
@@ -1347,7 +1357,10 @@
     <div class="wc-progress" style="margin-top:14px">
       <div class="wc-progress-header">
         <span class="wc-progress-label" style="font-weight:700;color:#c07800">대결 진행률</span>
-        <span class="wc-progress-counter" id="grand-progress-text">0 / 0</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn-voice" id="voice-btn-grand" onclick="toggleVoice()">🔇</button>
+          <span class="wc-progress-counter" id="grand-progress-text">0 / 0</span>
+        </div>
       </div>
       <div class="wc-progress-bar"><div class="wc-progress-fill" id="grand-progress-fill" style="width:0%"></div></div>
     </div>
@@ -1822,10 +1835,11 @@ function renderWcRound() {
   const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
   document.getElementById('wc-progress-fill').style.width = pct + '%';
   document.getElementById('wc-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
+  announceNames(champ.name, challenger.name);
 }
 
-function chooseLeft() { if (!wcState) return; wcAdvance(wcState.champion); }
-function chooseRight() { if (!wcState) return; wcAdvance(wcState.names[wcState.challengerIndex]); }
+function chooseLeft()  { if (!wcState) return; window.speechSynthesis?.cancel(); wcAdvance(wcState.champion); }
+function chooseRight() { if (!wcState) return; window.speechSynthesis?.cancel(); wcAdvance(wcState.names[wcState.challengerIndex]); }
 
 async function saveWcName(side) {
   if (!wcState) return;
@@ -2014,6 +2028,7 @@ function renderGrandRound() {
   const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
   document.getElementById('grand-progress-fill').style.width = pct + '%';
   document.getElementById('grand-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
+  announceNames(champ.name, challenger.name);
 
   // 남은 이름 칩 스트립 갱신
   const chipsEl = document.getElementById('grand-remaining-chips');
@@ -2036,8 +2051,8 @@ function renderGrandRound() {
   }
 }
 
-function grandChooseLeft() { if (!grandState) return; grandAdvance(grandState.champion); }
-function grandChooseRight() { if (!grandState) return; grandAdvance(grandState.names[grandState.challengerIndex]); }
+function grandChooseLeft()  { if (!grandState) return; window.speechSynthesis?.cancel(); grandAdvance(grandState.champion); }
+function grandChooseRight() { if (!grandState) return; window.speechSynthesis?.cancel(); grandAdvance(grandState.names[grandState.challengerIndex]); }
 
 function grandUndo() {
   if (!grandState || !grandState.history.length) return;
@@ -2434,6 +2449,64 @@ loadNamesFromDB();
 function setLoading(id, visible) {
   document.getElementById(id).classList.toggle('visible', visible);
 }
+
+// ════════════════════════════════
+// 보이스 기능
+// ════════════════════════════════
+let _voiceOn = localStorage.getItem('voice_on') === 'true';
+
+function updateVoiceBtns() {
+  document.querySelectorAll('.btn-voice').forEach(b => {
+    b.textContent = _voiceOn ? '🔊' : '🔇';
+    b.classList.toggle('active', _voiceOn);
+  });
+}
+
+function toggleVoice() {
+  _voiceOn = !_voiceOn;
+  localStorage.setItem('voice_on', _voiceOn);
+  updateVoiceBtns();
+  if (!_voiceOn) window.speechSynthesis?.cancel();
+}
+
+function hasBatchim(char) {
+  const code = char.charCodeAt(0);
+  if (code < 0xAC00 || code > 0xD7A3) return false;
+  return (code - 0xAC00) % 28 !== 0;
+}
+
+function getVocative(name) {
+  const last = name[name.length - 1];
+  return name + (hasBatchim(last) ? '아' : '야');
+}
+
+function speakAsync(text) {
+  return new Promise(resolve => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = 0.82;
+    u.pitch = 1.1;
+    u.onend = resolve;
+    u.onerror = resolve;
+    window.speechSynthesis.speak(u);
+  });
+}
+
+async function announceNames(leftName, rightName) {
+  if (!_voiceOn || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const left  = getVocative(leftName)  + '~';
+  const right = getVocative(rightName) + '~';
+  await speakAsync(left);
+  await new Promise(r => setTimeout(r, 1000));
+  await speakAsync(left);
+  await new Promise(r => setTimeout(r, 600));
+  await speakAsync(right);
+  await new Promise(r => setTimeout(r, 1000));
+  await speakAsync(right);
+}
+
+updateVoiceBtns();
 
 let _toastTimer = null;
 function showToast(msg) {
