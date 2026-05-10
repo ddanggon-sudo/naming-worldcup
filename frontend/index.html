@@ -19,16 +19,18 @@
     --shadow: 0 2px 12px rgba(108,99,255,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; padding-top: 48px; }
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; padding-top: 56px; }
 
   /* 사용자 전환 바 */
   .user-bar {
-    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
     background: var(--card); border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 14px; z-index: 101;
   }
-  .user-bar-logo { height: 34px; width: auto; display: block; }
+  .user-bar-brand { display: flex; flex-direction: column; gap: 1px; }
+  .user-bar-logo { height: 22px; width: auto; display: block; }
+  .user-bar-tagline { font-size: 10px; color: var(--sub); font-weight: 500; letter-spacing: 0.3px; }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1003,10 +1005,10 @@
     opacity: 1; transition: opacity .3s ease;
   }
   .welcome-overlay.hidden { opacity: 0; pointer-events: none; }
-  .welcome-logo { width: 260px; max-width: 80%; margin-bottom: 6px; }
+  .welcome-logo { width: 180px; max-width: 70%; margin-bottom: 6px; }
   .welcome-tagline {
-    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-    color: var(--sub); text-transform: uppercase; margin-bottom: 36px;
+    font-size: 15px; font-weight: 600; letter-spacing: 0.5px;
+    color: #4B5563; margin-bottom: 36px;
   }
   .welcome-sub { font-size: 14px; color: var(--sub); margin-bottom: 40px; text-align: center; line-height: 1.6; }
   .welcome-btns { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 280px; }
@@ -1043,7 +1045,10 @@
 
 <!-- 사용자 전환 바 -->
 <div class="user-bar">
-  <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="user-bar-logo">
+  <div class="user-bar-brand">
+    <img src="/pickmebaby_logo.png" alt="PickMeBaby" class="user-bar-logo">
+    <span class="user-bar-tagline">AI 아기 이름 토너먼트</span>
+  </div>
   <div class="user-toggle">
     <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
     <button class="user-toggle-btn" id="user-btn-mom" onclick="switchUser('엄마')">👩 엄마</button>
