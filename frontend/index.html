@@ -1474,11 +1474,6 @@ if (localStorage.getItem('current_author')) {
   overlay.style.display = 'none';
 }
 renderUserBar();
-let _dbReady = false;
-loadNamesFromDB().then(() => {
-  _dbReady = true;
-  renderProfile();
-});
 
 // ════════════════════════════════
 // 헬퍼 유틸
@@ -1513,7 +1508,15 @@ function goPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
 
-  if (name === 'profile') { renderProfile(); migrateAndRefreshRarity(); }
+  if (name === 'profile') {
+    if (_dbReady) {
+      renderProfile();
+    } else {
+      document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
+      _dbLoadPromise.then(() => renderProfile());
+    }
+    migrateAndRefreshRarity();
+  }
   if (name === 'grand') renderGrandLobby();
 }
 
@@ -2285,6 +2288,10 @@ async function setSavedNames(newArr) {
   }
   return true;
 }
+
+// DB 초기화: Supabase 상수가 모두 선언된 후 실행
+let _dbReady = false;
+const _dbLoadPromise = loadNamesFromDB().then(() => { _dbReady = true; });
 
 // ════════════════════════════════
 // 유틸
