@@ -106,16 +106,12 @@ async function chat(prompt) {
 
 const SYLLABLE_MAP = { '외자 이름': 1, '두자 이름': 2, '세자 이름': 3 };
 
-function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count, exclude }) {
+function buildPrompt({ last_name, gender, syllables, preferred_names, count, exclude }) {
   const syllableNums   = syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean);
   const syllableStr    = syllableNums.length
     ? syllableNums.map(n => `${n}글자`).join(' 또는 ')
     : '2글자 또는 1글자';
-  const criteriaStr    = criteria.length ? criteria.map(c => `- ${c}`).join('\n') : '- 없음';
-  const siblingStr     = sibling_names.length ? sibling_names.join(', ') : '없음';
   const excludeStr     = exclude.length ? `\n\n이미 추천한 이름이므로 제외: ${exclude.join(', ')}` : '';
-  const impressions    = Array.isArray(impression) ? impression : (impression ? [impression] : []);
-  const impressionStr  = impressions.length ? impressions.join(', ') : '제한 없음';
   const preferred      = Array.isArray(preferred_names) ? preferred_names : [];
   const preferredStr   = preferred.length ? preferred.join(', ') : '없음';
 
@@ -131,11 +127,7 @@ function buildPrompt({ last_name, gender, syllables, criteria, sibling_names, im
 - 성: ${last_name}
 - 성별: ${gender}
 - 이름 글자 수: 반드시 ${syllableStr}인 이름만 추천 (성 제외, 이 규칙은 절대 어기지 마세요)
-- 이름 인상: ${impressionStr}
-- 참고 이름 (느낌·스타일 기준): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 분위기이되, 이 이름들 자체는 추천하지 마세요. 같은 첫 음절도 피하세요' : ''}
-- 형제 이름: ${siblingStr}
-- 선택한 기준:
-${criteriaStr}${excludeStr}
+- 참고 이름 (느낌·스타일 기준): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 분위기이되, 이 이름들 자체는 추천하지 마세요. 같은 첫 음절도 피하세요' : ''}${excludeStr}
 
 위 탐색 원칙과 요청 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
 아래 형식으로 한 줄에 하나씩 JSON 객체를 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
@@ -161,8 +153,7 @@ function filterBySyllables(names, syllables) {
 app.post('/api/generate', async (req, res) => {
   const {
     last_name, gender,
-    syllables = [], criteria = [], sibling_names = [],
-    impression = [],
+    syllables = [],
     preferred_names = [],
     count = 5,
     exclude = [],
@@ -173,7 +164,7 @@ app.post('/api/generate', async (req, res) => {
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
   const clampedCount = Math.min(30, Math.max(1, Number(count) || 10));
 
-  const prompt = buildPrompt({ last_name, gender, syllables, criteria, sibling_names, impression, preferred_names, count: clampedCount, exclude });
+  const prompt = buildPrompt({ last_name, gender, syllables, preferred_names, count: clampedCount, exclude });
   const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
 
   res.setHeader('Content-Type', 'text/event-stream');

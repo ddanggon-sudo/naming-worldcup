@@ -1134,34 +1134,6 @@
   </div>
 
 
-  <div class="card">
-    <label>이름 기준 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 복수 선택 가능)</span></label>
-    <div class="check-group">
-      <label class="check-item"><input type="checkbox" class="criteria" value="부르기 편해야 함"><span class="check-item-label">부르기 편해야 함</span></label>
-      <label class="check-item">
-        <input type="checkbox" class="criteria" id="sib-check" value="형제 이름과 조화로워야 함">
-        <span class="check-item-label">형제 이름과 조화로워야 함</span>
-      </label>
-      <div class="sibling-input" id="sibling-input-wrap">
-        <input type="text" id="sibling-names" placeholder="형제 이름 입력 (예: 지훈, 서연)">
-      </div>
-
-      <label class="check-item"><input type="checkbox" class="criteria" value="너무 흔하지 않아야 함"><span class="check-item-label">너무 흔하지 않아야 함</span></label>
-    </div>
-  </div>
-
-  <div class="card">
-    <label>이름 인상 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 복수 선택 가능)</span></label>
-    <div class="check-group">
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="부드러운 느낌"><span class="check-item-label">부드러운 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="밝은 느낌"><span class="check-item-label">밝은 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="똑똑한 느낌"><span class="check-item-label">똑똑한 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="강한 느낌"><span class="check-item-label">강한 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="세련된 느낌"><span class="check-item-label">세련된 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="차분한 느낌"><span class="check-item-label">차분한 느낌</span></label>
-      <label class="check-item"><input type="checkbox" class="impression-cb" value="개성 있는 느낌"><span class="check-item-label">개성 있는 느낌</span></label>
-    </div>
-  </div>
 
   <div class="card">
     <label>참고 이름 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 쉼표로 여러 개 입력 가능)</span></label>
@@ -1630,20 +1602,11 @@ function getFrequentNames() {
 
 // STEP 1: 이름 생성
 // ════════════════════════════════
-document.getElementById('sib-check').addEventListener('change', function() {
-  document.getElementById('sibling-input-wrap').classList.toggle('visible', this.checked);
-});
-
 async function generateNames() {
   const lastName = document.getElementById('last-name').value.trim();
   if (!lastName) { alert('성(姓)을 입력해주세요.'); return; }
 
   const syllables = ['두자 이름'];
-
-  const criteria = [...document.querySelectorAll('.criteria:checked')].map(c => c.value);
-  const siblingNames = document.getElementById('sib-check').checked
-    ? document.getElementById('sibling-names').value.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
 
   const preferredNames = document.getElementById('preferred-names').value
     .split(',').map(s => s.trim()).filter(Boolean);
@@ -1652,9 +1615,6 @@ async function generateNames() {
     last_name: lastName,
     gender: document.querySelector('input[name="gender"]:checked')?.value || '남아',
     syllables,
-    criteria,
-    sibling_names: siblingNames,
-    impression: [...document.querySelectorAll('.impression-cb:checked')].map(c => c.value),
     preferred_names: preferredNames,
   };
 
@@ -1703,7 +1663,7 @@ async function generateNames() {
           const freqMap = getFreqMap();
           if ((freqMap[name.name] || 0) >= 1) continue; // 1회 이상 등장 → 건너뜀
           incrementFreq(name.name);
-          const enriched = { ...name, last_name: lastName, gender: baseBody.gender, impression: baseBody.impression, criteria_used: criteria };
+          const enriched = { ...name, last_name: lastName, gender: baseBody.gender };
           generatedNames.push(enriched);
           showProgressToast(`이름 탐색 중... ${generatedNames.length}/${totalCount}개`);
         } catch (err) {
@@ -1768,8 +1728,6 @@ async function saveGeneratedName(idx) {
     rarity: null,
     estimated_population: null,
     data_year: null,
-    criteria_used: n.criteria_used || [],
-    impression: n.impression || '',
     is_final: false,
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
@@ -1857,8 +1815,6 @@ async function saveWcName(side) {
     rarity: null,
     estimated_population: null,
     data_year: null,
-    criteria_used: n.criteria_used || [],
-    impression: n.impression || '',
     is_final: false,
     author: getCurrentUser(),
     saved_at: new Date().toISOString(),
@@ -1947,8 +1903,6 @@ async function saveWinner() {
       rarity: wcState.rarityData?.rarity || null,
       estimated_population: wcState.rarityData?.estimated_population || null,
       data_year: wcState.rarityData?.data_year || null,
-      criteria_used: w.criteria_used || [],
-      impression: w.impression || '',
       is_final: false,
       author: getCurrentUser(),
       saved_at: new Date().toISOString(),
@@ -2208,7 +2162,6 @@ function renderSavedNames() {
   el.innerHTML = saved.map(n => {
     const metaParts = [
       n.gender,
-      Array.isArray(n.impression) ? n.impression.join(', ') : (n.impression || ''),
       new Date(n.saved_at).toLocaleDateString('ko-KR'),
     ].filter(v => v);
     const metaHtml = metaParts.map((p, i) =>
@@ -2237,7 +2190,6 @@ function renderSavedNames() {
             <span style="color:var(--border);margin:0 2px">|</span>
             <span>2008년 이후</span>
           </div>` : ''}
-        ${n.criteria_used?.length ? `<div style="margin-top:4px">` + n.criteria_used.map(c => `<span class="tag">${c}</span>`).join('') + `</div>` : ''}
       </div>
       <div class="saved-card-footer">
         <button class="btn-delete" onclick="openDeleteModal('${n.id}','${n.full_name}')">삭제</button>
