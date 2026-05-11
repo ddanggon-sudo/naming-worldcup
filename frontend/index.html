@@ -56,8 +56,17 @@
   }
   .user-bar-brand { display: flex; align-items: center; }
   .logo-btn { background: none; border: none; padding: 0; cursor: pointer; display: block; }
-  .site-logo-bar { height: 44px; width: auto; display: block; }
-  .site-logo-welcome { height: 88px; width: auto; display: block; margin-bottom: 12px; }
+  .site-logo-text {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: var(--primary);
+    line-height: 1.2;
+  }
+  .site-logo-text span {
+    color: var(--accent);
+  }
   .user-toggle {
     display: flex; background: var(--bg); border-radius: 99px;
     padding: 4px; gap: 3px; border: 1px solid var(--border);
@@ -1052,11 +1061,6 @@
     opacity: 1; transition: opacity .3s ease;
   }
   .welcome-overlay.hidden { opacity: 0; pointer-events: none; }
-  .welcome-logo { display: none; }
-  .welcome-tagline {
-    font-size: 15px; font-weight: 600; letter-spacing: 0.5px;
-    color: #4B5563; margin-bottom: 36px;
-  }
   .welcome-sub { font-size: 14px; color: var(--sub); margin-bottom: 40px; text-align: center; line-height: 1.6; }
   .welcome-btns { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 280px; }
   .welcome-btn {
@@ -1077,10 +1081,6 @@
 
 <!-- 웰컴 오버레이 -->
 <div class="welcome-overlay" id="welcome-overlay">
-  <button class="logo-btn" onclick="goPage('generate')">
-    <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-welcome">
-  </button>
-  <p class="welcome-tagline">AI 아기 이름 토너먼트</p>
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
     <button class="welcome-btn welcome-btn-dad" onclick="selectWelcomeUser('아빠')">
@@ -1097,7 +1097,7 @@
   <div class="user-bar-inner">
     <div class="user-bar-brand">
       <button class="logo-btn" onclick="goPage('generate')">
-        <img src="/pickmebaby_logo.svg" alt="PickMeBaby" class="site-logo-bar">
+        <div class="site-logo-text">AI 아기 이름 <span>월드컵</span></div>
       </button>
     </div>
     <div class="user-toggle">
