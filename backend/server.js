@@ -287,31 +287,13 @@ app.post('/api/worldcup/rarity', async (req, res) => {
     console.warn(`[rarity] koreanname.me 실패 (${e.message}), AI 폴백`);
   }
 
-  // 2차 폴백: AI 추정
-  const prompt = `한국 이름 "${name}"(${gender})의 사용 인구를 추정해 주세요.
-가장 최신 통계청 데이터를 참고하여 추정하세요.
-
-반드시 아래 JSON만 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
-
-{
-  "estimated_population": 숫자(정수),
-  "data_year": 참고한 통계청 데이터 연도(정수, 예: 2023)
-}`;
-
-  try {
-    const raw = await chat(prompt);
-    const data = extractJson(raw);
-    const pop = Number(data.estimated_population) || 0;
-    return res.json({
-      estimated_population: pop,
-      rarity: calcRarity(pop),
-      data_year: data.data_year || null,
-      source: 'ai',
-    });
-  } catch (e) {
-    console.error('rarity error:', e.message);
-    res.status(500).json({ detail: '희귀도 조회 중 오류가 발생했습니다.' });
-  }
+  // 2차 폴백: DB에 없는 이름 → 매우 희귀 처리
+  return res.json({
+    estimated_population: 0,
+    rarity: '매우 희귀',
+    data_year: null,
+    source: 'koreanname.me',
+  });
 });
 
 
