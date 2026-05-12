@@ -2636,8 +2636,9 @@ async function _sbFetch(path, opts = {}) {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
-  if (opts.method && opts.method !== 'GET') headers['Prefer'] = 'return=minimal';
-  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, { ...opts, headers });
+  if (opts.method && opts.method !== 'GET') headers['Prefer'] = opts.prefer || 'return=minimal';
+  const { prefer: _p, ...fetchOpts } = opts;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, { ...fetchOpts, headers });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Supabase ${res.status}: ${text}`);
@@ -2793,29 +2794,45 @@ function _showApp() {
 
 async function _handleSession(session) {
   if (session.user?.email) localStorage.setItem('pmb_google_email', session.user.email);
-  let { data: profile } = await _supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-  if (_lastHandledUserId !== session.user.id) return; // 로그아웃 등으로 세션 변경됨
+  const userId = session.user.id;
+
+  // _sbFetch (direct REST + cached token) instead of _supabase.from() to avoid SDK auth-lock deadlock on page refresh
+  let profileRes = await _sbFetch(`/profiles?id=eq.${userId}&select=*`);
+  let profile = (await profileRes.json())?.[0] || null;
+  if (_lastHandledUserId !== userId) return;
+
   if (!profile) {
-    const { data: newProfile } = await _supabase.from('profiles').insert({ id: session.user.id }).select('*').maybeSingle();
-    profile = newProfile;
+    await _sbFetch('/profiles', { method: 'POST', body: JSON.stringify({ id: userId }) });
+    profileRes = await _sbFetch(`/profiles?id=eq.${userId}&select=*`);
+    profile = (await profileRes.json())?.[0] || null;
   }
-  if (_lastHandledUserId !== session.user.id) return;
+  if (_lastHandledUserId !== userId) return;
+
   if (!profile?.family_id) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const arr = new Uint8Array(6);
     crypto.getRandomValues(arr);
     const code = Array.from(arr, b => chars[b % chars.length]).join('');
-    const { data: family } = await _supabase.from('families').insert({ invite_code: code }).select('id').maybeSingle();
-    if (family) {
-      await _supabase.from('profiles').update({ family_id: family.id }).eq('id', session.user.id);
-      profile = { ...profile, family_id: family.id };
+    const famRes = await _sbFetch('/families', {
+      method: 'POST',
+      body: JSON.stringify({ invite_code: code }),
+      prefer: 'return=representation',
+    });
+    const fam = (await famRes.json())?.[0] || null;
+    if (fam) {
+      await _sbFetch(`/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ family_id: fam.id }),
+      });
+      profile = { ...profile, family_id: fam.id };
     }
-    if (_lastHandledUserId !== session.user.id) return;
+    if (_lastHandledUserId !== userId) return;
   }
+
   _currentProfile = profile;
   await loadNamesFromDB();
   _authReady = true;
-  if (_lastHandledUserId !== session.user.id) return;
+  if (_lastHandledUserId !== userId) return;
   _showApp();
 }
 
@@ -2852,6 +2869,16 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'TOKEN_REFRESHED') {
     _cachedToken = session?.access_token || null;
     _tokenExpiry = Date.now() + 55 * 60 * 1000;
+    // 초기 토큰이 만료되어 INITIAL_SESSION 처리가 실패했을 경우 재시도
+    if (session && !_authReady && !_lastHandledUserId) {
+      _lastHandledUserId = session.user.id;
+      _handleSession(session).catch(e => {
+        console.error('[auth] TOKEN_REFRESHED _handleSession 실패:', e);
+        _lastHandledUserId = null;
+        _showAuthPage();
+      });
+      return;
+    }
     if (_authReady && _currentProfile?.family_id && !_namesCache.length) {
       loadNamesFromDB().then(() => renderProfile());
     }
