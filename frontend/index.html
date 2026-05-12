@@ -2805,10 +2805,9 @@ async function _handleSession(session) {
     if (_lastHandledUserId !== session.user.id) return;
   }
   _currentProfile = profile;
-  _showApp();
   await loadNamesFromDB();
   if (_lastHandledUserId !== session.user.id) return;
-  renderProfile();
+  _showApp();
 }
 
 // localStorage에서 Supabase 세션 직접 확인 (Supabase 초기화 완료 불필요)
