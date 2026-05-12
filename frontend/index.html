@@ -1737,7 +1737,9 @@ function goPage(name) {
 
   if (name === 'profile') {
     document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
-    loadNamesFromDB().then(() => renderProfile());
+    if (_currentProfile?.family_id) {
+      loadNamesFromDB().then(() => renderProfile());
+    }
   }
   if (name === 'grand') renderGrandLobby();
 }
@@ -2640,7 +2642,7 @@ async function _sbFetch(path, opts = {}) {
 }
 
 async function loadNamesFromDB() {
-  if (!_currentProfile?.family_id) { _namesCache = []; return; }
+  if (!_currentProfile?.family_id) return;
   try {
     const namesRes = await _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`);
     _namesCache = (await namesRes.json()).map(fromRow);
