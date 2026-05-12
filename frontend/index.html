@@ -3073,6 +3073,7 @@ function selectOnboardRole(panel, role) {
   _onboardRole[panel] = role;
   document.getElementById(`${panel}-role-dad`).classList.toggle('selected', role === '아빠');
   document.getElementById(`${panel}-role-mom`).classList.toggle('selected', role === '엄마');
+  applyTheme(role);
 }
 
 function generateInviteCode() {
