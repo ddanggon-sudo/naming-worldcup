@@ -1240,6 +1240,16 @@
   }
   .btn-logout:hover { color: var(--text); border-color: var(--sub); }
 
+  /* 세그먼트 필터 버튼 (보관함 탭) */
+  .seg-filter { display:flex; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .seg-btn { padding:6px 11px; font-size:13px; font-weight:600; background:none; border:none; cursor:pointer; color:var(--sub); transition:background .15s,color .15s; white-space:nowrap; }
+  .seg-btn.active { background:var(--primary); color:#fff; }
+  /* 최종확정 칩 */
+  .final-chip { padding:6px 10px; font-size:12px; font-weight:600; background:none; border:1.5px solid var(--border); border-radius:8px; cursor:pointer; color:var(--sub); transition:all .15s; white-space:nowrap; flex-shrink:0; }
+  .final-chip.active { background:var(--gold); border-color:var(--gold); color:#fff; }
+  /* 가족 구분선 */
+  .vault-sep { border:none; border-top:1px solid var(--border); margin:20px 0 16px; }
+
   /* 역할 변경 드롭다운 */
   .role-btn {
     background: none; border: none; padding: 0; cursor: pointer;
@@ -1745,11 +1755,37 @@
      PAGE 4: 프로필
 ════════════════════════════════════════ -->
 <section id="page-profile" class="page">
-  <h1>📦 이름 보관함</h1>
-  <p class="sub-title">저장된 이름들을 관리하세요</p>
+  <div class="flex-between" style="margin-bottom:4px">
+    <h1>📦 이름 보관함</h1>
+    <button onclick="syncFromDB()" id="btn-sync" title="동기화"
+      style="background:none;border:none;cursor:pointer;color:var(--sub);font-size:13px;padding:4px 6px;display:flex;align-items:center;gap:3px;border-radius:6px;transition:background .15s"
+      onmouseenter="this.style.background='var(--border)'" onmouseleave="this.style.background='none'">
+      <span style="font-size:17px;line-height:1">↻</span>
+    </button>
+  </div>
+  <p class="sub-title" id="stat-subtitle" style="margin-bottom:14px">저장된 이름 0개</p>
   <div id="migrate-status" style="display:none;font-size:12px;color:var(--primary);margin-bottom:10px;text-align:center;padding:6px 10px;background:var(--primary-light);border-radius:8px;"></div>
 
-  <!-- 가족 초대 코드 -->
+  <!-- 필터/정렬/추가 행 -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="seg-filter">
+      <button class="seg-btn active" id="seg-all"  onclick="setAuthorFilter('all')">전체</button>
+      <button class="seg-btn"        id="seg-dad"  onclick="setAuthorFilter('아빠')">👨 아빠</button>
+      <button class="seg-btn"        id="seg-mom"  onclick="setAuthorFilter('엄마')">👩 엄마</button>
+    </div>
+    <select class="small" id="sort-select" onchange="renderSavedNames()" style="flex:1;min-width:76px">
+      <option value="newest">최신순</option>
+      <option value="abc">가나다순</option>
+    </select>
+    <button class="final-chip" id="final-chip" onclick="toggleFinalFilter()">👑 확정</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddNameModal()" style="flex-shrink:0">+ 추가</button>
+  </div>
+
+  <div id="saved-names-list"></div>
+
+  <hr class="vault-sep">
+
+  <!-- 가족 초대 코드 (연결됐을 때 표시) -->
   <div id="family-code-bar" style="display:none;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid var(--primary);border-radius:12px;padding:10px 14px;margin-bottom:12px;gap:10px">
     <div>
       <div style="font-size:11px;color:var(--primary);font-weight:700;letter-spacing:.4px;margin-bottom:2px">우리 가족 초대 코드</div>
@@ -1758,9 +1794,14 @@
     <button onclick="_copyFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">복사</button>
   </div>
 
-  <!-- 가족 합류하기 -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px">
+  <!-- 가족 합류하기 (미연결 시 표시) -->
+  <div id="join-section" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">
     <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text)">🔗 가족 합류하기</div>
+    <!-- 역할 선택 -->
+    <div class="onboard-role-group" style="margin-bottom:10px">
+      <button class="onboard-role-btn" id="join-prof-role-dad" onclick="selectJoinProfileRole('아빠')">👨 아빠</button>
+      <button class="onboard-role-btn" id="join-prof-role-mom" onclick="selectJoinProfileRole('엄마')">👩 엄마</button>
+    </div>
     <div style="display:flex;gap:8px">
       <input id="join-code-profile" class="auth-input" type="text"
         placeholder="초대 코드 (예: ABC-DEF)"
@@ -1773,40 +1814,6 @@
     </div>
     <p id="join-profile-error" style="font-size:12px;color:#e53e3e;margin-top:6px;min-height:16px"></p>
   </div>
-
-  <div class="profile-stat">
-    <div class="stat-box">
-      <div class="stat-num" id="stat-total">0</div>
-      <div class="stat-label">저장된 이름</div>
-    </div>
-  </div>
-
-  <!-- vault header: row 1 — title + primary CTA -->
-  <div class="flex-between" style="margin-bottom:8px">
-    <span style="font-weight:700;font-size:15px">저장된 이름</span>
-    <button class="btn btn-primary btn-sm" onclick="openAddNameModal()">+ 직접 추가</button>
-  </div>
-  <!-- vault header: row 2 — filters (left) + utility sync (right) -->
-  <div class="flex-between" style="margin-bottom:14px;gap:6px">
-    <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:0">
-      <select class="small" id="author-filter" onchange="renderSavedNames()" style="flex:1;min-width:0">
-        <option value="all">전체</option>
-        <option value="아빠">아빠</option>
-        <option value="엄마">엄마</option>
-      </select>
-      <select class="small" id="sort-select" onchange="renderSavedNames()" style="flex:1;min-width:0">
-        <option value="newest">최신순</option>
-        <option value="abc">가나다순</option>
-        <option value="final">최종확정 먼저</option>
-      </select>
-    </div>
-    <button onclick="syncFromDB()" id="btn-sync" title="다른 기기에서 저장한 이름 불러오기"
-      style="background:none;border:none;cursor:pointer;color:var(--sub);font-size:12px;padding:4px 2px;white-space:nowrap;display:flex;align-items:center;gap:3px;flex-shrink:0">
-      <span style="font-size:14px;line-height:1">↻</span>동기화
-    </button>
-  </div>
-
-  <div id="saved-names-list"></div>
 </section>
 
 <!-- 이름 직접 추가 모달 -->
@@ -2624,31 +2631,58 @@ function rarityBadgeHtml(rarity) {
 
 function renderProfile() {
   const saved = getSavedNames();
-  document.getElementById('stat-total').textContent = saved.length;
+  document.getElementById('stat-subtitle').textContent = `저장된 이름 ${saved.length}개`;
 
   const bar = document.getElementById('family-code-bar');
+  const joinSection = document.getElementById('join-section');
   if (_familyCode) {
     document.getElementById('family-code-display').textContent = _familyCode;
     bar.style.display = 'flex';
+    if (joinSection) joinSection.style.display = 'none';
   } else {
     bar.style.display = 'none';
+    if (joinSection) joinSection.style.display = 'block';
   }
 
   renderSavedNames();
 }
 
+function setAuthorFilter(val) {
+  _authorFilter = val;
+  document.getElementById('seg-all').classList.toggle('active', val === 'all');
+  document.getElementById('seg-dad').classList.toggle('active', val === '아빠');
+  document.getElementById('seg-mom').classList.toggle('active', val === '엄마');
+  renderSavedNames();
+}
+
+function toggleFinalFilter() {
+  _showFinalOnly = !_showFinalOnly;
+  document.getElementById('final-chip').classList.toggle('active', _showFinalOnly);
+  renderSavedNames();
+}
+
+function selectJoinProfileRole(role) {
+  _joinProfileRole = role;
+  document.getElementById('join-prof-role-dad').classList.toggle('selected', role === '아빠');
+  document.getElementById('join-prof-role-mom').classList.toggle('selected', role === '엄마');
+}
+
 function renderSavedNames() {
   const sort = document.getElementById('sort-select').value;
-  const authorFilter = document.getElementById('author-filter').value;
   let saved = getSavedNames();
-  if (authorFilter !== 'all') saved = saved.filter(n => n.author === authorFilter);
+  if (_authorFilter !== 'all') saved = saved.filter(n => n.author === _authorFilter);
+  if (_showFinalOnly) saved = saved.filter(n => n.is_final);
   if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
   if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  if (sort === 'final') saved = saved.slice().sort((a, b) => (b.is_final ? 1 : 0) - (a.is_final ? 1 : 0));
 
   const el = document.getElementById('saved-names-list');
   if (!saved.length) {
-    el.innerHTML = `<div class="empty">저장된 이름이 없습니다.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 생성하러 가기</button></div></div>`;
+    const allSaved = getSavedNames();
+    if (!allSaved.length) {
+      el.innerHTML = `<div class="empty">아직 저장된 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 탐색하러 가기</button></div></div>`;
+    } else {
+      el.innerHTML = `<div class="empty">해당 조건에 맞는 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-outline btn-sm" onclick="setAuthorFilter('all');if(_showFinalOnly)toggleFinalFilter()">필터 초기화</button></div></div>`;
+    }
     return;
   }
   el.innerHTML = saved.map(n => {
@@ -2817,6 +2851,9 @@ let _lastHandledUserId = null;
 let _authInFlight = false;
 let _cachedToken = null;
 let _tokenExpiry = 0;
+let _authorFilter = 'all';
+let _showFinalOnly = false;
+let _joinProfileRole = null;
 
 function toRow(n) {
   return {
@@ -2973,9 +3010,12 @@ async function submitProfileJoin() {
       }
     }
 
-    // 4. 내 프로필 → 대상 가족으로 업데이트
-    await _supabase.from('profiles').update({ family_id: targetFamilyId }).eq('id', user.id);
-    _currentProfile = { ..._currentProfile, family_id: targetFamilyId };
+    // 4. 내 프로필 → 대상 가족으로 업데이트 (역할도 함께)
+    const profilePatch = { family_id: targetFamilyId };
+    if (_joinProfileRole) profilePatch.role = _joinProfileRole;
+    await _supabase.from('profiles').update(profilePatch).eq('id', user.id);
+    _currentProfile = { ..._currentProfile, family_id: targetFamilyId, ...(_joinProfileRole ? { role: _joinProfileRole } : {}) };
+    if (_joinProfileRole) { applyTheme(_joinProfileRole); localStorage.setItem('current_author', _joinProfileRole); renderUserBar(); }
 
     // 5. 데이터 갱신
     document.getElementById('join-code-profile').value = '';
