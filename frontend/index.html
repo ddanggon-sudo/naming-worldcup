@@ -19,22 +19,6 @@
     --radius: 14px;
     --shadow: 0 2px 12px rgba(108,99,255,0.10);
   }
-  /* ── 아빠 테마 (파란/인디고) ── */
-  body.theme-dad {
-    --primary: #4A7CF7;
-    --primary-light: #EBF0FF;
-    --accent: #6C63FF;
-    --bg: #F0F4FF;
-    --shadow: 0 2px 12px rgba(74,124,247,0.12);
-  }
-  /* ── 엄마 테마 (핑크/로즈) ── */
-  body.theme-mom {
-    --primary: #FF6584;
-    --primary-light: #FFF0F3;
-    --accent: #FF9BAD;
-    --bg: #FFF5F7;
-    --shadow: 0 2px 12px rgba(255,101,132,0.12);
-  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -68,19 +52,6 @@
   .site-logo-text span {
     color: var(--accent);
   }
-  .user-toggle {
-    display: flex; background: var(--bg); border-radius: 99px;
-    padding: 4px; gap: 3px; border: 1px solid var(--border);
-  }
-  .user-toggle-btn {
-    padding: 5px 20px; border-radius: 99px; font-size: 13px; font-weight: 700;
-    border: none; cursor: pointer; background: transparent; color: var(--sub);
-    transition: background .2s, color .2s, transform .1s;
-    display: flex; align-items: center; gap: 5px; line-height: 1;
-  }
-  .user-toggle-btn:active { transform: scale(0.95); }
-  #user-btn-dad.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(108,99,255,0.3); }
-  #user-btn-mom.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(255,101,132,0.3); }
 
   /* 네비게이션 */
   nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); z-index: 100; }
@@ -468,10 +439,6 @@
   .saved-card.is-final {
     border-left: 4px solid var(--gold);
   }
-  .saved-card.author-dad { border-left: 4px solid var(--primary); }
-  .saved-card.author-mom { border-left: 4px solid var(--accent); }
-  .saved-card.is-final.author-dad,
-  .saved-card.is-final.author-mom { border-left: 4px solid var(--gold); }
 
   .saved-card-header {
     display: flex;
@@ -520,8 +487,6 @@
     color: #2E7D32;
     border: 1px solid #C8E6C9;
   }
-  .badge-dad { background: #EEF0FF; color: #4338CA; border: 1px solid rgba(108,99,255,0.25); }
-  .badge-mom { background: #FFF0F4; color: #be185d; border: 1px solid rgba(255,101,132,0.25); }
   .badge-final {
     background: var(--gold);
     color: #fff;
@@ -1240,38 +1205,10 @@
   }
   .btn-logout:hover { color: var(--text); border-color: var(--sub); }
 
-  /* 세그먼트 필터 버튼 (보관함 탭) */
-  .seg-filter { display:flex; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; overflow:hidden; flex-shrink:0; }
-  .seg-btn { padding:6px 11px; font-size:13px; font-weight:600; background:none; border:none; cursor:pointer; color:var(--sub); transition:background .15s,color .15s; white-space:nowrap; }
-  .seg-btn.active { background:var(--primary); color:#fff; }
-  /* 최종확정 칩 */
-  .final-chip { padding:6px 10px; font-size:12px; font-weight:600; background:none; border:1.5px solid var(--border); border-radius:8px; cursor:pointer; color:var(--sub); transition:all .15s; white-space:nowrap; flex-shrink:0; }
-  .final-chip.active { background:var(--gold); border-color:var(--gold); color:#fff; }
   /* 가족 구분선 */
   .vault-sep { border:none; border-top:1px solid var(--border); margin:20px 0 16px; }
 
-  /* 역할 변경 드롭다운 */
-  .role-btn {
-    background: none; border: none; padding: 0; cursor: pointer;
-    font-size: 14px; font-weight: 700; color: var(--primary);
-    display: flex; align-items: center; gap: 3px;
-  }
-  .role-btn::after { content: '▾'; font-size: 10px; opacity: 0.7; }
-  .role-dropdown-wrap { position: relative; }
-  .role-dropdown {
-    display: none; position: absolute; top: calc(100% + 8px); right: 0;
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12); overflow: hidden; min-width: 110px; z-index: 200;
-  }
-  .role-dropdown.open { display: block; }
-  .role-dropdown button {
-    display: flex; align-items: center; gap: 8px; width: 100%;
-    padding: 11px 16px; font-size: 14px; font-weight: 600;
-    background: none; border: none; cursor: pointer; color: var(--text);
-    transition: background .15s;
-  }
-  .role-dropdown button:hover { background: var(--bg); }
-  .role-dropdown button.active { color: var(--primary); }
+
 </style>
 </head>
 <body>
@@ -1335,10 +1272,6 @@
 
   <!-- 새 가족 만들기 패널 -->
   <div class="onboard-panel" id="panel-create">
-    <div class="onboard-role-group">
-      <button class="onboard-role-btn" id="create-role-dad" onclick="selectOnboardRole('create','아빠')">👨 아빠</button>
-      <button class="onboard-role-btn" id="create-role-mom" onclick="selectOnboardRole('create','엄마')">👩 엄마</button>
-    </div>
     <p class="auth-error" id="create-error" role="alert" aria-live="polite"></p>
 
     <button class="btn btn-primary" id="btn-create-family"
@@ -1372,10 +1305,6 @@
 
   <!-- 초대 코드 입력 패널 -->
   <div class="onboard-panel" id="panel-join" style="display:none">
-    <div class="onboard-role-group">
-      <button class="onboard-role-btn" id="join-role-dad" onclick="selectOnboardRole('join','아빠')">👨 아빠</button>
-      <button class="onboard-role-btn" id="join-role-mom" onclick="selectOnboardRole('join','엄마')">👩 엄마</button>
-    </div>
     <input class="auth-input join-code-input" id="join-code-input"
       placeholder="ABC-DEF" maxlength="7"
       aria-label="초대 코드 6자리"
@@ -1393,18 +1322,6 @@
   </button>
 </div>
 
-<!-- 웰컴 오버레이 -->
-<div class="welcome-overlay" id="welcome-overlay" style="display:none">
-  <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
-  <div class="welcome-btns">
-    <button class="welcome-btn welcome-btn-dad" onclick="selectWelcomeUser('아빠')">
-      <span class="welcome-btn-emoji">👨</span> 아빠
-    </button>
-    <button class="welcome-btn welcome-btn-mom" onclick="selectWelcomeUser('엄마')">
-      <span class="welcome-btn-emoji">👩</span> 엄마
-    </button>
-  </div>
-</div>
 
 <!-- 사용자 전환 바 -->
 <div class="user-bar">
@@ -1414,16 +1331,7 @@
         <div class="site-logo-text">AI 아기 이름 <span>월드컵</span></div>
       </button>
     </div>
-    <div class="user-toggle" style="display:flex;align-items:center;gap:8px">
-      <div class="role-dropdown-wrap">
-        <button class="role-btn" id="user-role-display" onclick="toggleRoleDropdown()"></button>
-        <div class="role-dropdown" id="role-dropdown">
-          <button id="role-opt-dad" onclick="changeRole('아빠')">👨 아빠</button>
-          <button id="role-opt-mom" onclick="changeRole('엄마')">👩 엄마</button>
-        </div>
-      </div>
-      <button class="btn-logout" onclick="logoutUser()">로그아웃</button>
-    </div>
+    <button class="btn-logout" onclick="logoutUser()">로그아웃</button>
   </div>
 </div>
 
@@ -1768,16 +1676,10 @@
 
   <!-- 필터/정렬/추가 행 -->
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-    <div class="seg-filter">
-      <button class="seg-btn active" id="seg-all"  onclick="setAuthorFilter('all')">전체</button>
-      <button class="seg-btn"        id="seg-dad"  onclick="setAuthorFilter('아빠')">👨 아빠</button>
-      <button class="seg-btn"        id="seg-mom"  onclick="setAuthorFilter('엄마')">👩 엄마</button>
-    </div>
     <select class="small" id="sort-select" onchange="renderSavedNames()" style="flex:1;min-width:76px">
       <option value="newest">최신순</option>
       <option value="abc">가나다순</option>
     </select>
-    <button class="final-chip" id="final-chip" onclick="toggleFinalFilter()">👑 확정</button>
     <button class="btn btn-primary btn-sm" onclick="openAddNameModal()" style="flex-shrink:0">+ 추가</button>
   </div>
 
@@ -1794,26 +1696,6 @@
     <button onclick="_copyFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">복사</button>
   </div>
 
-  <!-- 가족 합류하기 (미연결 시 표시) -->
-  <div id="join-section" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text)">🔗 가족 합류하기</div>
-    <!-- 역할 선택 -->
-    <div class="onboard-role-group" style="margin-bottom:10px">
-      <button class="onboard-role-btn" id="join-prof-role-dad" onclick="selectJoinProfileRole('아빠')">👨 아빠</button>
-      <button class="onboard-role-btn" id="join-prof-role-mom" onclick="selectJoinProfileRole('엄마')">👩 엄마</button>
-    </div>
-    <div style="display:flex;gap:8px">
-      <input id="join-code-profile" class="auth-input" type="text"
-        placeholder="초대 코드 (예: ABC-DEF)"
-        maxlength="7" style="flex:1;padding:10px 12px;font-size:15px;font-weight:700;letter-spacing:2px;text-align:center;text-transform:uppercase"
-        oninput="formatJoinCode(this)"
-        onkeydown="if(event.key==='Enter') submitProfileJoin()">
-      <button class="btn btn-primary" id="btn-profile-join" onclick="submitProfileJoin()" style="flex-shrink:0;padding:10px 16px">
-        <span class="btn-text">합류</span>
-      </button>
-    </div>
-    <p id="join-profile-error" style="font-size:12px;color:#e53e3e;margin-top:6px;min-height:16px"></p>
-  </div>
 </section>
 
 <!-- 이름 직접 추가 모달 -->
@@ -1894,65 +1776,9 @@ let deleteTargetId = null;
 const API = '';  // 같은 서버에서 서빙되므로 빈 문자열
 
 // ════════════════════════════════
-// 사용자 전환
+// 헬퍼 유틸 (사용자 전환 기능 제거됨)
 // ════════════════════════════════
-function getCurrentUser() {
-  return localStorage.getItem('current_author') || '아빠';
-}
-function applyTheme(user) {
-  document.body.classList.toggle('theme-dad', user === '아빠');
-  document.body.classList.toggle('theme-mom', user === '엄마');
-}
-function switchUser(name) {
-  localStorage.setItem('current_author', name);
-  applyTheme(name);
-  renderUserBar();
-}
-function renderUserBar() {
-  const u = getCurrentUser();
-  const el = document.getElementById('user-role-display');
-  if (el) el.textContent = u === '아빠' ? '👨 아빠' : '👩 엄마';
-  document.getElementById('role-opt-dad')?.classList.toggle('active', u === '아빠');
-  document.getElementById('role-opt-mom')?.classList.toggle('active', u === '엄마');
-}
 
-function toggleRoleDropdown() {
-  document.getElementById('role-dropdown').classList.toggle('open');
-}
-
-async function changeRole(role) {
-  document.getElementById('role-dropdown').classList.remove('open');
-  if (role === getCurrentUser()) return;
-  applyTheme(role);
-  localStorage.setItem('current_author', role);
-  renderUserBar();
-  // Supabase profile 업데이트
-  if (_currentProfile) {
-    _currentProfile = { ..._currentProfile, role };
-    await _supabase.from('profiles').update({ role }).eq('id', _currentProfile.id);
-  }
-}
-
-// 드롭다운 외부 클릭 시 닫기
-document.addEventListener('click', e => {
-  if (!e.target.closest('.role-dropdown-wrap')) {
-    document.getElementById('role-dropdown')?.classList.remove('open');
-  }
-});
-function selectWelcomeUser(name) {
-  localStorage.setItem('current_author', name);
-  applyTheme(name);
-  renderUserBar();
-  const overlay = document.getElementById('welcome-overlay');
-  overlay.classList.add('hidden');
-  setTimeout(() => overlay.style.display = 'none', 300);
-}
-applyTheme(getCurrentUser());
-renderUserBar();
-
-// ════════════════════════════════
-// 헬퍼 유틸
-// ════════════════════════════════
 const uuid = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -2193,7 +2019,7 @@ async function saveGeneratedName(idx) {
     estimated_population: null,
     data_year: null,
     is_final: false,
-    author: getCurrentUser(),
+    author: null,
     saved_at: new Date().toISOString(),
   };
   saved.push(newEntry);
@@ -2298,7 +2124,7 @@ async function saveWcName(side) {
     estimated_population: null,
     data_year: null,
     is_final: false,
-    author: getCurrentUser(),
+    author: null,
     saved_at: new Date().toISOString(),
   });
   const ok = await setSavedNames(saved);
@@ -2396,7 +2222,7 @@ async function saveWinner() {
     estimated_population: wcState.rarityData?.estimated_population ?? null,
     data_year: wcState.rarityData?.data_year || null,
     is_final: false,
-    author: getCurrentUser(),
+    author: null,
     saved_at: new Date().toISOString(),
   });
   await setSavedNames(saved);
@@ -2647,31 +2473,10 @@ function renderProfile() {
   renderSavedNames();
 }
 
-function setAuthorFilter(val) {
-  _authorFilter = val;
-  document.getElementById('seg-all').classList.toggle('active', val === 'all');
-  document.getElementById('seg-dad').classList.toggle('active', val === '아빠');
-  document.getElementById('seg-mom').classList.toggle('active', val === '엄마');
-  renderSavedNames();
-}
-
-function toggleFinalFilter() {
-  _showFinalOnly = !_showFinalOnly;
-  document.getElementById('final-chip').classList.toggle('active', _showFinalOnly);
-  renderSavedNames();
-}
-
-function selectJoinProfileRole(role) {
-  _joinProfileRole = role;
-  document.getElementById('join-prof-role-dad').classList.toggle('selected', role === '아빠');
-  document.getElementById('join-prof-role-mom').classList.toggle('selected', role === '엄마');
-}
 
 function renderSavedNames() {
   const sort = document.getElementById('sort-select').value;
   let saved = getSavedNames();
-  if (_authorFilter !== 'all') saved = saved.filter(n => n.author === _authorFilter);
-  if (_showFinalOnly) saved = saved.filter(n => n.is_final);
   if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
   if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
@@ -2681,7 +2486,7 @@ function renderSavedNames() {
     if (!allSaved.length) {
       el.innerHTML = `<div class="empty">아직 저장된 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 탐색하러 가기</button></div></div>`;
     } else {
-      el.innerHTML = `<div class="empty">해당 조건에 맞는 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-outline btn-sm" onclick="setAuthorFilter('all');if(_showFinalOnly)toggleFinalFilter()">필터 초기화</button></div></div>`;
+      el.innerHTML = `<div class="empty">저장된 이름이 없어요.</div>`;
     }
     return;
   }
@@ -2694,14 +2499,13 @@ function renderSavedNames() {
       i === 0 ? `<span>${p}</span>` : `<span class="saved-card-meta-dot"></span><span>${p}</span>`
     ).join('');
     return `
-    <div class="saved-card${n.is_final ? ' is-final' : ''}${n.author === '아빠' ? ' author-dad' : n.author === '엄마' ? ' author-mom' : ''}">
+    <div class="saved-card${n.is_final ? ' is-final' : ''}">
       <div class="saved-card-header">
         <div class="saved-card-name-wrap">
           <div class="saved-card-name">${n.full_name}${n.hanja ? `<span class="hanja-inline">${n.hanja}</span>` : ''}</div>
         </div>
         <div class="saved-card-badges">
           ${n.is_final ? '<span class="badge badge-final">👑 최종확정</span>' : ''}
-          ${n.author === '아빠' ? '<span class="badge badge-dad">👨 아빠</span>' : n.author === '엄마' ? '<span class="badge badge-mom">👩 엄마</span>' : ''}
           ${n.is_manual ? '<span class="badge badge-manual">직접 추가</span>' : ''}
           ${rarityBadgeHtml(n.rarity)}
         </div>
@@ -2764,7 +2568,7 @@ async function confirmAddName() {
     rarity: null, estimated_population: null, data_year: null,
     criteria_used: [], impression: '',
     is_final: false, is_manual: true,
-    author: getCurrentUser(),
+    author: null,
     saved_at: new Date().toISOString(),
   };
   saved.push(newEntry);
@@ -2851,9 +2655,6 @@ let _lastHandledUserId = null;
 let _authInFlight = false;
 let _cachedToken = null;
 let _tokenExpiry = 0;
-let _authorFilter = 'all';
-let _showFinalOnly = false;
-let _joinProfileRole = null;
 
 function toRow(n) {
   return {
@@ -2960,75 +2761,6 @@ function _copyFamilyCode() {
   navigator.clipboard?.writeText(_familyCode).then(() => showToast('초대 코드가 복사됐어요!'));
 }
 
-// ── 가족 합류하기 (이름보관함 인라인) ────────
-
-async function submitProfileJoin() {
-  const raw = document.getElementById('join-code-profile').value.replace(/-/g, '').trim().toUpperCase();
-  const errEl = document.getElementById('join-profile-error');
-  errEl.textContent = '';
-
-  if (raw.length !== 6) {
-    errEl.textContent = '초대 코드 6자리를 모두 입력해주세요.';
-    return;
-  }
-
-  const myRaw = (_familyCode || '').replace(/-/g, '');
-  if (raw === myRaw) {
-    errEl.textContent = '현재 사용 중인 코드입니다.';
-    return;
-  }
-
-  _setLoading('btn-profile-join', true);
-
-  try {
-    const { data: { user } } = await _supabase.auth.getUser();
-    const myFamilyId = _currentProfile?.family_id;
-
-    // 1. 대상 가족 찾기
-    const { data: targets } = await _supabase.from('families').select('id').eq('invite_code', raw);
-    if (!targets?.length) {
-      errEl.textContent = '유효하지 않은 초대 코드입니다.';
-      _setLoading('btn-profile-join', false);
-      return;
-    }
-    const targetFamilyId = targets[0].id;
-
-    // 2. 내 이름 보관함 → 대상 가족으로 이전
-    if (myFamilyId) {
-      await _sbFetch(`/naming_list?family_id=eq.${myFamilyId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ family_id: targetFamilyId }),
-      });
-    }
-
-    // 3. 기존 가족에 나 외 다른 멤버 없으면 삭제 (프로필 업데이트 전에 → RLS 통과)
-    if (myFamilyId) {
-      const { data: others } = await _supabase.from('profiles')
-        .select('id').eq('family_id', myFamilyId).neq('id', user.id);
-      if (!others?.length) {
-        await _supabase.from('families').delete().eq('id', myFamilyId);
-      }
-    }
-
-    // 4. 내 프로필 → 대상 가족으로 업데이트 (역할도 함께)
-    const profilePatch = { family_id: targetFamilyId };
-    if (_joinProfileRole) profilePatch.role = _joinProfileRole;
-    await _supabase.from('profiles').update(profilePatch).eq('id', user.id);
-    _currentProfile = { ..._currentProfile, family_id: targetFamilyId, ...(_joinProfileRole ? { role: _joinProfileRole } : {}) };
-    if (_joinProfileRole) { applyTheme(_joinProfileRole); localStorage.setItem('current_author', _joinProfileRole); renderUserBar(); }
-
-    // 5. 데이터 갱신
-    document.getElementById('join-code-profile').value = '';
-    await loadNamesFromDB();
-    renderProfile();
-    showToast('✅ 가족에 합류했습니다!');
-  } catch (e) {
-    console.error('[가족 합류]', e);
-    errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
-  }
-
-  _setLoading('btn-profile-join', false);
-}
 
 // ── 인증 함수 ─────────────────────────────
 
@@ -3153,8 +2885,7 @@ async function logoutFromOnboarding() {
 
 // ── 온보딩 함수 ───────────────────────────
 
-let _onboardRole = { create: null, join: null };
-let _generatedCode = '';  // 발급된 코드 보관 (하이픈 없는 원본)
+let _generatedCode = '';
 
 function switchOnboardTab(tab) {
   document.getElementById('panel-create').style.display = tab === 'create' ? '' : 'none';
@@ -3166,12 +2897,6 @@ function switchOnboardTab(tab) {
   document.getElementById('join-error').textContent = '';
 }
 
-function selectOnboardRole(panel, role) {
-  _onboardRole[panel] = role;
-  document.getElementById(`${panel}-role-dad`).classList.toggle('selected', role === '아빠');
-  document.getElementById(`${panel}-role-mom`).classList.toggle('selected', role === '엄마');
-  applyTheme(role);
-}
 
 function generateInviteCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -3192,9 +2917,7 @@ function formatJoinCode(input) {
 }
 
 async function createFamily() {
-  const role = _onboardRole.create;
   const errEl = document.getElementById('create-error');
-  if (!role) { errEl.textContent = '아빠 또는 엄마를 먼저 선택해주세요.'; return; }
   errEl.textContent = '';
   _setLoading('btn-create-family', true);
 
@@ -3217,9 +2940,8 @@ async function createFamily() {
   }
 
   const { error: pErr } = await _supabase.from('profiles')
-    .update({ family_id: family.id, role }).eq('id', user.id);
+    .update({ family_id: family.id }).eq('id', user.id);
   if (pErr) {
-    // 프로필 저장 실패 시 생성한 family 롤백
     await _supabase.from('families').delete().eq('id', family.id);
     errEl.textContent = '프로필 저장에 실패했습니다. 다시 시도해주세요.';
     _setLoading('btn-create-family', false);
@@ -3280,14 +3002,12 @@ async function finishOnboarding() {
   const { data: profile } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
   _currentProfile = profile;
   await loadNamesFromDB();
-  _showApp(profile?.role || '아빠');
+  _showApp();
 }
 
 async function joinFamily() {
-  const role = _onboardRole.join;
   const raw = document.getElementById('join-code-input').value.replace(/-/g, '').trim().toUpperCase();
   const errEl = document.getElementById('join-error');
-  if (!role) { errEl.textContent = '아빠 또는 엄마를 먼저 선택해주세요.'; return; }
   if (raw.length !== 6) { errEl.textContent = '초대 코드 6자리를 모두 입력해주세요. (예: ABC-DEF)'; return; }
   errEl.textContent = '';
   _setLoading('btn-join-family', true);
@@ -3311,7 +3031,7 @@ async function joinFamily() {
   }
 
   const { error: pErr } = await _supabase.from('profiles')
-    .update({ family_id: families[0].id, role }).eq('id', user.id);
+    .update({ family_id: families[0].id }).eq('id', user.id);
   if (pErr) {
     errEl.textContent = '합류에 실패했습니다. 잠시 후 다시 시도해주세요.';
     _setLoading('btn-join-family', false);
@@ -3339,12 +3059,9 @@ function _showOnboardingPage() {
   document.getElementById('page-onboarding').classList.remove('hidden');
 }
 
-function _showApp(role) {
+function _showApp() {
   _hideOverlays();
-  localStorage.setItem('current_author', role);
   localStorage.setItem('pmb_session_until', Date.now() + 7 * 24 * 60 * 60 * 1000);
-  applyTheme(role);
-  renderUserBar();
   renderProfile();
 }
 
@@ -3364,7 +3081,7 @@ async function _handleSession(session) {
     _showOnboardingPage();
     return;
   }
-  _showApp(profile.role || getCurrentUser());
+  _showApp();
   await loadNamesFromDB();
   if (_lastHandledUserId !== session.user.id) return;
   renderProfile();
@@ -3385,11 +3102,7 @@ const _localSession = _readLocalSupabaseSession();
 const _hasLocalAuth = !!_localSession;
 
 if (_hasLocalAuth) {
-  // localStorage에 세션 있음 → 즉시 앱 표시 (Supabase 초기화 기다리지 않음)
-  const _cachedRole = localStorage.getItem('current_author') || '아빠';
   _hideOverlays();
-  applyTheme(_cachedRole);
-  renderUserBar();
 } else {
   // 세션 없음 → onAuthStateChange 대기, 30초 폴백
   setTimeout(() => {
@@ -3417,8 +3130,6 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     // 로딩 화면 아직 있으면 즉시 제거
     if (!document.getElementById('page-loading').classList.contains('hidden')) {
       _hideOverlays();
-      applyTheme(localStorage.getItem('current_author') || '아빠');
-      renderUserBar();
     }
     try {
       await _handleSession(session);
