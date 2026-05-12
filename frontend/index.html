@@ -2622,8 +2622,11 @@ function fromRow(r) {
 }
 
 async function _getToken() {
+  if (_cachedToken && Date.now() < _tokenExpiry) return _cachedToken;
   const { data: { session } } = await _supabase.auth.getSession();
-  return session?.access_token || SUPABASE_ANON_KEY;
+  _cachedToken = session?.access_token || SUPABASE_ANON_KEY;
+  _tokenExpiry = Date.now() + 55 * 60 * 1000;
+  return _cachedToken;
 }
 
 async function _sbFetch(path, opts = {}) {
