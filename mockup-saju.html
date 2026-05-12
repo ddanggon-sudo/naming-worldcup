@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>픽미네임 — 사주·한자·감정서 시안</title>
+<style>
+  :root {
+    --primary: #6C63FF;
+    --primary-light: #EEF0FF;
+    --accent: #FF6584;
+    --gold: #F5A623;
+    --bg: #F8F9FE;
+    --card: #FFFFFF;
+    --text: #2D2D2D;
+    --sub: #6B7280;
+    --border: #E5E7EB;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(108,99,255,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1a1a2e;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* 시안용 툴바 — 실제 서비스에는 없음 */
+  .mockup-toolbar {
+    background: #1a1a2e;
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .mockup-toolbar h3 {
+    font-size: 12px;
+    color: #ffd700;
+    margin-right: 6px;
+    letter-spacing: 0.5px;
+  }
+  .mockup-btn {
+    background: transparent;
+    color: white;
+    border: 1px solid #444;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .mockup-btn:hover { background: #2a2a4e; }
+  .mockup-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  /* Phone frame */
+  .phone-shell {
+    max-width: 480px;
+    margin: 24px auto 60px;
+    background: var(--bg);
+    min-height: calc(100vh - 100px);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  .top-bar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .top-bar .back {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--sub);
+    cursor: pointer;
+    padding: 0;
+  }
+  .top-bar h1 {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .container { padding: 20px 16px 80px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #6C63FF 0%, #9b8fff 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+  }
+  .btn-accent {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 16px rgba(255,101,132,0.30);
+  }
+  .btn-secondary {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .btn-outline {
+    background: white;
+    color: var(--sub);
+    border: 1.5px solid var(--border);
+  }
+  .btn:active { transform: scale(0.97); }
+
+  /* Screens */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ─── 1. 월드컵 결과 ─── */
+  .winner-card {
+    background: linear-gradient(135deg, #fff7d6 0%, #ffe5cc 100%);
+    border-radius: var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .trophy { font-size: 48px; margin-bottom: 12px; }
+  .winner-label { font-size: 12px; color: #c07800; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px;}
+  .winner-name { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+  .winner-hanja { font-size: 20px; color: var(--sub); margin-bottom: 12px; }
+  .winner-meaning { font-size: 13px; color: var(--sub); line-height: 1.6; }
+
+  .help-text {
+    font-size: 12px;
+    color: var(--sub);
+    text-align: center;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .help-text .gold { color: var(--gold); font-weight: 700; }
+
+  /* ─── 2. 생일 입력 모달 ─── */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 16px;
+  }
+  .modal {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 380px;
+    padding: 24px 20px;
+  }
+  .modal-title {
+    font-size: 19px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 12.5px;
+    color: var(--sub);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--sub);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--bg);
+    font-family: inherit;
+    color: var(--text);
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 16px;
+    padding: 10px 12px;
+    background: var(--primary-light);
+    border-radius: 10px;
+  }
+  .checkbox-row input { margin: 0; }
+  .checkbox-row label { font-size: 12px; color: var(--primary); margin: 0; font-weight: 700; flex: 1; cursor: pointer;}
+
+  /* ─── 3. 사주 결과 ─── */
+  .section-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--sub);
+    margin: 18px 0 8px;
+    padding-left: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  /* 사주팔자 표 */
+  .palja-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .palja-col {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 4px;
+    text-align: center;
+  }
+  .palja-col-label {
+    font-size: 10px;
+    color: var(--sub);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .palja-cheon {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 2px;
+    line-height: 1;
+  }
+  .palja-ji {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .palja-element {
+    font-size: 10px;
+    color: var(--sub);
+    margin-top: 6px;
+  }
+
+  /* 오행 5각 차트 */
+  .ohaeng-card { text-align: center; }
+  .ohaeng-chart { width: 230px; height: 230px; margin: 0 auto; }
+  .ohaeng-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 8px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ohaeng-item { font-size: 12px; color: var(--sub); }
+  .ohaeng-item .count { font-weight: 800; color: var(--text); margin-left: 2px; }
+
+  .yongsin-banner {
+    background: linear-gradient(135deg, #e0f2ff 0%, #d1e7ff 100%);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    margin-top: 14px;
+  }
+  .yongsin-banner .label {
+    font-size: 11px;
+    color: #1976d2;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .yongsin-banner .value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0d47a1;
+  }
+  .yongsin-banner .desc {
+    font-size: 11.5px;
+    color: #1976d2;
+    margin-top: 4px;
+  }
+
+  /* 점수 카드 */
+  .score-card { text-align: center; }
+  .score-number {
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .score-number .unit {
+    font-size: 18px;
+    color: var(--sub);
+    font-weight: 700;
+    margin-left: 2px;
+  }
+  .score-label {
+    font-size: 13px;
+    color: var(--sub);
+    margin: 6px 0 12px;
+  }
+  .score-bar {
+    height: 10px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #9b8fff);
+    border-radius: 99px;
+  }
+
+  /* AI 풀이 */
+  .ai-narrative {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .ai-narrative p + p { margin-top: 8px; }
+  .ai-narrative .quote {
+    color: var(--primary);
+    font-weight: 800;
+  }
+  .ai-narrative strong { color: var(--accent); }
+
+  /* 액션 버튼 row */
+  .action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .action-row .btn {
+    flex: 1;
+    font-size: 13.5px;
+    padding: 12px 8px;
+  }
+
+  /* ─── 4. 다른 한자 추천 ─── */
+  .name-summary {
+    text-align: center;
+  }
+  .name-summary .ns-label { font-size: 12px; color: var(--sub); margin-bottom: 4px;}
+  .name-summary .ns-name { font-size: 28px; font-weight: 800;}
+  .name-summary .ns-sub { font-size: 13px; color: var(--sub); margin-top: 4px;}
+
+  .hanja-alt-card {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+  .hanja-alt-card:hover { border-color: var(--primary); transform: translateY(-1px);}
+  .hanja-alt-card.recommended {
+    border-color: var(--gold);
+    background: #fffdf5;
+  }
+  .hanja-alt-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .hanja-alt-name {
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .hanja-alt-name .han { color: var(--primary); margin-right: 4px;}
+  .hanja-alt-name.recommended .han { color: var(--gold);}
+  .hanja-alt-score {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .hanja-alt-score.recommended {
+    background: var(--gold);
+  }
+  .hanja-alt-meaning {
+    font-size: 12.5px;
+    color: var(--sub);
+    line-height: 1.55;
+  }
+  .hanja-alt-elements {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ─── 5. 감정서 ─── */
+  .cert-paper {
+    background: linear-gradient(135deg, #fffbf0 0%, #fff5dc 100%);
+    border: 2px solid #d4b876;
+    border-radius: 12px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .cert-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 56px;
+    color: rgba(212,184,118,0.22);
+    font-weight: 900;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .cert-header {
+    text-align: center;
+    border-bottom: 2px solid #d4b876;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  .cert-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #8b6f3a;
+    margin-bottom: 4px;
+    letter-spacing: 4px;
+  }
+  .cert-sub { font-size: 10px; color: var(--sub); letter-spacing: 2px;}
+  .cert-name {
+    font-size: 32px;
+    font-weight: 800;
+    text-align: center;
+    margin: 14px 0;
+    color: var(--text);
+    letter-spacing: 8px;
+  }
+  .cert-name .ko {
+    font-size: 14px;
+    color: var(--sub);
+    display: block;
+    margin-top: 6px;
+    letter-spacing: 6px;
+    font-weight: 700;
+  }
+  .cert-section { margin-bottom: 12px; position: relative; z-index: 1;}
+  .cert-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #8b6f3a;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px dashed #d4b876;
+  }
+  .cert-section p {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .cert-footer {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #d4b876;
+    font-size: 11px;
+    color: var(--sub);
+    position: relative;
+    z-index: 1;
+  }
+  .cert-stamp {
+    width: 60px;
+    height: 60px;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 12px;
+    margin-top: 8px;
+    background: rgba(255,101,132,0.05);
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .cert-action-area {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .cert-lock-text {
+    font-size: 12px;
+    color: var(--sub);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  /* 페이월 모달 */
+  .paywall .emoji { font-size: 44px; text-align: center; margin-bottom: 8px;}
+  .paywall .modal-title { text-align: center; line-height: 1.4;}
+  .paywall .modal-sub { text-align: center; margin-top: 12px;}
+  .paywall .feature-list {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+    line-height: 1.85;
+  }
+  .paywall .feature-list .row { display: flex; gap: 8px;}
+  .paywall .feature-list .row .check { color: var(--primary); font-weight: 800;}
+  .paywall .price {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--primary);
+    text-align: center;
+    margin-top: 8px;
+  }
+  .paywall .price-sub {
+    font-size: 11px;
+    color: var(--sub);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .paywall .btn + .btn { margin-top: 8px;}
+
+  /* Description footer for the mockup */
+  .mockup-note {
+    background: #2a2a4e;
+    color: #aaa;
+    font-size: 11px;
+    padding: 12px 20px;
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- 시안 툴바 -->
+<div class="mockup-toolbar">
+  <h3>🎭 시안</h3>
+  <button class="mockup-btn active" data-id="s1" onclick="showScreen('s1')">1.월드컵결과</button>
+  <button class="mockup-btn" data-id="s2" onclick="showScreen('s2')">2.생일입력</button>
+  <button class="mockup-btn" data-id="s3" onclick="showScreen('s3')">3.사주결과</button>
+  <button class="mockup-btn" data-id="s4" onclick="showScreen('s4')">4.한자추천</button>
+  <button class="mockup-btn" data-id="s5" onclick="showScreen('s5')">5.감정서</button>
+  <button class="mockup-btn" data-id="s6" onclick="showScreen('s6')">6.페이월</button>
+</div>
+
+<div class="phone-shell">
+
+<!-- 1. 월드컵 결과 (진입점) -->
+<div id="s1" class="screen active">
+  <div class="top-bar"><h1>🏆 월드컵 결과</h1></div>
+  <div class="container">
+    <div class="winner-card">
+      <div class="trophy">🏆</div>
+      <div class="winner-label">최종 우승</div>
+      <div class="winner-name">김지우</div>
+      <div class="winner-hanja">智宇</div>
+      <div class="winner-meaning">지혜롭고 넓은 우주를<br>품는다는 뜻</div>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-primary" onclick="showScreen('s2')">
+        🔮 사주 보기 시작
+      </button>
+      <div class="help-text">
+        아이의 사주와 이름이 잘 맞는지 분석해드리고,<br>
+        대안 한자와 작명 감정서까지 한 번에 받아보세요.
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-outline">💾 보관함에 저장</button>
+    </div>
+
+    <div class="help-text">
+      <span class="gold">💡 사주 보기는 첫 1회 무료</span>입니다.
+    </div>
+  </div>
+</div>
+
+<!-- 2. 생일 입력 모달 -->
+<div id="s2" class="screen">
+  <div class="top-bar"><h1>🏆 월드컵 결과</h1></div>
+  <div class="container" style="filter: blur(2px); pointer-events: none;">
+    <div class="winner-card">
+      <div class="trophy">🏆</div>
+      <div class="winner-label">최종 우승</div>
+      <div class="winner-name">김지우</div>
+      <div class="winner-hanja">智宇</div>
+    </div>
+  </div>
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">🔮 아이의 생년월일시</div>
+      <div class="modal-sub">
+        정확한 사주 분석을 위해 출생 정보를 알려주세요.<br>
+        한 번만 입력하시면 이후엔 자동 적용됩니다.
+      </div>
+
+      <div class="form-group">
+        <label>출생일 (양력)</label>
+        <input type="date" value="2026-08-15">
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="due-date">
+        <label for="due-date">👶 아직 출산 전이에요 (예정일 기준 분석)</label>
+      </div>
+
+      <div class="form-group">
+        <label>출생 시각</label>
+        <select>
+          <option>자시 (23:30 ~ 01:30)</option>
+          <option>축시 (01:30 ~ 03:30)</option>
+          <option selected>인시 (03:30 ~ 05:30)</option>
+          <option>묘시 (05:30 ~ 07:30)</option>
+          <option>...</option>
+          <option>⚪ 시간을 모름</option>
+        </select>
+      </div>
+
+      <div class="help-text" style="margin: -4px 0 16px; text-align: left;">
+        💡 시간을 모르시면 '모름'을 선택해도 됩니다.<br>
+        시주를 제외한 3주 분석으로 진행됩니다.
+      </div>
+
+      <button class="btn btn-primary" onclick="showScreen('s3')">
+        ✨ 분석 시작하기
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 사주 결과 -->
+<div id="s3" class="screen">
+  <div class="top-bar">
+    <button class="back" onclick="showScreen('s1')">←</button>
+    <h1>🔮 김지우 사주 풀이</h1>
+  </div>
+  <div class="container">
+
+    <div class="section-title">📜 사주팔자</div>
+    <div class="card">
+      <div class="palja-grid">
+        <div class="palja-col">
+          <div class="palja-col-label">시주</div>
+          <div class="palja-cheon">丙</div>
+          <div class="palja-ji">寅</div>
+          <div class="palja-element">火 / 木</div>
+        </div>
+        <div class="palja-col">
+          <div class="palja-col-label">일주</div>
+          <div class="palja-cheon">辛</div>
+          <div class="palja-ji">酉</div>
+          <div class="palja-element">金 / 金</div>
+        </div>
+        <div class="palja-col">
+          <div class="palja-col-label">월주</div>
+          <div class="palja-cheon">甲</div>
+          <div class="palja-ji">申</div>
+          <div class="palja-element">木 / 金</div>
+        </div>
+        <div class="palja-col">
+          <div class="palja-col-label">년주</div>
+          <div class="palja-cheon">丙</div>
+          <div class="palja-ji">午</div>
+          <div class="palja-element">火 / 火</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">🌳 오행 분포</div>
+    <div class="card ohaeng-card">
+      <svg class="ohaeng-chart" viewBox="0 0 240 240">
+        <g stroke="#E5E7EB" stroke-width="1" fill="none">
+          <polygon points="120,40 196,95 167,184 73,184 44,95"></polygon>
+          <polygon points="120,60 177,101 155,168 85,168 63,101"></polygon>
+          <polygon points="120,80 158,108 144,152 96,152 82,108"></polygon>
+          <polygon points="120,100 139,115 132,135 108,135 101,115"></polygon>
+        </g>
+        <g stroke="#E5E7EB" stroke-width="1">
+          <line x1="120" y1="120" x2="120" y2="40"></line>
+          <line x1="120" y1="120" x2="196" y2="95"></line>
+          <line x1="120" y1="120" x2="167" y2="184"></line>
+          <line x1="120" y1="120" x2="73" y2="184"></line>
+          <line x1="120" y1="120" x2="44" y2="95"></line>
+        </g>
+        <!-- 木:2(top), 火:3(right-up), 土:1(right-down), 金:3(left-down), 水:0(left-up) -->
+        <polygon points="120,80 177,101 144,152 73,184 120,120"
+                 fill="rgba(108,99,255,0.28)" stroke="#6C63FF" stroke-width="2"></polygon>
+        <circle cx="120" cy="80" r="4" fill="#6C63FF"></circle>
+        <circle cx="177" cy="101" r="4" fill="#6C63FF"></circle>
+        <circle cx="144" cy="152" r="4" fill="#6C63FF"></circle>
+        <circle cx="73" cy="184" r="4" fill="#6C63FF"></circle>
+        <circle cx="120" cy="120" r="4" fill="#ef4444"></circle>
+
+        <text x="120" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#10b981">🌳 木</text>
+        <text x="208" y="92" text-anchor="start" font-size="13" font-weight="700" fill="#ef4444">🔥 火</text>
+        <text x="178" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="#a16207">⛰ 土</text>
+        <text x="60" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">⚙ 金</text>
+        <text x="32" y="92" text-anchor="end" font-size="13" font-weight="700" fill="#3b82f6">💧 水</text>
+      </svg>
+
+      <div class="ohaeng-legend">
+        <div class="ohaeng-item">🌳 木<span class="count">2</span></div>
+        <div class="ohaeng-item">🔥 火<span class="count">3</span></div>
+        <div class="ohaeng-item">⛰ 土<span class="count">1</span></div>
+        <div class="ohaeng-item">⚙ 金<span class="count">3</span></div>
+        <div class="ohaeng-item" style="color: #ef4444">💧 水<span class="count" style="color: #ef4444">0</span></div>
+      </div>
+
+      <div class="yongsin-banner">
+        <div class="label">⚠️ 부족한 기운 (용신)</div>
+        <div class="value">💧 水 (수)</div>
+        <div class="desc">이름에 水 속성 한자가 들어가면 균형이 맞춰져요</div>
+      </div>
+    </div>
+
+    <div class="section-title">📊 이름 적합도</div>
+    <div class="card score-card">
+      <div class="score-number">78<span class="unit">점</span></div>
+      <div class="score-label">智宇 (지우) — 보통 적합</div>
+      <div class="score-bar">
+        <div class="score-fill" style="width: 78%"></div>
+      </div>
+    </div>
+
+    <div class="section-title">📝 AI 풀이</div>
+    <div class="card">
+      <div class="ai-narrative">
+        <p>김지우 <span class="quote">智宇</span>는 지혜와 우주를 품는 따뜻한 이름입니다. 다만 아이의 사주에 <span class="quote">水(물)</span> 기운이 부족한 편이라, 智(火)·宇(土)의 자원오행이 보완 효과를 크게 주지는 못합니다.</p>
+        <p>💡 <strong>보완 추천</strong>: 동일한 발음에 <span class="quote">윤(潤·水)</span>이나 <span class="quote">서(瑞·水)</span> 같은 한자를 조합하면 사주 균형이 더 좋아집니다. 다른 한자 추천에서 확인해보세요.</p>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-secondary" onclick="showScreen('s4')">
+        ✨ 다른 한자 추천
+      </button>
+      <button class="btn btn-accent" onclick="showScreen('s5')">
+        📜 감정서로 받기
+      </button>
+    </div>
+    <div class="help-text">
+      <span class="gold">💎 사주 보기는 첫 1회 무료</span>입니다.<br>
+      다음부터는 30일 작명 패스(₩7,900)가 필요해요.
+    </div>
+  </div>
+</div>
+
+<!-- 4. 다른 한자 추천 -->
+<div id="s4" class="screen">
+  <div class="top-bar">
+    <button class="back" onclick="showScreen('s3')">←</button>
+    <h1>✨ 다른 한자 추천</h1>
+  </div>
+  <div class="container">
+
+    <div class="card name-summary">
+      <div class="ns-label">기준 이름</div>
+      <div class="ns-name">김지우</div>
+      <div class="ns-sub">현재 한자: 智宇 (적합도 78점)</div>
+    </div>
+
+    <div class="section-title">🎯 사주에 더 적합한 조합 (水 보완)</div>
+
+    <div class="hanja-alt-card recommended">
+      <div class="hanja-alt-top">
+        <div class="hanja-alt-name recommended"><span class="han">智潤</span>지윤</div>
+        <div class="hanja-alt-score recommended">⭐ 92점</div>
+      </div>
+      <div class="hanja-alt-meaning">지혜로움과 윤택함 — 智(火)·潤(水)으로 사주의 부족한 水 기운을 강력하게 보완합니다.</div>
+      <div class="hanja-alt-elements">자원오행: 火 + 水 / 음령오행: 金 + 土</div>
+    </div>
+
+    <div class="hanja-alt-card">
+      <div class="hanja-alt-top">
+        <div class="hanja-alt-name"><span class="han">志雨</span>지우</div>
+        <div class="hanja-alt-score">87점</div>
+      </div>
+      <div class="hanja-alt-meaning">뜻을 세우는 비 — 志(火)·雨(水)로 의지와 윤택함을 함께 담아냅니다.</div>
+      <div class="hanja-alt-elements">자원오행: 火 + 水 / 음령오행: 金 + 土</div>
+    </div>
+
+    <div class="hanja-alt-card">
+      <div class="hanja-alt-top">
+        <div class="hanja-alt-name"><span class="han">智佑</span>지우</div>
+        <div class="hanja-alt-score">81점</div>
+      </div>
+      <div class="hanja-alt-meaning">지혜와 도움 — 부드러운 의미 조합이지만 水 보완 효과는 다소 약합니다.</div>
+      <div class="hanja-alt-elements">자원오행: 火 + 土 / 음령오행: 金 + 土</div>
+    </div>
+
+    <div class="section-title">📚 다른 의미 있는 조합</div>
+
+    <div class="hanja-alt-card">
+      <div class="hanja-alt-top">
+        <div class="hanja-alt-name"><span class="han">至優</span>지우</div>
+        <div class="hanja-alt-score">75점</div>
+      </div>
+      <div class="hanja-alt-meaning">지극히 우수함 — 강한 인상을 주는 조합입니다.</div>
+      <div class="hanja-alt-elements">자원오행: 土 + 土 / 음령오행: 金 + 土</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-outline" onclick="showScreen('s3')">← 사주로 돌아가기</button>
+      <button class="btn btn-accent" onclick="showScreen('s5')">📜 감정서로 받기</button>
+    </div>
+    <div class="help-text">
+      <span class="gold">💎 한자 추천은 첫 1회 무료</span>입니다.<br>
+      더 보려면 30일 작명 패스가 필요해요.
+    </div>
+  </div>
+</div>
+
+<!-- 5. 감정서 미리보기 -->
+<div id="s5" class="screen">
+  <div class="top-bar">
+    <button class="back" onclick="showScreen('s3')">←</button>
+    <h1>📜 작명 감정서</h1>
+  </div>
+  <div class="container">
+
+    <div class="cert-paper">
+      <div class="cert-watermark">미리보기</div>
+      <div class="cert-header">
+        <div class="cert-title">作名鑑定書</div>
+        <div class="cert-sub">작 명 감 정 서</div>
+      </div>
+
+      <div class="cert-name">
+        金 智 宇
+        <span class="ko">김 지 우</span>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-title">📜 사주팔자</div>
+        <p>丙寅 / 辛酉 / 甲申 / 丙午<br>(양력 2026.08.15 03:30)</p>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-title">🌳 오행 분포</div>
+        <p>木 2 · 火 3 · 土 1 · 金 3 · 水 0<br>※ 부족한 기운: 水</p>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-title">📊 이름 적합도</div>
+        <p>78점 / 100점 (보통 적합)<br>음령오행 木·金·土 / 자원오행 火·土</p>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-title">💡 종합 평가</div>
+        <p>지혜와 우주를 품는 단아한 이름입니다. 다만 부족한 水 기운 보완을 위해 智潤(지윤), 志雨(지우) 등의 한자 조합을 고려해보시기를 권합니다.</p>
+      </div>
+
+      <div class="cert-footer">
+        2026년 5월 12일 · 픽미네임 작명 분석<br>
+        <div class="cert-stamp">감정<br>완료</div>
+      </div>
+    </div>
+
+    <div class="cert-action-area">
+      <div class="cert-lock-text">
+        🔒 화면 미리보기는 무료입니다.<br>
+        <strong>고화질 PDF로 저장·인쇄</strong>하시려면 패스가 필요해요.
+      </div>
+      <button class="btn btn-accent" onclick="showScreen('s6')">
+        📥 PDF로 다운로드
+      </button>
+    </div>
+
+    <div class="help-text">
+      <span class="gold">💎 화면 미리보기는 첫 1회 무료</span>입니다.
+    </div>
+  </div>
+</div>
+
+<!-- 6. 페이월 모달 -->
+<div id="s6" class="screen">
+  <div class="top-bar">
+    <button class="back" onclick="showScreen('s5')">←</button>
+    <h1>📜 작명 감정서</h1>
+  </div>
+  <div class="container" style="filter: blur(2.5px); pointer-events: none;">
+    <div class="cert-paper" style="opacity: 0.6;">
+      <div class="cert-header">
+        <div class="cert-title">作名鑑定書</div>
+      </div>
+      <div class="cert-name">金 智 宇</div>
+    </div>
+  </div>
+  <div class="modal-overlay">
+    <div class="modal paywall">
+      <div class="emoji">📜</div>
+      <div class="modal-title">최종 후보 모두의<br>감정서가 필요하신가요?</div>
+      <div class="modal-sub">
+        작명 감정서를 PDF로 받아 양가에 보여드리거나<br>
+        인쇄해 보관할 수 있습니다.
+      </div>
+
+      <div class="feature-list">
+        <div class="row"><span class="check">✓</span> 감정서 PDF 무제한 발급</div>
+        <div class="row"><span class="check">✓</span> 사주 보기 무제한</div>
+        <div class="row"><span class="check">✓</span> 다른 한자 추천 무제한</div>
+        <div class="row"><span class="check">✓</span> 이름 탐색 무제한</div>
+        <div class="row"><span class="check">✓</span> 30일 동안 자유롭게</div>
+      </div>
+
+      <div class="price">₩7,900</div>
+      <div class="price-sub">단발 결제 · 자동갱신 없음 · 30일 패스</div>
+
+      <button class="btn btn-primary" onclick="alert('💎 결제 모듈 연동 예정\n(지금은 시안입니다)')">
+        💎 30일 작명 패스 결제하기
+      </button>
+      <button class="btn btn-outline" onclick="showScreen('s5')">
+        나중에 하기
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="mockup-note">
+  ⚠️ 이 페이지는 디자인 시안용 클릭 데모입니다. 실제 사주 계산·한자 추천 기능은 다음 단계(B → A)에서 구현됩니다.
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+
+  document.querySelectorAll('.mockup-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+
+  // Scroll the phone shell to top
+  document.querySelector('.phone-shell').scrollTo?.(0, 0);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+</script>
+
+</body>
+</html>
