@@ -2622,12 +2622,8 @@ function fromRow(r) {
 }
 
 async function _getToken() {
-  const now = Date.now();
-  if (_cachedToken && now < _tokenExpiry) return _cachedToken;
   const { data: { session } } = await _supabase.auth.getSession();
-  _cachedToken = session?.access_token || SUPABASE_ANON_KEY;
-  _tokenExpiry = now + 55 * 60 * 1000;
-  return _cachedToken;
+  return session?.access_token || SUPABASE_ANON_KEY;
 }
 
 async function _sbFetch(path, opts = {}) {
@@ -2853,6 +2849,9 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'TOKEN_REFRESHED') {
     _cachedToken = session?.access_token || null;
     _tokenExpiry = Date.now() + 55 * 60 * 1000;
+    if (_authReady && _currentProfile?.family_id && !_namesCache.length) {
+      loadNamesFromDB().then(() => renderProfile());
+    }
     return;
   }
   if (session) {
