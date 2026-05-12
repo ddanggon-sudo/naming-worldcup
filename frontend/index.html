@@ -1736,7 +1736,7 @@ function goPage(name) {
   document.getElementById('nav-' + name).classList.add('active');
 
   if (name === 'profile') {
-    document.getElementById('saved-names-list').innerHTML = '<div class="empty">불러오는 중...</div>';
+    renderProfile();
     if (_currentProfile?.family_id) {
       loadNamesFromDB().then(() => renderProfile());
     }
@@ -2398,11 +2398,15 @@ function renderSavedNames() {
 
   const el = document.getElementById('saved-names-list');
   if (!saved.length) {
-    const allSaved = getSavedNames();
-    if (!allSaved.length) {
-      el.innerHTML = `<div class="empty">아직 저장된 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 탐색하러 가기</button></div></div>`;
+    if (!_authReady) {
+      el.innerHTML = `<div class="empty">불러오는 중...</div>`;
     } else {
-      el.innerHTML = `<div class="empty">저장된 이름이 없어요.</div>`;
+      const allSaved = getSavedNames();
+      if (!allSaved.length) {
+        el.innerHTML = `<div class="empty">아직 저장된 이름이 없어요.<div class="empty-profile-cta"><button class="btn btn-primary btn-sm" onclick="goPage('generate')">이름 탐색하러 가기</button></div></div>`;
+      } else {
+        el.innerHTML = `<div class="empty">저장된 이름이 없어요.</div>`;
+      }
     }
     return;
   }
@@ -2566,6 +2570,7 @@ const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let _namesCache = [];
 let _currentProfile = null; // { id, family_id, role }
+let _authReady = false;
 let _lastHandledUserId = null;
 let _authInFlight = false;
 let _cachedToken = null;
@@ -2757,6 +2762,7 @@ function _clearAuthState() {
   _tokenExpiry = 0;
   _currentProfile = null;
   _namesCache = [];
+  _authReady = false;
 }
 
 async function logoutUser() {
@@ -2809,6 +2815,7 @@ async function _handleSession(session) {
   }
   _currentProfile = profile;
   await loadNamesFromDB();
+  _authReady = true;
   if (_lastHandledUserId !== session.user.id) return;
   _showApp();
 }
@@ -2871,6 +2878,7 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     _tokenExpiry = 0;
     _currentProfile = null;
     _namesCache = [];
+    _authReady = false;
     localStorage.removeItem('pmb_session_until');
     _showAuthPage();
     renderProfile();
