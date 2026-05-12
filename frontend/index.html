@@ -1976,10 +1976,12 @@ function resetWorldcup() {
 
 async function showWcResult() {
   const w = wcState.champion;
+  const full = (w.last_name || '') + w.name;
+  const alreadySaved = getSavedNames().some(s => s.full_name === full);
+
   document.getElementById('wc-running').style.display = 'none';
   document.getElementById('wc-result').style.display = 'block';
-  document.getElementById('wc-save-prompt').style.display = 'block';
-  document.getElementById('wc-winner-name').textContent = (w.last_name || '') + w.name;
+  document.getElementById('wc-winner-name').textContent = full;
   document.getElementById('wc-winner-hanja').textContent = w.hanja || '';
   document.getElementById('wc-winner-meaning').textContent = w.meaning || '';
   setLoading('loading-rarity', true);
@@ -2002,31 +2004,39 @@ async function showWcResult() {
     setLoading('loading-rarity', false);
     document.getElementById('rarity-content').style.display = 'block';
   }
+
+  // 이미 보관함에 있으면 저장 프롬프트 대신 안내 멘트
+  const savePrompt = document.getElementById('wc-save-prompt');
+  if (alreadySaved) {
+    savePrompt.innerHTML = `<p style="color:var(--sub);font-size:14px">이미 보관함에 저장된 이름이에요 📦</p>
+      <div class="wc-save-actions">
+        <button class="btn btn-outline" onclick="goPage('generate')">이름 탐색으로 돌아가기</button>
+      </div>`;
+  }
+  savePrompt.style.display = 'block';
 }
 
 async function saveWinner() {
   const w = wcState.champion;
-  const saved = getSavedNames();
   const full = (w.last_name || '') + w.name;
-  if (!saved.find(s => s.full_name === full)) {
-    saved.push({
-      id: uuid(),
-      name: w.name,
-      hanja: w.hanja || '',
-      full_name: full,
-      last_name: w.last_name || '',
-      gender: w.gender || '남아',
-      meaning: w.meaning || '',
-      reason: w.reason || '',
-      rarity: wcState.rarityData?.rarity || null,
-      estimated_population: wcState.rarityData?.estimated_population || null,
-      data_year: wcState.rarityData?.data_year || null,
-      is_final: false,
-      author: getCurrentUser(),
-      saved_at: new Date().toISOString(),
-    });
-    await setSavedNames(saved);
-  }
+  const saved = getSavedNames();
+  saved.push({
+    id: uuid(),
+    name: w.name,
+    hanja: w.hanja || '',
+    full_name: full,
+    last_name: w.last_name || '',
+    gender: w.gender || '남아',
+    meaning: w.meaning || '',
+    reason: w.reason || '',
+    rarity: wcState.rarityData?.rarity || null,
+    estimated_population: wcState.rarityData?.estimated_population ?? null,
+    data_year: wcState.rarityData?.data_year || null,
+    is_final: false,
+    author: getCurrentUser(),
+    saved_at: new Date().toISOString(),
+  });
+  await setSavedNames(saved);
   document.getElementById('wc-save-prompt').style.display = 'none';
   showToast(`"${full}" 저장 완료! 보관함에서 확인하세요.`);
 }
