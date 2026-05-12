@@ -1750,15 +1750,28 @@
   <div id="migrate-status" style="display:none;font-size:12px;color:var(--primary);margin-bottom:10px;text-align:center;padding:6px 10px;background:var(--primary-light);border-radius:8px;"></div>
 
   <!-- 가족 초대 코드 -->
-  <div id="family-code-bar" style="display:none;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid var(--primary);border-radius:12px;padding:10px 14px;margin-bottom:16px;gap:10px">
+  <div id="family-code-bar" style="display:none;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid var(--primary);border-radius:12px;padding:10px 14px;margin-bottom:12px;gap:10px">
     <div>
       <div style="font-size:11px;color:var(--primary);font-weight:700;letter-spacing:.4px;margin-bottom:2px">우리 가족 초대 코드</div>
       <div id="family-code-display" style="font-size:18px;font-weight:900;letter-spacing:4px;color:var(--text);font-family:monospace"></div>
     </div>
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <button onclick="_copyFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer">복사</button>
-      <button onclick="openChangeFamilyModal()" style="background:none;color:var(--sub);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer">변경</button>
+    <button onclick="_copyFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">복사</button>
+  </div>
+
+  <!-- 가족 합류하기 -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text)">🔗 가족 합류하기</div>
+    <div style="display:flex;gap:8px">
+      <input id="join-code-profile" class="auth-input" type="text"
+        placeholder="초대 코드 (예: ABC-DEF)"
+        maxlength="7" style="flex:1;padding:10px 12px;font-size:15px;font-weight:700;letter-spacing:2px;text-align:center;text-transform:uppercase"
+        oninput="formatJoinCode(this)"
+        onkeydown="if(event.key==='Enter') submitProfileJoin()">
+      <button class="btn btn-primary" id="btn-profile-join" onclick="submitProfileJoin()" style="flex-shrink:0;padding:10px 16px">
+        <span class="btn-text">합류</span>
+      </button>
     </div>
+    <p id="join-profile-error" style="font-size:12px;color:#e53e3e;margin-top:6px;min-height:16px"></p>
   </div>
 
   <div class="profile-stat">
@@ -1847,25 +1860,6 @@
   </div>
 </div>
 
-<!-- 가족 변경 모달 -->
-<div class="modal-backdrop" id="change-family-modal">
-  <div class="modal">
-    <h3>🔗 가족 변경</h3>
-    <p>파트너의 초대 코드를 입력하면 내 이름 보관함이 함께 이동됩니다.</p>
-    <input class="auth-input" id="change-family-code" type="text"
-      placeholder="초대 코드 (예: ABC-DEF)"
-      maxlength="7" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:18px;font-weight:700"
-      oninput="formatJoinCode(this)"
-      onkeydown="if(event.key==='Enter') submitFamilyChange()">
-    <p id="change-family-error" style="font-size:13px;color:#e53e3e;min-height:18px;margin-bottom:12px"></p>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeChangeFamilyModal()">취소</button>
-      <button class="btn btn-primary" id="btn-change-family" onclick="submitFamilyChange()">
-        <span class="btn-text">합류하기</span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- 토스트 -->
 <div id="toast"></div>
@@ -2929,21 +2923,11 @@ function _copyFamilyCode() {
   navigator.clipboard?.writeText(_familyCode).then(() => showToast('초대 코드가 복사됐어요!'));
 }
 
-// ── 가족 변경 ─────────────────────────────
+// ── 가족 합류하기 (이름보관함 인라인) ────────
 
-function openChangeFamilyModal() {
-  document.getElementById('change-family-code').value = '';
-  document.getElementById('change-family-error').textContent = '';
-  document.getElementById('change-family-modal').classList.add('visible');
-}
-
-function closeChangeFamilyModal() {
-  document.getElementById('change-family-modal').classList.remove('visible');
-}
-
-async function submitFamilyChange() {
-  const raw = document.getElementById('change-family-code').value.replace(/-/g, '').trim().toUpperCase();
-  const errEl = document.getElementById('change-family-error');
+async function submitProfileJoin() {
+  const raw = document.getElementById('join-code-profile').value.replace(/-/g, '').trim().toUpperCase();
+  const errEl = document.getElementById('join-profile-error');
   errEl.textContent = '';
 
   if (raw.length !== 6) {
@@ -2951,14 +2935,13 @@ async function submitFamilyChange() {
     return;
   }
 
-  // 현재 내 코드와 같으면 차단
   const myRaw = (_familyCode || '').replace(/-/g, '');
   if (raw === myRaw) {
     errEl.textContent = '현재 사용 중인 코드입니다.';
     return;
   }
 
-  _setLoading('btn-change-family', true);
+  _setLoading('btn-profile-join', true);
 
   try {
     const { data: { user } } = await _supabase.auth.getUser();
@@ -2968,7 +2951,7 @@ async function submitFamilyChange() {
     const { data: targets } = await _supabase.from('families').select('id').eq('invite_code', raw);
     if (!targets?.length) {
       errEl.textContent = '유효하지 않은 초대 코드입니다.';
-      _setLoading('btn-change-family', false);
+      _setLoading('btn-profile-join', false);
       return;
     }
     const targetFamilyId = targets[0].id;
@@ -2981,14 +2964,12 @@ async function submitFamilyChange() {
       });
     }
 
-    // 3. 기존 가족에 나 외 다른 멤버 없으면 삭제
-    //    (프로필 업데이트 전에 해야 RLS 통과: 내 프로필이 아직 old family 가리킴)
+    // 3. 기존 가족에 나 외 다른 멤버 없으면 삭제 (프로필 업데이트 전에 → RLS 통과)
     if (myFamilyId) {
       const { data: others } = await _supabase.from('profiles')
         .select('id').eq('family_id', myFamilyId).neq('id', user.id);
       if (!others?.length) {
         await _supabase.from('families').delete().eq('id', myFamilyId);
-        // ON DELETE SET NULL → profile.family_id 자동으로 null 됨
       }
     }
 
@@ -2997,16 +2978,16 @@ async function submitFamilyChange() {
     _currentProfile = { ..._currentProfile, family_id: targetFamilyId };
 
     // 5. 데이터 갱신
+    document.getElementById('join-code-profile').value = '';
     await loadNamesFromDB();
     renderProfile();
-    closeChangeFamilyModal();
-    showToast('✅ 가족이 변경됐습니다!');
+    showToast('✅ 가족에 합류했습니다!');
   } catch (e) {
-    console.error('[가족 변경]', e);
+    console.error('[가족 합류]', e);
     errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
   }
 
-  _setLoading('btn-change-family', false);
+  _setLoading('btn-profile-join', false);
 }
 
 // ── 인증 함수 ─────────────────────────────
