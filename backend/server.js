@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 
@@ -19,9 +20,9 @@ const client = new OpenAI({
 });
 
 const MODELS = [
-  'openai/gpt-4o-mini',      // 메인 (빠름)
-  'google/gemini-2.5-flash', // 폴백
-  'openai/gpt-4o',           // 최후 폴백
+  'openai/gpt-4o-mini',
+  'google/gemini-2.5-flash',
+  'openai/gpt-4o',
 ];
 
 const app = express();
@@ -29,157 +30,104 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-// ── 유틸 ──────────────────────────────────────────────────────
+// ── names_db.json 로드 (서버 시작 시 1회) ──────────────────────
 
-function extractJson(text) {
-  // 1. <think>...</think> 제거
-  text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+let _namesDB = null;
 
-  // 2. 마크다운 코드블록 시도
-  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlock) {
-    try { return JSON.parse(codeBlock[1].trim()); } catch (_) {}
-  }
-
-  // 3. 직접 전체 파싱
-  try { return JSON.parse(text); } catch (_) {}
-
-  // 4. 괄호 깊이 추적으로 가장 바깥 JSON 배열 또는 객체를 정확히 추출
-  const startIdx = text.search(/[\[{]/);
-  if (startIdx !== -1) {
-    let depth = 0, inStr = false, esc = false;
-    for (let i = startIdx; i < text.length; i++) {
-      const c = text[i];
-      if (esc) { esc = false; continue; }
-      if (c === '\\' && inStr) { esc = true; continue; }
-      if (c === '"') { inStr = !inStr; continue; }
-      if (inStr) continue;
-      if (c === '[' || c === '{') depth++;
-      else if (c === ']' || c === '}') {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(text.slice(startIdx, i + 1)); } catch (_) { break; }
-        }
-      }
-    }
-    // 5. 배열이 잘린 경우 닫는 괄호 보완
-    const openChar = text[startIdx];
-    const closeChar = openChar === '[' ? ']' : '}';
-    try { return JSON.parse(text.slice(startIdx) + closeChar); } catch (_) {}
-  }
-
-  // 6. 최후 수단: name 필드가 있는 중첩 없는 객체들 추출
-  const objs = [];
-  const objRe = /\{(?:[^{}]|\{[^{}]*\})*"name"(?:[^{}]|\{[^{}]*\})*\}/g;
-  let m;
-  while ((m = objRe.exec(text)) !== null) {
-    try { objs.push(JSON.parse(m[0])); } catch (_) {}
-  }
-  if (objs.length) return objs;
-
-  console.error('[extractJson] 파싱 실패. raw text 앞 200자:', text.slice(0, 200));
-  throw new Error('JSON 파싱 실패');
+function loadDB() {
+  if (_namesDB) return _namesDB;
+  const dataPath = path.join(__dirname, 'data', 'names_db.json');
+  const raw = JSON.parse(readFileSync(dataPath, 'utf-8'));
+  _namesDB = raw.names;
+  console.log(`[db] 이름 DB 로드 완료: ${_namesDB.length}개`);
+  return _namesDB;
 }
 
-async function chat(prompt) {
-  for (const model of MODELS) {
-    try {
-      console.log(`[chat] ${model}`);
-      const res = await client.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.9,
-      });
-      const content = res.choices?.[0]?.message?.content;
-      if (!content) throw new Error('응답 내용이 비어 있습니다.');
-      return content.trim();
-    } catch (e) {
-      const status = e?.status ?? e?.response?.status;
-      console.warn(`[chat] ${model} 실패 (${status ?? e.code})`);
-      const retryable = status === 429 || status === 503 || status === 500
-        || e.code === 'ETIMEDOUT' || e.code === 'ECONNRESET';
-      if (!retryable) throw e;
-    }
+// ── DB 필터링 (Python openrouter.py 포팅) ──────────────────────
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  throw new Error('모든 모델이 응답하지 않습니다. 잠시 후 다시 시도해주세요.');
+  return arr;
 }
 
-const SYLLABLE_MAP = { '외자 이름': 1, '두자 이름': 2, '세자 이름': 3 };
+function filterCandidates({ gender, popularity, vibes, exclude, maxCount }) {
+  const db = loadDB();
+  const excludeSet = new Set(exclude || []);
+
+  // 1. 성별 + 제외 필터
+  let pool = db.filter(n => n.gender === gender && !excludeSet.has(n.name));
+
+  // 2. 인기도 tier 필터
+  if (popularity && popularity !== 'any') {
+    const sameTier = pool.filter(n => n.tier === popularity);
+    if (sameTier.length >= maxCount) {
+      pool = sameTier;
+    } else if (sameTier.length >= 5) {
+      const others = shuffleArray(pool.filter(n => n.tier !== popularity));
+      pool = [...sameTier, ...others.slice(0, Math.max(0, maxCount - sameTier.length))];
+    }
+    // 5개 미만이면 인기도 필터 무시 (전체 pool 사용)
+  }
+
+  // 3. 느낌(vibes) 매칭 점수로 정렬
+  if (vibes && vibes.length) {
+    const vibesSet = new Set(vibes);
+    pool = pool
+      .map(n => ({
+        score: (n.vibes || []).filter(v => vibesSet.has(v)).length + Math.random() * 0.3,
+        n,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.n);
+  } else {
+    shuffleArray(pool);
+  }
+
+  return pool.slice(0, maxCount);
+}
+
+function buildStaticReason(n, popularity, vibes) {
+  const parts = [];
+  if (popularity && popularity !== 'any' && n.tier === popularity) parts.push(n.tier);
+  const matching = (n.vibes || []).filter(v => (vibes || []).includes(v));
+  if (matching.length) parts.push(matching.join(' · '));
+  if (n.rank) parts.push(`통계 ${n.rank.toLocaleString()}위`);
+  return parts.join(' · ') || '통계 기반 추천';
+}
+
+// ── LLM 폴백 (DB 후보 부족 시) ────────────────────────────────
 
 const POPULARITY_DESC = {
-  'any':    null,
-  '🔥매우인기': '🔥 매우 인기 (최근 10년 인기 상위권, 많이 쓰이는 이름)',
+  '🔥매우인기': '🔥 매우 인기 (최근 10년 인기 상위권)',
   '⭐인기':    '⭐ 인기 (자주 쓰이지만 최상위는 아닌 이름)',
-  '✨적당':    '✨ 적당 (너무 흔하지도, 너무 생소하지도 않은 이름)',
+  '✨적당':    '✨ 적당 (너무 흔하지도 생소하지도 않은 이름)',
   '💎개성':   '💎 개성있게 (덜 흔하고 개성 있는 이름)',
-  '🌙희귀':   '🌙 독특하게 (등록 건수가 매우 적은 희귀한 이름, 인기 상위 500위 밖)',
+  '🌙희귀':   '🌙 독특하게 (인기 500위 밖의 희귀한 이름)',
 };
 
-function buildPrompt({ last_name, gender, syllables, preferred_names, popularity, vibes, count, exclude }) {
-  const syllableNums   = syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean);
-  const syllableStr    = syllableNums.length
-    ? syllableNums.map(n => `${n}글자`).join(' 또는 ')
-    : '2글자 또는 1글자';
-  const excludeStr     = exclude.length ? `\n\n이미 추천한 이름이므로 제외: ${exclude.join(', ')}` : '';
-  const preferred      = Array.isArray(preferred_names) ? preferred_names : [];
-  const preferredStr   = preferred.length ? preferred.join(', ') : '없음';
-  const popDesc        = POPULARITY_DESC[popularity] ?? null;
-  const vibesArr       = Array.isArray(vibes) ? vibes : [];
-  const vibesStr       = vibesArr.length ? vibesArr.join(', ') : null;
+function buildFallbackPrompt({ gender, popularity, vibes, count, exclude }) {
+  const popDesc = POPULARITY_DESC[popularity] ?? null;
+  const vibesStr = vibes && vibes.length ? vibes.join(', ') : null;
+  const excludeStr = exclude.length ? `\n제외 이름: ${exclude.join(', ')}` : '';
+  return `한국 아기 ${gender} 이름 ${count}개를 추천해주세요.
+${popDesc ? `인기도: ${popDesc}` : ''}
+${vibesStr ? `느낌: ${vibesStr}` : ''}${excludeStr}
 
-  const popularityLine = popDesc ? `- 인기도: ${popDesc}` : '';
-  const vibesLine      = vibesStr ? `- 원하는 느낌: ${vibesStr}` : '';
-
-  // 🌙희귀 선택 시 탐색 원칙 강화
-  const rarePrinciple = popularity === '🌙희귀'
-    ? '- 반드시 생소하고 희귀한 이름을 추천하세요. 서준, 지우, 하은 같은 인기 이름은 물론, 인기 500위 안에 드는 이름도 절대 쓰지 마세요.'
-    : '- 서준, 지우, 하은, 민준, 서아, 지아, 예준, 수아, 하준, 지유 같은 최근 10년 인기 1~30위 이름은 반드시 피하세요';
-
-  return `당신은 한국 아기 이름 탐험가입니다. 사용자는 이미 알고 있는 이름이 아닌, 미처 생각하지 못했던 새로운 이름을 발견하고 싶어합니다.
-
-[탐색 원칙]
-${rarePrinciple}
-- 아름답고 의미 있지만 잘 알려지지 않은, 사용자가 미처 생각하지 못했을 만한 이름을 찾아주세요
-- 첫 음절이 서로 다른 이름들로 구성해 다양성을 극대화하세요
-- 다채로운 한자 조합과 음감을 탐색하세요
-
-[요청 조건]
-- 성: ${last_name}
-- 성별: ${gender}
-- 이름 글자 수: 반드시 ${syllableStr}인 이름만 추천 (성 제외, 이 규칙은 절대 어기지 마세요)
-${popularityLine}
-${vibesLine}
-- 참고 이름 (느낌·스타일 기준): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 분위기이되, 이 이름들 자체는 추천하지 마세요. 같은 첫 음절도 피하세요' : ''}${excludeStr}
-
-위 탐색 원칙과 요청 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
-아래 형식으로 한 줄에 하나씩 JSON 객체를 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
-
-{"name":"한글이름","hanja":"한자","meaning":"이름 뜻(1~2문장)","reason":"이유(1문장)"}
-
-규칙:
-- name 글자 수는 반드시 ${syllableStr}
-- 중복 없이 다양한 느낌으로 ${count}개
-- 반드시 한 줄에 완전한 JSON 객체 하나만, 배열 없이`;
-}
-
-function filterBySyllables(names, syllables) {
-  if (!syllables.length) return names;
-  const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
-  if (!allowed.size) return names;
-  return names.filter(n => allowed.has([...n.name].length));
+아래 형식으로 한 줄에 하나씩 JSON 객체만 반환하세요.
+{"name":"이름","hanja":"한자","meaning":"뜻(1~2문장)","reason":"이유(1문장)"}`;
 }
 
 // ── POST /api/generate ─────────────────────────────────────────
-// 5개씩 배치로 나눠 호출. 프론트가 /api/generate를 여러 번 호출.
 
 app.post('/api/generate', async (req, res) => {
   const {
     last_name, gender,
-    syllables = [],
-    preferred_names = [],
     popularity = 'any',
     vibes = [],
-    count = 5,
+    count = 10,
     exclude = [],
   } = req.body;
 
@@ -188,71 +136,92 @@ app.post('/api/generate', async (req, res) => {
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
   const clampedCount = Math.min(30, Math.max(1, Number(count) || 10));
 
-  const prompt = buildPrompt({ last_name, gender, syllables, preferred_names, popularity, vibes, count: clampedCount, exclude });
-  const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
-
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  for (const model of MODELS) {
-    try {
-      console.log(`[generate/stream] ${model}`);
-      const stream = await client.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.9,
-        stream: true,
-      });
+  try {
+    // 1. DB 필터링: 요청 수의 2배 후보 추출 후 상위 N개 선택
+    const maxCount = Math.max(clampedCount * 2, 20);
+    const candidates = filterCandidates({ gender, popularity, vibes, exclude, maxCount });
+    const selected = candidates.slice(0, clampedCount);
 
-      let buf = '';
-      for await (const chunk of stream) {
-        buf += chunk.choices?.[0]?.delta?.content ?? '';
-        // think 태그 제거
-        buf = buf.replace(/<think>[\s\S]*?<\/think>/g, '');
-        // 완성된 줄 처리
-        const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
-        for (const line of lines) {
-          const t = line.trim();
-          if (!t.startsWith('{')) continue;
-          try {
-            const obj = JSON.parse(t);
-            if (!obj.name) continue;
-            if (allowed.size && !allowed.has([...obj.name].length)) continue;
-            res.write(`data: ${JSON.stringify(obj)}\n\n`);
-          } catch (_) {}
+    console.log(`[generate/db] ${gender} 인기도=${popularity} vibes=${vibes} → 후보${candidates.length}개 중 ${selected.length}개 선택`);
+
+    // 2. DB 결과 스트리밍 (LLM 호출 없음)
+    for (const c of selected) {
+      const obj = {
+        name: c.name,
+        hanja: c.hanja || '',
+        meaning: c.meaning || '',
+        reason: buildStaticReason(c, popularity, vibes),
+        tier: c.tier,
+        rank: c.rank,
+        count_in_db: c.count,
+        vibes: c.vibes || [],
+      };
+      res.write(`data: ${JSON.stringify(obj)}\n\n`);
+    }
+
+    // 3. DB 결과가 부족하면 LLM으로 나머지 보완
+    const remaining = clampedCount - selected.length;
+    if (remaining > 0) {
+      console.log(`[generate/llm-fallback] DB 부족 (${selected.length}/${clampedCount}), LLM으로 ${remaining}개 보완`);
+      const dbNames = new Set(selected.map(n => n.name));
+      const extExclude = [...exclude, ...selected.map(n => n.name)];
+      const prompt = buildFallbackPrompt({ gender, popularity, vibes, count: remaining, exclude: extExclude });
+
+      for (const model of MODELS) {
+        try {
+          const stream = await client.chat.completions.create({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.9,
+            stream: true,
+          });
+          let buf = '';
+          for await (const chunk of stream) {
+            buf += chunk.choices?.[0]?.delta?.content ?? '';
+            buf = buf.replace(/<think>[\s\S]*?<\/think>/g, '');
+            const lines = buf.split('\n');
+            buf = lines.pop() ?? '';
+            for (const line of lines) {
+              const t = line.trim();
+              if (!t.startsWith('{')) continue;
+              try {
+                const obj = JSON.parse(t);
+                if (!obj.name || dbNames.has(obj.name)) continue;
+                res.write(`data: ${JSON.stringify(obj)}\n\n`);
+              } catch (_) {}
+            }
+          }
+          break;
+        } catch (e) {
+          const status = e?.status ?? e?.response?.status;
+          console.warn(`[generate/llm-fallback] ${model} 실패 (${status ?? e.code})`);
         }
       }
-      // 남은 버퍼 처리
-      const t = buf.trim();
-      if (t.startsWith('{')) {
-        try {
-          const obj = JSON.parse(t);
-          if (obj.name && (!allowed.size || allowed.has([...obj.name].length))) {
-            res.write(`data: ${JSON.stringify(obj)}\n\n`);
-          }
-        } catch (_) {}
-      }
-
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    } catch (e) {
-      const status = e?.status ?? e?.response?.status;
-      console.warn(`[generate/stream] ${model} 실패 (${status ?? e.code})`);
-      const retryable = status === 429 || status === 503 || status === 500
-        || e.code === 'ETIMEDOUT' || e.code === 'ECONNRESET';
-      if (!retryable) break;
     }
-  }
 
-  res.write('data: {"error":"모든 모델이 응답하지 않습니다. 잠시 후 다시 시도해주세요."}\n\n');
-  res.end();
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (e) {
+    console.error('[generate] 오류:', e.message);
+    res.write(`data: {"error":"${e.message}"}\n\n`);
+    res.end();
+  }
 });
 
 // ── POST /api/worldcup/rarity ──────────────────────────────────
+
+const TIER_TO_RARITY = {
+  '🔥매우인기': '매우 흔함',
+  '⭐인기':    '흔한 편',
+  '✨적당':    '보통',
+  '💎개성':   '희귀',
+  '🌙희귀':   '매우 희귀',
+};
 
 function calcRarity(pop) {
   if (pop >= 50000) return '매우 흔함';
@@ -262,29 +231,33 @@ function calcRarity(pop) {
   return '매우 희귀';
 }
 
+function lookupRarityFromDB(name, gender) {
+  const db = loadDB();
+  const found = db.find(n => n.name === name && n.gender === gender);
+  if (!found) return null;
+  return {
+    estimated_population: found.count,
+    rarity: TIER_TO_RARITY[found.tier] || '보통',
+    rarity_description: `${found.tier} · 누적 ${found.count.toLocaleString()}건 등록 · ${found.rank}위`,
+    source: 'names_db',
+  };
+}
+
 async function fetchKoreannameRarity(name, gender) {
   const url = `https://koreanname.me/api/name/${encodeURIComponent(name)}`;
   const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Referer': 'https://koreanname.me/',
-    },
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://koreanname.me/' },
     signal: AbortSignal.timeout(5000),
   });
   if (!res.ok) throw new Error(`koreanname.me ${res.status}`);
   const data = await res.json();
-
   const rank = data.rank;
   if (!rank || typeof rank.count !== 'number') throw new Error('데이터 없음');
-
   const pop = gender === '여아' ? (rank.female?.count ?? rank.count)
             : gender === '남아' ? (rank.male?.count  ?? rank.count)
             : rank.count;
-
-  // 가장 최근 데이터가 있는 연도 추출
   const years = (data.year || []).filter(y => y.count > 0);
   const latestYear = years.length ? years[years.length - 1].year : null;
-
   return { estimated_population: pop, rarity: calcRarity(pop), data_year: latestYear, source: 'koreanname.me' };
 }
 
@@ -293,30 +266,30 @@ app.post('/api/worldcup/rarity', async (req, res) => {
   if (!name || typeof name !== 'string') return res.status(400).json({ detail: '이름을 입력해주세요.' });
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
 
-  // 1차: koreanname.me 실제 데이터
+  // 1순위: 로컬 names_db.json
+  const dbResult = lookupRarityFromDB(name, gender);
+  if (dbResult) {
+    console.log(`[rarity] DB 히트: ${name} ${dbResult.estimated_population}건`);
+    return res.json(dbResult);
+  }
+
+  // 2순위: koreanname.me
   try {
     const result = await fetchKoreannameRarity(name, gender);
     console.log(`[rarity] koreanname.me 성공: ${name} ${result.estimated_population}명`);
     return res.json(result);
   } catch (e) {
-    console.warn(`[rarity] koreanname.me 실패 (${e.message}), AI 폴백`);
+    console.warn(`[rarity] koreanname.me 실패 (${e.message})`);
   }
 
-  // 2차 폴백: DB에 없는 이름 → 매우 희귀 처리
-  return res.json({
-    estimated_population: 0,
-    rarity: '매우 희귀',
-    data_year: null,
-    source: 'koreanname.me',
-  });
+  // 3순위: 매우 희귀 처리
+  return res.json({ estimated_population: 0, rarity: '매우 희귀', data_year: null, source: 'names_db' });
 });
-
 
 // ── 정의되지 않은 API 경로 ─────────────────────────────────────
 app.use('/api', (req, res) => res.status(404).json({ detail: 'Not found' }));
 
 // ── 프론트엔드 폴백 ────────────────────────────────────────────
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
