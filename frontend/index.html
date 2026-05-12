@@ -1726,7 +1726,10 @@
       <div style="font-size:11px;color:var(--primary);font-weight:700;letter-spacing:.4px;margin-bottom:2px">우리 가족 초대 코드</div>
       <div id="family-code-display" style="font-size:18px;font-weight:900;letter-spacing:4px;color:var(--text);font-family:monospace"></div>
     </div>
-    <button onclick="shareFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">공유</button>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="shareFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer">공유</button>
+      <button onclick="openChangeFamilyModal()" style="background:none;color:var(--sub);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer">변경</button>
+    </div>
   </div>
 
   <div class="profile-stat">
@@ -1811,6 +1814,26 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeDeleteModal()">취소</button>
       <button class="btn btn-accent" onclick="confirmDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 가족 변경 모달 -->
+<div class="modal-backdrop" id="change-family-modal">
+  <div class="modal">
+    <h3>🔗 가족 변경</h3>
+    <p>파트너의 초대 코드를 입력하면 내 이름 보관함이 함께 이동됩니다.</p>
+    <input class="auth-input" id="change-family-code" type="text"
+      placeholder="초대 코드 (예: ABC-DEF)"
+      maxlength="7" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:18px;font-weight:700"
+      oninput="formatJoinCode(this)"
+      onkeydown="if(event.key==='Enter') submitFamilyChange()">
+    <p id="change-family-error" style="font-size:13px;color:#e53e3e;min-height:18px;margin-bottom:12px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeChangeFamilyModal()">취소</button>
+      <button class="btn btn-primary" id="btn-change-family" onclick="submitFamilyChange()">
+        <span class="btn-text">합류하기</span>
+      </button>
     </div>
   </div>
 </div>
@@ -2849,6 +2872,83 @@ async function shareFamilyCode() {
 
 function _copyFamilyCode() {
   navigator.clipboard?.writeText(_familyCode).then(() => showToast('초대 코드가 복사됐어요!'));
+}
+
+// ── 가족 변경 ─────────────────────────────
+
+function openChangeFamilyModal() {
+  document.getElementById('change-family-code').value = '';
+  document.getElementById('change-family-error').textContent = '';
+  document.getElementById('change-family-modal').classList.add('visible');
+}
+
+function closeChangeFamilyModal() {
+  document.getElementById('change-family-modal').classList.remove('visible');
+}
+
+async function submitFamilyChange() {
+  const raw = document.getElementById('change-family-code').value.replace(/-/g, '').trim().toUpperCase();
+  const errEl = document.getElementById('change-family-error');
+  errEl.textContent = '';
+
+  if (raw.length !== 6) {
+    errEl.textContent = '초대 코드 6자리를 모두 입력해주세요.';
+    return;
+  }
+
+  // 현재 내 코드와 같으면 차단
+  const myRaw = (_familyCode || '').replace(/-/g, '');
+  if (raw === myRaw) {
+    errEl.textContent = '현재 사용 중인 코드입니다.';
+    return;
+  }
+
+  _setLoading('btn-change-family', true);
+
+  try {
+    const { data: { user } } = await _supabase.auth.getUser();
+    const myFamilyId = _currentProfile?.family_id;
+
+    // 1. 대상 가족 찾기
+    const { data: targets } = await _supabase.from('families').select('id').eq('invite_code', raw);
+    if (!targets?.length) {
+      errEl.textContent = '유효하지 않은 초대 코드입니다.';
+      _setLoading('btn-change-family', false);
+      return;
+    }
+    const targetFamilyId = targets[0].id;
+
+    // 2. 내 이름 보관함 → 대상 가족으로 이전
+    if (myFamilyId) {
+      await _sbFetch(`/naming_list?family_id=eq.${myFamilyId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ family_id: targetFamilyId }),
+      });
+    }
+
+    // 3. 내 프로필 → 대상 가족으로 업데이트
+    await _supabase.from('profiles').update({ family_id: targetFamilyId }).eq('id', user.id);
+    _currentProfile = { ..._currentProfile, family_id: targetFamilyId };
+
+    // 4. 기존 가족이 비었으면 삭제
+    if (myFamilyId) {
+      const { data: remaining } = await _supabase.from('profiles').select('id').eq('family_id', myFamilyId);
+      if (!remaining?.length) {
+        await _supabase.from('families').delete().eq('id', myFamilyId);
+      }
+    }
+
+    // 5. 데이터 갱신
+    await loadNamesFromDB();
+    renderProfile();
+    closeChangeFamilyModal();
+    showToast('✅ 가족이 변경됐습니다!');
+  } catch (e) {
+    console.error('[가족 변경]', e);
+    errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+  }
+
+  _setLoading('btn-change-family', false);
 }
 
 // ── 인증 함수 ─────────────────────────────
