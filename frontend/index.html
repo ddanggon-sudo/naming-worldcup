@@ -846,6 +846,105 @@
   .hanja-alt-meaning { font-size: 12.5px; color: var(--sub); line-height: 1.55; }
   .hanja-alt-elements { margin-top: 6px; font-size: 11px; color: var(--primary); font-weight: 600; }
 
+  /* ─── 감정서 ─── */
+  .cert-paper {
+    background: linear-gradient(135deg, #fffbf0 0%, #fff5dc 100%);
+    border: 2px solid #d4b876;
+    border-radius: 12px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .cert-watermark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 56px;
+    color: rgba(212,184,118,0.22);
+    font-weight: 900;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .cert-header {
+    text-align: center;
+    border-bottom: 2px solid #d4b876;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  .cert-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #8b6f3a;
+    margin-bottom: 4px;
+    letter-spacing: 4px;
+  }
+  .cert-sub { font-size: 10px; color: var(--sub); letter-spacing: 2px; }
+  .cert-name {
+    font-size: 32px;
+    font-weight: 800;
+    text-align: center;
+    margin: 14px 0;
+    color: var(--text);
+    letter-spacing: 8px;
+  }
+  .cert-name .ko {
+    font-size: 14px;
+    color: var(--sub);
+    display: block;
+    margin-top: 6px;
+    letter-spacing: 6px;
+    font-weight: 700;
+  }
+  .cert-section { margin-bottom: 12px; position: relative; z-index: 1; }
+  .cert-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #8b6f3a;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px dashed #d4b876;
+  }
+  .cert-section p { font-size: 12.5px; line-height: 1.6; color: var(--text); white-space: pre-line; }
+  .cert-footer {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #d4b876;
+    font-size: 11px;
+    color: var(--sub);
+    position: relative;
+    z-index: 1;
+  }
+  .cert-stamp {
+    width: 60px; height: 60px;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 12px;
+    margin-top: 8px;
+    background: rgba(255,101,132,0.05);
+    line-height: 1.2;
+    text-align: center;
+  }
+  .cert-action-area {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .cert-lock-text {
+    font-size: 12px;
+    color: var(--sub);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
   /* 보관함 사주 버튼 */
   .btn-saju-sm {
     width: auto; background: var(--primary-light); border: 1px solid var(--primary);
@@ -1838,7 +1937,7 @@
 
     <div class="saju-action-row">
       <button class="btn btn-secondary" onclick="openHanjaAlt()">✨ 다른 한자 추천</button>
-      <button class="btn btn-accent" onclick="alert('단계 7에서 구현 예정입니다')">📜 감정서로 받기</button>
+      <button class="btn btn-accent" onclick="openCertificate()">📜 감정서로 받기</button>
     </div>
     <div class="help-text">
       <span class="gold">💎 사주 보기는 첫 1회 무료</span>입니다.<br>
@@ -1882,11 +1981,71 @@
 
     <div class="saju-action-row">
       <button class="btn btn-outline" onclick="_goSajuPage()">← 사주로 돌아가기</button>
-      <button class="btn btn-accent" onclick="alert('단계 7에서 구현 예정입니다')">📜 감정서로 받기</button>
+      <button class="btn btn-accent" onclick="openCertificate()">📜 감정서로 받기</button>
     </div>
     <div class="help-text">
       <span class="gold">💎 한자 추천은 첫 1회 무료</span>입니다.<br>
       더 보려면 30일 작명 패스(₩7,900)가 필요해요.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     PAGE 7: 작명 감정서 미리보기
+════════════════════════════════════════ -->
+<section id="page-certificate" class="page">
+  <div class="page-top-bar">
+    <button class="back-btn" onclick="_goCertBack()">←</button>
+    <h1>📜 작명 감정서</h1>
+  </div>
+
+  <div id="cert-loading" class="loading visible">
+    <div class="spinner"></div>
+    <p style="font-size:14px;color:var(--sub);margin-top:4px">감정서를 생성하는 중...</p>
+  </div>
+
+  <div id="cert-content" style="display:none">
+    <div class="cert-paper" id="cert-paper-el">
+      <div class="cert-watermark">미리보기</div>
+      <div class="cert-header">
+        <div class="cert-title">作名鑑定書</div>
+        <div class="cert-sub">작 명 감 정 서</div>
+      </div>
+      <div class="cert-name" id="cert-hanja-name"></div>
+      <div class="cert-section">
+        <div class="cert-section-title">📜 사주팔자</div>
+        <p id="cert-palja-text"></p>
+      </div>
+      <div class="cert-section">
+        <div class="cert-section-title">🌳 오행 분포</div>
+        <p id="cert-ohaeng-text"></p>
+      </div>
+      <div class="cert-section">
+        <div class="cert-section-title">📊 이름 적합도</div>
+        <p id="cert-score-text"></p>
+      </div>
+      <div class="cert-section">
+        <div class="cert-section-title">💡 종합 평가</div>
+        <p id="cert-summary-text"></p>
+      </div>
+      <div class="cert-footer">
+        <span id="cert-date-text"></span> · 픽마이네임 작명 분석<br>
+        <div class="cert-stamp">감정<br>완료</div>
+      </div>
+    </div>
+
+    <div class="cert-action-area">
+      <div class="cert-lock-text">
+        🔒 화면 미리보기는 무료입니다.<br>
+        <strong>고화질 PDF로 저장·인쇄</strong>하시려면 패스가 필요해요.
+      </div>
+      <button class="btn btn-accent" onclick="downloadCertPdf()" style="font-size:14px">
+        📥 PDF로 다운로드
+      </button>
+    </div>
+
+    <div class="help-text">
+      <span class="gold">💎 화면 미리보기는 첫 1회 무료</span>입니다.
     </div>
   </div>
 </section>
@@ -3576,6 +3735,104 @@ function _renderHanjaAlt(data) {
 
   document.getElementById('hanja-alt-loading').style.display = 'none';
   document.getElementById('hanja-alt-content').style.display = 'block';
+}
+
+// ════════════════════════════════
+// 감정서 UI
+// ════════════════════════════════
+
+let _certPrevPage = 'saju'; // 'saju' or 'hanja-alt'
+
+function openCertificate() {
+  if (!_currentSajuName || !_currentSajuResult) {
+    showToast('먼저 사주 분석을 완료해주세요.');
+    return;
+  }
+  // 어느 페이지에서 왔는지 기억
+  const active = document.querySelector('.page.active');
+  _certPrevPage = (active && active.id === 'page-hanja-alt') ? 'hanja-alt' : 'saju';
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-certificate').classList.add('active');
+  window.scrollTo(0, 0);
+
+  // 잠깐 로딩 표시 후 렌더 (UX를 위한 짧은 딜레이)
+  document.getElementById('cert-loading').style.display = 'block';
+  document.getElementById('cert-content').style.display = 'none';
+  setTimeout(() => _renderCertificate(), 300);
+}
+
+function _goCertBack() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = _certPrevPage === 'hanja-alt' ? 'page-hanja-alt' : 'page-saju';
+  document.getElementById(target).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function _renderCertificate() {
+  const saju = _currentSajuResult;
+  const name = _currentSajuName;
+
+  // ── 이름 (한자 + 한글) ──
+  const hanjaChars = [...(name.hanja || '')].join(' ');
+  const koChars = [...((name.last_name || '') + name.name)].join(' ');
+  document.getElementById('cert-hanja-name').innerHTML =
+    `${(name.last_name ? _getHanjaForLastName(name.last_name) + ' ' : '')}${hanjaChars}<span class="ko">${koChars}</span>`;
+
+  // ── 사주팔자 ──
+  const { palja, hour_known } = saju;
+  const pillarStr = [
+    `${palja.year.cheon}${palja.year.ji}`,
+    `${palja.month.cheon}${palja.month.ji}`,
+    `${palja.day.cheon}${palja.day.ji}`,
+    hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주 모름',
+  ].join(' / ');
+  const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
+  const birthDateStr = birthInfo?.birth_date
+    ? birthInfo.birth_date.replace(/-/g, '.')
+    : '';
+  const hourLabel = (birthInfo?.birth_hour != null)
+    ? `${String(birthInfo.birth_hour).padStart(2,'0')}:00`
+    : '시간 모름';
+  document.getElementById('cert-palja-text').textContent =
+    `${pillarStr}${birthDateStr ? '\n(양력 ' + birthDateStr + (birthInfo.birth_hour != null ? ' ' + hourLabel : '') + ')' : ''}`;
+
+  // ── 오행 분포 ──
+  const { elements, yongsin } = saju;
+  const ohaengStr = ['木','火','土','金','水']
+    .map(k => `${k} ${elements[k] || 0}`)
+    .join(' · ');
+  document.getElementById('cert-ohaeng-text').textContent =
+    `${ohaengStr}\n※ 부족한 기운: ${yongsin}`;
+
+  // ── 이름 적합도 ──
+  const { score, score_label, name_analysis } = saju;
+  const jawonStr = (name_analysis?.jawon || []).join('·') || '—';
+  const eumStr   = (name_analysis?.eumryeong || []).join('·') || '—';
+  document.getElementById('cert-score-text').textContent =
+    `${score}점 / 100점 (${score_label})\n음령오행 ${eumStr} / 자원오행 ${jawonStr}`;
+
+  // ── 종합 평가 ──
+  const narrative = saju.narrative || '';
+  // 두 문단으로 나눠진 경우 그대로, 단일 문장이면 그대로 표시
+  document.getElementById('cert-summary-text').textContent = narrative;
+
+  // ── 날짜 ──
+  const today = new Date();
+  const dateLabel = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  document.getElementById('cert-date-text').textContent = dateLabel;
+
+  document.getElementById('cert-loading').style.display = 'none';
+  document.getElementById('cert-content').style.display = 'block';
+}
+
+function _getHanjaForLastName(lastName) {
+  // 성씨 한자는 별도 DB가 없으므로 그대로 표시
+  return lastName;
+}
+
+function downloadCertPdf() {
+  alert('💎 PDF 다운로드는 30일 작명 패스(₩7,900)가 필요합니다.\n결제 모듈은 다음 단계에서 연동됩니다.');
 }
 
 function _renderSajuResult(data, nameObj) {
