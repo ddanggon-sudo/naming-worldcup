@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import puppeteer from 'puppeteer';
 import { calculateSaju, getElement } from './lib/saju.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -610,6 +611,96 @@ ${candidateList}
 
   } catch (err) {
     console.error('[hanja-alt] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
+});
+
+// ── POST /api/certificate/generate ───────────────────────────
+const OHAENG_COLOR = { 木:'#10b981', 火:'#ef4444', 土:'#a16207', 金:'#94a3b8', 水:'#3b82f6' };
+
+app.post('/api/certificate/generate', async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+
+  const {
+    full_name_hanja  = '',
+    full_name_korean = '',
+    palja_str        = '',
+    birth_date       = '',
+    birth_hour       = null,
+    elements         = {},
+    yongsin          = '',
+    score            = 0,
+    score_label      = '',
+    eum_str          = '',
+    jawon_str        = '',
+    summary          = '',
+  } = data;
+
+  // 오행 분포 pill HTML
+  const ohaengPills = ['木','火','土','金','水'].map(k => {
+    const cnt = elements[k] || 0;
+    const isLow = k === yongsin || cnt === 0;
+    return `<span class="ohaeng-pill${isLow ? ' low' : ''}" style="color:${isLow ? '#ef4444' : OHAENG_COLOR[k]}">${k} ${cnt}</span>`;
+  }).join('');
+
+  // 날짜
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+
+  // 한자 이름 글자 사이 공백
+  const hanjaSpaced = [...full_name_hanja].join(' ');
+  const koSpaced    = [...full_name_korean].join(' ');
+
+  // 사주 + 생년월일
+  let paljaDisplay = palja_str;
+  if (birth_date) {
+    const bd = birth_date.replace(/-/g, '.');
+    const bh = birth_hour != null ? ` ${String(birth_hour).padStart(2,'0')}:00` : '';
+    paljaDisplay += `\n(양력 ${bd}${bh})`;
+  }
+
+  try {
+    const tmplPath = path.join(__dirname, 'templates', 'certificate.html');
+    let html = readFileSync(tmplPath, 'utf-8');
+
+    html = html
+      .replace('{{HANJA_NAME}}',  hanjaSpaced)
+      .replace('{{KO_NAME}}',     koSpaced)
+      .replace('{{PALJA_STR}}',   paljaDisplay)
+      .replace('{{OHAENG_PILLS}}', ohaengPills)
+      .replace('{{YONGSIN}}',     yongsin)
+      .replace('{{SCORE}}',       String(score))
+      .replace('{{SCORE_LABEL}}', score_label)
+      .replace('{{EUM_STR}}',     eum_str)
+      .replace('{{JAWON_STR}}',   jawon_str)
+      .replace('{{SUMMARY}}',     summary)
+      .replace('{{DATE}}',        dateStr);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfRaw = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+    });
+    await browser.close();
+    const pdfBuffer = Buffer.from(pdfRaw);
+
+    const safeKo = full_name_korean.replace(/\s/g, '');
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename*=UTF-8''%EC%9E%91%EB%AA%85%EA%B0%90%EC%A0%95%EC%84%9C_${encodeURIComponent(safeKo)}.pdf`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error('[cert-gen] 오류:', err.message);
     return res.status(500).json({ detail: err.message });
   }
 });

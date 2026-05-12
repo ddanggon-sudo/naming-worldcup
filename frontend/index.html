@@ -959,6 +959,30 @@
   .saju-cta-wrap .btn { font-size: 15px; padding: 14px; }
   .saju-cta-wrap .help-text { margin-top: 8px; }
 
+  /* 페이월 모달 */
+  .paywall-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 500;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .paywall-overlay.visible { display: flex; }
+  .paywall-box {
+    background: white; border-radius: 20px;
+    width: 100%; max-width: 360px; padding: 28px 22px;
+  }
+  .paywall-emoji { font-size: 44px; text-align: center; margin-bottom: 10px; }
+  .paywall-title { font-size: 19px; font-weight: 800; text-align: center; line-height: 1.4; margin-bottom: 6px; }
+  .paywall-sub { font-size: 12.5px; color: var(--sub); text-align: center; line-height: 1.6; margin-bottom: 14px; }
+  .paywall-features {
+    background: var(--primary-light); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 14px;
+    font-size: 13px; line-height: 1.9;
+  }
+  .paywall-features .row { display: flex; gap: 8px; }
+  .paywall-features .check { color: var(--primary); font-weight: 800; }
+  .paywall-price { font-size: 30px; font-weight: 800; color: var(--primary); text-align: center; }
+  .paywall-price-sub { font-size: 11px; color: var(--sub); text-align: center; margin-bottom: 16px; }
+
   /* 직접 추가 모달 폼 */
   .add-form { display: flex; flex-direction: column; gap: 14px; }
   .add-form-row { display: flex; gap: 10px; align-items: flex-end; }
@@ -2098,6 +2122,31 @@
       <button class="btn btn-outline" onclick="closeBirthModal()">취소</button>
       <button class="btn btn-primary" onclick="submitBirthInfo()">✨ 분석 시작하기</button>
     </div>
+  </div>
+</div>
+
+<!-- 페이월 모달 -->
+<div id="paywall-modal" class="paywall-overlay" onclick="if(event.target===this)closePaywallModal()">
+  <div class="paywall-box">
+    <div class="paywall-emoji">📜</div>
+    <div class="paywall-title">최종 후보 모두의<br>감정서가 필요하신가요?</div>
+    <p class="paywall-sub">
+      작명 감정서를 PDF로 받아 양가에 보여드리거나<br>
+      인쇄해 보관할 수 있습니다.
+    </p>
+    <div class="paywall-features">
+      <div class="row"><span class="check">✓</span> 감정서 PDF 무제한 발급</div>
+      <div class="row"><span class="check">✓</span> 사주 보기 무제한</div>
+      <div class="row"><span class="check">✓</span> 다른 한자 추천 무제한</div>
+      <div class="row"><span class="check">✓</span> 이름 탐색 무제한</div>
+      <div class="row"><span class="check">✓</span> 30일 동안 자유롭게</div>
+    </div>
+    <div class="paywall-price">₩7,900</div>
+    <div class="paywall-price-sub">단발 결제 · 자동갱신 없음 · 30일 패스</div>
+    <button class="btn btn-primary" onclick="buyPass()" style="margin-bottom:8px">
+      💎 30일 작명 패스 결제하기
+    </button>
+    <button class="btn btn-outline" onclick="closePaywallModal()">나중에 하기</button>
   </div>
 </div>
 
@@ -3831,8 +3880,97 @@ function _getHanjaForLastName(lastName) {
   return lastName;
 }
 
-function downloadCertPdf() {
-  alert('💎 PDF 다운로드는 30일 작명 패스(₩7,900)가 필요합니다.\n결제 모듈은 다음 단계에서 연동됩니다.');
+async function downloadCertPdf() {
+  // 프리미엄 확인
+  const isPremium = localStorage.getItem('pmb_is_premium') === 'true';
+  if (!isPremium) {
+    openPaywallModal();
+    return;
+  }
+  await _doCertDownload();
+}
+
+async function _doCertDownload() {
+  if (!_currentSajuResult || !_currentSajuName) return;
+
+  const btn = document.querySelector('#page-certificate .btn-accent');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
+
+  try {
+    const saju = _currentSajuResult;
+    const name = _currentSajuName;
+
+    // 사주팔자 문자열
+    const { palja, hour_known } = saju;
+    const paljaStr = [
+      `${palja.year.cheon}${palja.year.ji}`,
+      `${palja.month.cheon}${palja.month.ji}`,
+      `${palja.day.cheon}${palja.day.ji}`,
+      hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주모름',
+    ].join(' / ');
+
+    const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
+    const jawonArr  = saju.name_analysis?.jawon     || [];
+    const eumArr    = saju.name_analysis?.eumryeong || [];
+
+    const payload = {
+      data: {
+        full_name_hanja:  (name.hanja || ''),
+        full_name_korean: (name.last_name || '') + name.name,
+        palja_str:        paljaStr,
+        birth_date:       birthInfo?.birth_date || '',
+        birth_hour:       birthInfo?.birth_hour ?? null,
+        elements:         saju.elements,
+        yongsin:          saju.yongsin,
+        score:            saju.score,
+        score_label:      saju.score_label,
+        eum_str:          eumArr.join('·') || '—',
+        jawon_str:        jawonArr.join('·') || '—',
+        summary:          saju.narrative || '',
+      },
+    };
+
+    const res = await fetch(API + '/api/certificate/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `오류 ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const safeKo = ((name.last_name || '') + name.name).replace(/\s/g, '');
+    anchor.href = url;
+    anchor.download = `작명감정서_${safeKo}.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast('✅ PDF 다운로드 완료!');
+
+  } catch (e) {
+    console.error('[cert-pdf]', e);
+    showToast('❌ PDF 생성 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+// ── 페이월 모달 ──
+function openPaywallModal() {
+  document.getElementById('paywall-modal').classList.add('visible');
+}
+function closePaywallModal() {
+  document.getElementById('paywall-modal').classList.remove('visible');
+}
+function buyPass() {
+  alert('💎 결제 모듈 연동 예정입니다.\n(토스페이먼츠 연동은 다음 단계)');
 }
 
 function _renderSajuResult(data, nameObj) {

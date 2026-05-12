@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Serif KR', 'Apple Myungjo', 'Batang', serif;
+    background: #fff;
+    color: #2D2D2D;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 18mm;
+  }
+
+  .cert-paper {
+    background: linear-gradient(160deg, #fffbf0 0%, #fff8e7 50%, #fff3d0 100%);
+    border: 3px solid #c9a84c;
+    border-radius: 8px;
+    padding: 32px 28px 28px;
+    position: relative;
+    min-height: 250mm;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 내부 이중 테두리 */
+  .cert-paper::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* 모서리 장식 */
+  .corner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-color: #c9a84c;
+    border-style: solid;
+  }
+  .corner-tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
+
+  .cert-header {
+    text-align: center;
+    border-bottom: 2px solid #c9a84c;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cert-badge {
+    font-size: 11px;
+    color: #8b6f3a;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+  }
+
+  .cert-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #7a5c24;
+    letter-spacing: 8px;
+    margin-bottom: 4px;
+  }
+
+  .cert-sub {
+    font-size: 11px;
+    color: #a08040;
+    letter-spacing: 3px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .cert-name-wrap {
+    text-align: center;
+    margin: 20px 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cert-name-hanja {
+    font-size: 40px;
+    font-weight: 900;
+    color: #3a2d0f;
+    letter-spacing: 12px;
+    line-height: 1.1;
+  }
+
+  .cert-name-ko {
+    font-size: 15px;
+    color: #7a6030;
+    display: block;
+    margin-top: 8px;
+    letter-spacing: 8px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+  }
+
+  .cert-divider {
+    border: none;
+    border-top: 1px dashed #c9a84c;
+    margin: 10px 0 16px;
+  }
+
+  .cert-sections {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 24px;
+  }
+
+  .cert-section {
+    margin-bottom: 16px;
+  }
+
+  .cert-section.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .cert-section-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #8b6f3a;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #d4b876;
+    letter-spacing: 1px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .cert-section p {
+    font-size: 12px;
+    line-height: 1.75;
+    color: #2D2D2D;
+    white-space: pre-line;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .cert-section p.summary {
+    font-size: 12.5px;
+    line-height: 1.8;
+    font-family: 'Noto Serif KR', serif;
+    color: #3a2d0f;
+  }
+
+  .score-highlight {
+    font-size: 15px;
+    font-weight: 700;
+    color: #6C63FF;
+  }
+
+  .cert-footer {
+    text-align: center;
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid #c9a84c;
+    font-size: 11px;
+    color: #8b6f3a;
+    position: relative;
+    z-index: 1;
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cert-footer-left {
+    text-align: left;
+    line-height: 1.7;
+  }
+
+  .cert-stamp {
+    width: 64px;
+    height: 64px;
+    border: 3px solid #FF6584;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FF6584;
+    font-weight: 900;
+    font-size: 13px;
+    background: rgba(255,101,132,0.06);
+    line-height: 1.2;
+    text-align: center;
+    font-family: 'Noto Serif KR', serif;
+    flex-shrink: 0;
+  }
+
+  .ohaeng-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+
+  .ohaeng-pill {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .ohaeng-pill.low { color: #ef4444; }
+</style>
+</head>
+<body>
+<div class="cert-paper">
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <div class="cert-header">
+    <div class="cert-badge">픽마이네임 공식 감정</div>
+    <div class="cert-title">作名鑑定書</div>
+    <div class="cert-sub">작 명 감 정 서</div>
+  </div>
+
+  <div class="cert-name-wrap">
+    <div class="cert-name-hanja">{{HANJA_NAME}}</div>
+    <span class="cert-name-ko">{{KO_NAME}}</span>
+  </div>
+
+  <hr class="cert-divider">
+
+  <div class="cert-sections">
+    <div class="cert-section">
+      <div class="cert-section-title">📜 사주팔자</div>
+      <p>{{PALJA_STR}}</p>
+    </div>
+
+    <div class="cert-section">
+      <div class="cert-section-title">📊 이름 적합도</div>
+      <p><span class="score-highlight">{{SCORE}}점 / 100점</span><br>{{SCORE_LABEL}}<br>음령오행: {{EUM_STR}}<br>자원오행: {{JAWON_STR}}</p>
+    </div>
+
+    <div class="cert-section full-width">
+      <div class="cert-section-title">🌳 오행 분포 · 용신</div>
+      <div class="ohaeng-row">{{OHAENG_PILLS}}</div>
+      <p style="margin-top:6px">부족한 기운 (용신): <strong>{{YONGSIN}}</strong></p>
+    </div>
+
+    <div class="cert-section full-width">
+      <div class="cert-section-title">💡 종합 평가</div>
+      <p class="summary">{{SUMMARY}}</p>
+    </div>
+  </div>
+
+  <div class="cert-footer">
+    <div class="cert-footer-left">
+      {{DATE}} 작성<br>
+      픽마이네임 (pickmyname.co.kr)<br>
+      본 감정서는 전통 사주명리 이론에 기반한 참고 자료입니다.
+    </div>
+    <div class="cert-stamp">감정<br>완료</div>
+  </div>
+</div>
+</body>
+</html>
