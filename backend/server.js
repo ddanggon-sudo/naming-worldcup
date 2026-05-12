@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
@@ -29,8 +30,17 @@ const MODELS = [
 
 const app = express();
 app.use(cors());
+app.use(compression());
 app.use(express.json({ limit: '100kb' }));
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(path.join(__dirname, '..', 'frontend'), {
+  maxAge: '1d',
+  etag: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 // ── hanja_db.json 로드 (서버 시작 시 1회) ──────────────────────
 
