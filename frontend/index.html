@@ -1902,7 +1902,10 @@ function renderWcRound() {
     const parts = [n.tier];
     if (n.rank) parts.push(`${n.rank.toLocaleString()}위`);
     const sel = s.selectedVibes || [];
-    if (sel.length) parts.push(sel.join(' · '));
+    const matchingVibes = sel.length
+      ? (n.vibes || []).filter(v => sel.includes(v))
+      : [];
+    if (matchingVibes.length) parts.push(matchingVibes.join(' · '));
     return parts.join(' · ');
   };
   document.getElementById('wc-left-tier').textContent = fmtTier(champ);
