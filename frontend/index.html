@@ -26,6 +26,7 @@
     background: var(--bg); color: var(--text);
     min-height: 100vh; padding-bottom: 80px; padding-top: 56px;
     transition: background-color 0.35s ease;
+    scrollbar-gutter: stable;
   }
 
   /* 사용자 전환 바 */
@@ -730,7 +731,7 @@
 
   /* 로비 히어로 배너 */
   .grand-hero {
-    background: linear-gradient(145deg, #2C1A00 0%, #5A3400 55%, #7A4800 100%);
+    background: linear-gradient(145deg, #6B3F00 0%, #9A5C00 55%, #B87010 100%);
     border-radius: 20px;
     padding: 28px 20px 24px;
     text-align: center;
@@ -815,7 +816,7 @@
 
   /* 로비 시작 버튼 래퍼 */
   .grand-start-wrap {
-    padding: 4px 0 2px;
+    padding: 4px 0 14px;
   }
   #btn-grand-start {
     background: linear-gradient(135deg, #F5A623 0%, #e8920a 100%);
@@ -1489,6 +1490,11 @@
       <div class="grand-hero-sub">저장된 모든 이름이 격돌합니다<br>최후의 1개를 지금 결정하세요</div>
     </div>
 
+    <!-- 시작 버튼 -->
+    <div class="grand-start-wrap">
+      <button class="btn" id="btn-grand-start" onclick="startGrand()">👑 왕중왕전 시작하기</button>
+    </div>
+
     <!-- 참가자 명단 패널 -->
     <div class="grand-roster-panel">
       <div class="grand-roster-header">
@@ -1496,11 +1502,6 @@
         <span class="grand-roster-count" id="grand-roster-count-badge">0명</span>
       </div>
       <div id="grand-name-list"></div>
-    </div>
-
-    <!-- 시작 버튼 -->
-    <div class="grand-start-wrap">
-      <button class="btn" id="btn-grand-start" onclick="startGrand()">👑 왕중왕전 시작하기</button>
     </div>
   </div>
 
