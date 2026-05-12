@@ -1456,7 +1456,10 @@
   <!-- vault header: row 1 — title + primary CTA -->
   <div class="flex-between" style="margin-bottom:8px">
     <span style="font-weight:700;font-size:15px">저장된 이름</span>
-    <button class="btn btn-primary btn-sm" onclick="openAddNameModal()">+ 직접 추가</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-outline btn-sm" id="btn-enrich-all" onclick="enrichAllNames()" title="한자·뜻이 없는 이름을 AI로 자동 보완">✨ 한자·뜻 보완</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddNameModal()">+ 직접 추가</button>
+    </div>
   </div>
   <!-- vault header: row 2 — filters (left) + utility sync (right) -->
   <div class="flex-between" style="margin-bottom:14px;gap:6px">
@@ -2272,10 +2275,52 @@ function renderProfile() {
   renderSavedNames();
 }
 
+async function enrichAllNames() {
+  const all = getSavedNames();
+  const targets = all.filter(n => !n.hanja || !n.meaning);
+  if (!targets.length) { showToast('모든 이름에 한자·뜻이 이미 있어요!'); return; }
+
+  const btn = document.getElementById('btn-enrich-all');
+  btn.disabled = true;
+  btn.textContent = `✨ 보완 중... (0/${targets.length})`;
+
+  let done = 0;
+  let updated = 0;
+  for (const target of targets) {
+    try {
+      const r = await fetch(API + '/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: target.name, gender: target.gender }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        const cur = getSavedNames();
+        const idx = cur.findIndex(n => n.id === target.id);
+        if (idx !== -1) {
+          if (!cur[idx].hanja && data.hanja) cur[idx].hanja = data.hanja;
+          if (!cur[idx].meaning && data.meaning) cur[idx].meaning = data.meaning;
+          await setSavedNames(cur);
+          updated++;
+          renderProfile();
+        }
+      }
+    } catch (_) {}
+    done++;
+    btn.textContent = `✨ 보완 중... (${done}/${targets.length})`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✨ 한자·뜻 보완';
+  showToast(`${updated}개 이름에 한자·뜻을 보완했어요!`);
+}
+
 function renderSavedNames() {
   const sort = document.getElementById('sort-select').value;
   const authorFilter = document.getElementById('author-filter').value;
   let saved = getSavedNames();
+  const btnEnrich = document.getElementById('btn-enrich-all');
+  if (btnEnrich) btnEnrich.style.display = saved.some(n => !n.hanja || !n.meaning) ? '' : 'none';
   if (authorFilter !== 'all') saved = saved.filter(n => n.author === authorFilter);
   if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
   if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
