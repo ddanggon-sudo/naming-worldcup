@@ -712,6 +712,124 @@
   /* 프로필 CTA 버튼 */
   .empty-profile-cta { margin-top: 14px; }
 
+  /* ── 사주 UI ─────────────────────────────────────────── */
+  .section-title {
+    font-size: 12.5px; font-weight: 800; color: var(--sub);
+    margin: 18px 0 8px; padding-left: 4px; letter-spacing: .3px;
+  }
+  .help-text { font-size: 12px; color: var(--sub); text-align: center; margin-top: 12px; line-height: 1.6; }
+  .help-text .gold { color: var(--gold); font-weight: 700; }
+
+  /* 사주 페이지 탑바 */
+  #page-saju .page-top-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  #page-saju .page-top-bar button.back-btn {
+    background: none; border: none; font-size: 22px; color: var(--sub);
+    cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
+  }
+  #page-saju .page-top-bar h1 { font-size: 16px; margin-bottom: 0; font-weight: 800; }
+
+  /* 사주팔자 그리드 */
+  .palja-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .palja-col { background: var(--bg); border-radius: 10px; padding: 12px 4px; text-align: center; }
+  .palja-col-label { font-size: 10px; color: var(--sub); margin-bottom: 8px; font-weight: 700; }
+  .palja-cheon { font-size: 22px; font-weight: 800; color: var(--primary); margin-bottom: 2px; line-height: 1; }
+  .palja-ji { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .palja-element { font-size: 10px; color: var(--sub); margin-top: 6px; }
+
+  /* 오행 차트 */
+  .ohaeng-card { text-align: center; }
+  .ohaeng-chart { width: 210px; height: 210px; margin: 0 auto; display: block; overflow: visible; }
+  .ohaeng-legend {
+    display: flex; justify-content: space-between; margin-top: 8px;
+    padding: 0 4px; flex-wrap: wrap; gap: 6px; justify-content: center;
+  }
+  .ohaeng-item { font-size: 12px; color: var(--sub); }
+  .ohaeng-item .count { font-weight: 800; color: var(--text); margin-left: 2px; }
+  .ohaeng-item.ohaeng-zero { color: #ef4444; }
+  .ohaeng-item.ohaeng-zero .count { color: #ef4444; }
+
+  /* 용신 배너 */
+  .yongsin-banner {
+    background: linear-gradient(135deg, #e0f2ff 0%, #d1e7ff 100%);
+    border-radius: 12px; padding: 14px; text-align: center; margin-top: 14px;
+  }
+  .yongsin-banner .label { font-size: 11px; color: #1976d2; margin-bottom: 4px; font-weight: 700; }
+  .yongsin-banner .value { font-size: 20px; font-weight: 800; color: #0d47a1; }
+  .yongsin-banner .desc { font-size: 11.5px; color: #1976d2; margin-top: 4px; }
+
+  /* 적합도 점수 */
+  .score-card { text-align: center; }
+  .score-number { font-size: 44px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .score-number .unit { font-size: 18px; color: var(--sub); font-weight: 700; margin-left: 2px; }
+  .score-sublabel { font-size: 13px; color: var(--sub); margin: 6px 0 12px; }
+  .score-bar { height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .score-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #9b8fff); border-radius: 99px; transition: width .6s ease; }
+
+  /* AI 풀이 카드 */
+  .ai-narrative {
+    background: var(--primary-light); border-radius: 12px; padding: 14px;
+    font-size: 13px; line-height: 1.7;
+  }
+
+  /* 사주 액션 버튼 row */
+  .saju-action-row { display: flex; gap: 8px; margin-top: 16px; }
+  .saju-action-row .btn { flex: 1; font-size: 13.5px; padding: 12px 8px; }
+  .btn-secondary { background: var(--primary-light); color: var(--primary); }
+
+  /* 생일 입력 모달 */
+  .birth-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 300;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .birth-modal-overlay.visible { display: flex; }
+  .birth-modal-box {
+    background: white; border-radius: 20px;
+    width: 100%; max-width: 400px; padding: 24px 20px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .birth-modal-box h3 { font-size: 19px; font-weight: 800; margin-bottom: 6px; }
+  .birth-modal-sub { font-size: 12.5px; color: var(--sub); margin-bottom: 18px; line-height: 1.6; }
+  .birth-form-group { margin-bottom: 14px; }
+  .birth-form-group > label {
+    font-size: 12px; font-weight: 700; color: var(--sub); display: block; margin-bottom: 6px;
+  }
+  .birth-form-group input[type=date],
+  .birth-form-group select {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 14px; background: var(--bg);
+    font-family: inherit; color: var(--text); outline: none;
+  }
+  .birth-form-group input[type=date]:focus,
+  .birth-form-group select:focus { border-color: var(--primary); }
+  .birth-checkbox-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 10px 0 16px; padding: 10px 12px;
+    background: var(--primary-light); border-radius: 10px; cursor: pointer;
+  }
+  .birth-checkbox-row input[type=checkbox] { margin: 0; flex-shrink: 0; cursor: pointer; }
+  .birth-checkbox-row label {
+    font-size: 12px; color: var(--primary); margin: 0; font-weight: 700; flex: 1; cursor: pointer;
+  }
+
+  /* 보관함 사주 버튼 */
+  .btn-saju-sm {
+    width: auto; background: var(--primary-light); border: 1px solid var(--primary);
+    color: var(--primary); border-radius: 7px; padding: 5px 11px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .btn-saju-sm:hover { background: var(--primary); color: #fff; }
+
+  /* 사주 CTA 카드 (결과 화면 내) */
+  .saju-cta-wrap { margin-top: 14px; }
+  .saju-cta-wrap .btn { font-size: 15px; padding: 14px; }
+  .saju-cta-wrap .help-text { margin-top: 8px; }
+
   /* 직접 추가 모달 폼 */
   .add-form { display: flex; flex-direction: column; gap: 14px; }
   .add-form-row { display: flex; gap: 10px; align-items: flex-end; }
@@ -1474,6 +1592,14 @@
         <button class="btn btn-outline" onclick="skipSave()">저장 안 함</button>
       </div>
     </div>
+
+    <div class="saju-cta-wrap">
+      <button class="btn btn-primary" id="btn-wc-saju" onclick="openSajuFlow(wcState?.champion)">🔮 사주 보기 시작</button>
+      <div class="help-text">
+        아이의 사주와 이름이 잘 맞는지 분석해드려요<br>
+        <span class="gold">💡 사주 보기는 첫 1회 무료</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1592,6 +1718,14 @@
       <button class="btn" id="btn-grand-finalize" onclick="finalizeGrand()">👑 이 이름으로 최종 확정</button>
       <button class="grand-btn-retry" onclick="resetGrand()">↩ 왕중왕전 다시하기</button>
     </div>
+
+    <div class="saju-cta-wrap">
+      <button class="btn btn-primary" onclick="openSajuFlow(grandState?.champion)">🔮 사주 보기 시작</button>
+      <div class="help-text">
+        아이의 사주와 이름이 잘 맞는지 분석해드려요<br>
+        <span class="gold">💡 사주 보기는 첫 1회 무료</span>
+      </div>
+    </div>
   </div>
 
 </section>
@@ -1623,6 +1757,116 @@
   <div id="saved-names-list"></div>
 
 </section>
+
+<!-- ════════════════════════════════════════
+     PAGE 5: 사주 결과
+════════════════════════════════════════ -->
+<section id="page-saju" class="page">
+  <div class="page-top-bar">
+    <button class="back-btn" onclick="_goBackFromSaju()">←</button>
+    <h1 id="saju-page-title">🔮 사주 풀이</h1>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="saju-loading" class="loading visible">
+    <div class="spinner"></div>
+    <p style="font-size:14px;color:var(--sub);margin-top:4px">사주를 분석하는 중...</p>
+  </div>
+
+  <!-- 오류 -->
+  <div id="saju-error" style="display:none;text-align:center;padding:40px 0">
+    <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+    <p id="saju-error-msg" style="font-size:14px;color:var(--sub);margin-bottom:16px"></p>
+    <button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="_goBackFromSaju()">돌아가기</button>
+  </div>
+
+  <!-- 결과 -->
+  <div id="saju-content" style="display:none">
+    <div class="section-title">📜 사주팔자</div>
+    <div class="card">
+      <div class="palja-grid" id="palja-grid"></div>
+    </div>
+
+    <div class="section-title">🌳 오행 분포</div>
+    <div class="card ohaeng-card">
+      <div id="ohaeng-svg-wrap"></div>
+      <div class="ohaeng-legend" id="ohaeng-legend"></div>
+      <div class="yongsin-banner" id="yongsin-banner"></div>
+    </div>
+
+    <div class="section-title">📊 이름 적합도</div>
+    <div class="card score-card">
+      <div class="score-number"><span id="saju-score-num">0</span><span class="unit">점</span></div>
+      <div class="score-sublabel" id="saju-score-sublabel">—</div>
+      <div class="score-bar"><div class="score-fill" id="saju-score-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="section-title">📝 AI 풀이</div>
+    <div class="card">
+      <div class="ai-narrative" id="saju-narrative"></div>
+    </div>
+
+    <div class="saju-action-row">
+      <button class="btn btn-secondary" onclick="alert('단계 5에서 구현 예정입니다')">✨ 다른 한자 추천</button>
+      <button class="btn btn-accent" onclick="alert('단계 7에서 구현 예정입니다')">📜 감정서로 받기</button>
+    </div>
+    <div class="help-text">
+      <span class="gold">💎 사주 보기는 첫 1회 무료</span>입니다.<br>
+      다음부터는 30일 작명 패스(₩7,900)가 필요해요.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     생일 입력 모달
+════════════════════════════════════════ -->
+<div id="birth-modal" class="birth-modal-overlay">
+  <div class="birth-modal-box">
+    <h3>🔮 아이의 생년월일시</h3>
+    <p class="birth-modal-sub">
+      정확한 사주 분석을 위해 출생 정보를 알려주세요.<br>
+      한 번만 입력하시면 이후엔 자동 적용됩니다.
+    </p>
+
+    <div class="birth-form-group">
+      <label>출생일 (양력)</label>
+      <input type="date" id="birth-date-input">
+    </div>
+
+    <div class="birth-checkbox-row" onclick="document.getElementById('is-due-date').click()">
+      <input type="checkbox" id="is-due-date" onclick="event.stopPropagation()">
+      <label for="is-due-date">👶 아직 출산 전이에요 (예정일 기준 분석)</label>
+    </div>
+
+    <div class="birth-form-group">
+      <label>출생 시각</label>
+      <select id="birth-hour-select">
+        <option value="23">자시 (23:30 ~ 01:30)</option>
+        <option value="1">축시 (01:30 ~ 03:30)</option>
+        <option value="3" selected>인시 (03:30 ~ 05:30)</option>
+        <option value="5">묘시 (05:30 ~ 07:30)</option>
+        <option value="7">진시 (07:30 ~ 09:30)</option>
+        <option value="9">사시 (09:30 ~ 11:30)</option>
+        <option value="11">오시 (11:30 ~ 13:30)</option>
+        <option value="13">미시 (13:30 ~ 15:30)</option>
+        <option value="15">신시 (15:30 ~ 17:30)</option>
+        <option value="17">유시 (17:30 ~ 19:30)</option>
+        <option value="19">술시 (19:30 ~ 21:30)</option>
+        <option value="21">해시 (21:30 ~ 23:30)</option>
+        <option value="">⚪ 시간을 모름</option>
+      </select>
+    </div>
+
+    <p style="font-size:11.5px;color:var(--sub);margin:-4px 0 16px;line-height:1.6">
+      💡 시간을 모르시면 '모름'을 선택해도 됩니다.<br>시주를 제외한 3주 분석으로 진행됩니다.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeBirthModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitBirthInfo()">✨ 분석 시작하기</button>
+    </div>
+  </div>
+</div>
 
 <!-- 이름 직접 추가 모달 -->
 <div class="modal-backdrop" id="add-name-modal">
@@ -2390,6 +2634,8 @@ function renderProfile() {
 }
 
 
+let _savedCardSajuMap = {};
+
 function renderSavedNames() {
   const sort = document.getElementById('sort-select').value;
   let saved = getSavedNames();
@@ -2410,6 +2656,12 @@ function renderSavedNames() {
     }
     return;
   }
+  // 보관함 사주 버튼용 매핑 테이블
+  _savedCardSajuMap = {};
+  saved.forEach(n => {
+    if (n.hanja) _savedCardSajuMap[n.id] = { name: n.name, hanja: n.hanja, last_name: n.last_name || '', gender: n.gender || '남아' };
+  });
+
   el.innerHTML = saved.map(n => {
     const metaParts = [
       n.gender,
@@ -2441,6 +2693,7 @@ function renderSavedNames() {
           </div>` : ''}
       </div>
       <div class="saved-card-footer">
+        ${n.hanja ? `<button class="btn-saju-sm" onclick="openSajuFlow(_savedCardSajuMap['${n.id}'])">🔮 사주</button>` : ''}
         <button class="btn-delete" onclick="openDeleteModal('${n.id}','${n.full_name}')">삭제</button>
       </div>
     </div>
@@ -2983,6 +3236,211 @@ function hideProgressToast() {
     document.documentElement.classList.remove('touch-mode');
   }, { passive: true });
 })();
+
+// ════════════════════════════════
+// 사주 UI
+// ════════════════════════════════
+
+const _CG_EL = {甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水'};
+const _JJ_EL = {子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
+const _EL_EMOJI = {木:'🌳',火:'🔥',土:'⛰',金:'⚙',水:'💧'};
+const _EL_KO = {木:'나무',火:'불',土:'흙',金:'쇠',水:'물'};
+function _getElClient(c) { return _CG_EL[c] || _JJ_EL[c] || '土'; }
+
+let _currentSajuName = null;
+let _currentSajuResult = null;
+let _sajuPrevPage = 'worldcup';
+
+function openSajuFlow(nameObj) {
+  if (!nameObj || !nameObj.name) return;
+  if (!nameObj.hanja) {
+    showToast('⚠️ 한자가 없는 이름은 사주 분석이 어려워요');
+    return;
+  }
+  _currentSajuName = nameObj;
+  const savedBirth = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
+  if (savedBirth?.birth_date) {
+    _runSajuAnalysis(nameObj, savedBirth);
+  } else {
+    _openBirthModal();
+  }
+}
+
+function _openBirthModal() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  document.getElementById('birth-date-input').value = `${yyyy}-${mm}-${dd}`;
+  document.getElementById('birth-hour-select').value = '3';
+  document.getElementById('is-due-date').checked = false;
+  document.getElementById('birth-modal').classList.add('visible');
+}
+
+function closeBirthModal() {
+  document.getElementById('birth-modal').classList.remove('visible');
+}
+
+async function submitBirthInfo() {
+  const birthDate = document.getElementById('birth-date-input').value;
+  if (!birthDate) { showToast('출생일을 입력해주세요'); return; }
+  const hourRaw = document.getElementById('birth-hour-select').value;
+  const birthHour = hourRaw === '' ? null : Number(hourRaw);
+  const isDueDate = document.getElementById('is-due-date').checked;
+  const birthInfo = { birth_date: birthDate, birth_hour: birthHour, is_due_date: isDueDate };
+
+  localStorage.setItem('pmb_birth_info', JSON.stringify(birthInfo));
+
+  if (_currentProfile?.id) {
+    try {
+      await _sbFetch(`/profiles?id=eq.${_currentProfile.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ birth_info: birthInfo }),
+      });
+      _currentProfile = { ..._currentProfile, birth_info: birthInfo };
+    } catch (e) {
+      console.warn('[saju] birth_info Supabase 저장 실패:', e.message);
+      console.info('[migration] ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_info JSONB;');
+    }
+  }
+
+  closeBirthModal();
+  _runSajuAnalysis(_currentSajuName, birthInfo);
+}
+
+async function _runSajuAnalysis(nameObj, birthInfo) {
+  _goSajuPage();
+  document.getElementById('saju-loading').style.display = 'block';
+  document.getElementById('saju-content').style.display = 'none';
+  document.getElementById('saju-error').style.display = 'none';
+  document.getElementById('saju-page-title').textContent = `🔮 ${nameObj.last_name || ''}${nameObj.name} 사주 풀이`;
+
+  try {
+    const res = await fetch(API + '/api/saju/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        birth_date: birthInfo.birth_date,
+        birth_hour: birthInfo.birth_hour,
+        is_due_date: birthInfo.is_due_date || false,
+        name: nameObj.name,
+        hanja: nameObj.hanja,
+        last_name: nameObj.last_name || '',
+        gender: nameObj.gender || '남아',
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `서버 오류 (${res.status})`);
+    }
+    const data = await res.json();
+    _currentSajuResult = data;
+    _renderSajuResult(data, nameObj);
+  } catch (e) {
+    console.error('[saju] 분석 실패:', e);
+    document.getElementById('saju-loading').style.display = 'none';
+    document.getElementById('saju-error').style.display = 'block';
+    document.getElementById('saju-error-msg').textContent = e.message;
+  }
+}
+
+function _goSajuPage() {
+  const active = document.querySelector('.page.active');
+  if (active && active.id !== 'page-saju') _sajuPrevPage = active.id.replace('page-', '');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-saju').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function _goBackFromSaju() {
+  goPage(_sajuPrevPage);
+}
+
+function _buildOhaengSvg(elements, yongsin) {
+  const cx = 120, cy = 120, Rmax = 80;
+  const KEYS = ['木','火','土','金','水'];
+  const ANGLES = [-90,-18,54,126,198].map(d => d * Math.PI / 180);
+  const COLORS = {木:'#10b981',火:'#ef4444',土:'#a16207',金:'#64748b',水:'#3b82f6'};
+
+  const vals = KEYS.map(k => elements[k] || 0);
+  const maxVal = Math.max(...vals, 1);
+
+  function vtx(i, r) {
+    return [cx + r * Math.cos(ANGLES[i]), cy + r * Math.sin(ANGLES[i])];
+  }
+
+  const grid = [1,0.75,0.5,0.25].map(f => {
+    const pts = KEYS.map((_,i) => vtx(i, Rmax*f).map(v=>v.toFixed(1)).join(',')).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#E5E7EB" stroke-width="1"/>`;
+  }).join('');
+
+  const axes = KEYS.map((_,i) => {
+    const [x,y] = vtx(i, Rmax);
+    return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#E5E7EB" stroke-width="1"/>`;
+  }).join('');
+
+  const dataPoints = vals.map((v,i) => {
+    const r = Rmax * v / maxVal;
+    return vtx(i,r).map(n=>n.toFixed(1)).join(',');
+  }).join(' ');
+
+  const circles = vals.map((v,i) => {
+    const r = Rmax * v / maxVal;
+    const [x,y] = vtx(i,r);
+    const fill = (v===0 || KEYS[i]===yongsin) ? '#ef4444' : '#6C63FF';
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${v===0?5:4}" fill="${fill}"/>`;
+  }).join('');
+
+  const Rl = Rmax + 20;
+  const labels = KEYS.map((k,i) => {
+    const [x,y] = vtx(i, Rl);
+    const anchor = i===0 ? 'middle' : (i<=2 ? 'start' : 'end');
+    return `<text x="${x.toFixed(0)}" y="${(y+4).toFixed(0)}" text-anchor="${anchor}" font-size="12" font-weight="700" fill="${COLORS[k]}">${_EL_EMOJI[k]} ${k}</text>`;
+  }).join('');
+
+  return `<svg class="ohaeng-chart" viewBox="0 0 240 240" style="overflow:visible">${grid}${axes}<polygon points="${dataPoints}" fill="rgba(108,99,255,0.28)" stroke="#6C63FF" stroke-width="2"/>${circles}${labels}</svg>`;
+}
+
+function _renderSajuResult(data, nameObj) {
+  const { palja, elements, yongsin, yongsin_desc, hour_known, score, score_label, narrative } = data;
+
+  const paljaCols = [
+    { label:'시주', p: palja.hour, missing: !hour_known },
+    { label:'일주', p: palja.day },
+    { label:'월주', p: palja.month },
+    { label:'년주', p: palja.year },
+  ];
+  document.getElementById('palja-grid').innerHTML = paljaCols.map(col => {
+    if (col.missing) return `<div class="palja-col"><div class="palja-col-label">${col.label}</div><div class="palja-cheon" style="font-size:14px;color:var(--sub)">?</div><div class="palja-ji" style="font-size:14px;color:var(--sub)">?</div><div class="palja-element">시간 모름</div></div>`;
+    const ce = _getElClient(col.p.cheon), je = _getElClient(col.p.ji);
+    return `<div class="palja-col"><div class="palja-col-label">${col.label}</div><div class="palja-cheon">${col.p.cheon}</div><div class="palja-ji">${col.p.ji}</div><div class="palja-element">${ce} / ${je}</div></div>`;
+  }).join('');
+
+  document.getElementById('ohaeng-svg-wrap').innerHTML = _buildOhaengSvg(elements, yongsin);
+
+  const KEYS = ['木','火','土','金','水'];
+  document.getElementById('ohaeng-legend').innerHTML = KEYS.map(k => {
+    const c = elements[k] || 0;
+    const isYong = k === yongsin;
+    return `<div class="ohaeng-item${isYong?' ohaeng-zero':''}">${_EL_EMOJI[k]} ${k}<span class="count">${c}</span></div>`;
+  }).join('');
+
+  document.getElementById('yongsin-banner').innerHTML = `
+    <div class="label">⚠️ 부족한 기운 (용신)</div>
+    <div class="value">${_EL_EMOJI[yongsin]||''} ${yongsin} (${_EL_KO[yongsin]||''})</div>
+    <div class="desc">${yongsin_desc}</div>
+  `;
+
+  document.getElementById('saju-score-num').textContent = score;
+  document.getElementById('saju-score-sublabel').textContent = `${nameObj.hanja} (${nameObj.name}) — ${score_label}`;
+  document.getElementById('saju-score-fill').style.width = `${score}%`;
+
+  document.getElementById('saju-narrative').textContent = narrative || '풀이 생성에 실패했습니다.';
+
+  document.getElementById('saju-loading').style.display = 'none';
+  document.getElementById('saju-error').style.display = 'none';
+  document.getElementById('saju-content').style.display = 'block';
+}
 </script>
 </body>
 </html>
