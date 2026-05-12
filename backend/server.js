@@ -469,6 +469,151 @@ const jawonList = [...hanja].map(ch => {
   }
 });
 
+// ── POST /api/hanja/alternatives ─────────────────────────────
+app.post('/api/hanja/alternatives', async (req, res) => {
+  const {
+    name, current_hanja = '',
+    saju_yongsin, gender = '남아',
+    is_premium = false,
+  } = req.body;
+
+  if (!name || !saju_yongsin) {
+    return res.status(400).json({ detail: 'name, saju_yongsin 필드가 필요합니다.' });
+  }
+
+  try {
+    const hanjaDB = loadHanjaDB();
+    const syllables = [...name]; // ['지','우']
+
+    // 1. 음별 후보 추출 (음 일치 한자, 글자당 최대 30개)
+    const candidatesBySyllable = syllables.map(syl => {
+      const matches = Object.values(hanjaDB).filter(e => e.sound === syl);
+      return matches.slice(0, 30);
+    });
+
+    // 후보가 하나도 없는 음절이 있으면 조기 반환
+    if (candidatesBySyllable.some(arr => arr.length === 0)) {
+      return res.json({ base_name: name, alternatives: [] });
+    }
+
+    // 2. 조합 생성 (cartesian product)
+    const combos = candidatesBySyllable.reduce((acc, arr) =>
+      acc.flatMap(combo => arr.map(item => [...combo, item])),
+    [[]]);
+
+    // 3. 음령오행 (이름 부분만 — 모든 조합 동일)
+    const eumryeongList = calcEumryeong(name);
+
+    // 4. 상생 관계 헬퍼
+    const SANGSEONG_NEXT = { 木:'火', 火:'土', 土:'金', 金:'水', 水:'木' };
+    function isSangseong(a, b) {
+      return SANGSEONG_NEXT[a] === b || SANGSEONG_NEXT[b] === a;
+    }
+
+    // 5. 점수 산출 + 현재 한자 제외
+    const scored = combos
+      .map(combo => {
+        const hanjaStr = combo.map(c => c.char).join('');
+        const jawon    = combo.map(c => c.ohaeng_won);
+        let score = 0;
+        if (jawon.includes(saju_yongsin))             score += 50;
+        if (combo.length === 2 && isSangseong(jawon[0], jawon[1])) score += 20;
+        if (combo.length >= 3) {
+          for (let i = 0; i < combo.length - 1; i++) {
+            if (isSangseong(jawon[i], jawon[i+1])) score += 10;
+          }
+        }
+        return { combo, hanjaStr, jawon, baseScore: score };
+      })
+      .filter(({ hanjaStr }) => hanjaStr !== current_hanja)
+      .sort((a, b) => b.baseScore - a.baseScore);
+
+    if (scored.length === 0) {
+      return res.json({ base_name: name, alternatives: [] });
+    }
+
+    // 6. 상위 15개 후보 LLM 평가
+    const TOP_N = 15;
+    const topCandidates = scored.slice(0, TOP_N);
+    const model = is_premium ? 'openai/gpt-4o' : 'openai/gpt-4o-mini';
+
+    const candidateList = topCandidates.map(({ hanjaStr, jawon, combo }, i) => {
+      const details = combo.map(c => `${c.char}(${c.meaning})`).join('·');
+      return `${i+1}. ${hanjaStr} [자원오행: ${jawon.join('+')}] 뜻: ${details}`;
+    }).join('\n');
+
+    const llmPrompt = `한국 아기 이름 한자 조합 후보입니다. 상위 6개를 추천해 주세요.
+
+이름: ${name}  성별: ${gender}  사주 용신(부족 오행): ${saju_yongsin}
+
+후보:
+${candidateList}
+
+각 항목 평가 기준:
+- hanja: 후보 한자 문자열 (그대로 복사)
+- meaning_score: 이름으로서 의미의 자연스러움 (0~30점)
+- meaning: 두 글자 합친 뜻 (10자 이내 한국어)
+- explanation: 사주·이름 조화 설명 (1문장, 해당 한자 언급 포함)
+- category: "saju_match"(용신 보완) | "meaning"(의미 아름다움) | "classic"(전통·인기)
+
+응답 JSON:
+{"items":[{"hanja":"池優","meaning_score":25,"meaning":"...","explanation":"...","category":"saju_match"},...]}
+
+상위 6개만, JSON만 반환하세요.`;
+
+    let llmItems = [];
+    try {
+      const llmRes = await client.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: llmPrompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+      const parsed = JSON.parse(llmRes.choices[0].message.content);
+      llmItems = parsed.items || parsed.data || Object.values(parsed)[0] || [];
+    } catch (llmErr) {
+      console.warn('[hanja-alt] LLM 실패:', llmErr.message);
+      llmItems = topCandidates.slice(0, 4).map(cand => ({
+        hanja: cand.hanjaStr,
+        meaning_score: 0,
+        meaning: cand.combo.map(c => c.meaning).join('·'),
+        explanation: cand.jawon.includes(saju_yongsin)
+          ? `${cand.hanjaStr}는 사주 용신(${saju_yongsin})을 보완하는 조합입니다.`
+          : `${cand.hanjaStr}는 의미가 아름다운 조합입니다.`,
+        category: cand.jawon.includes(saju_yongsin) ? 'saju_match' : 'meaning',
+      }));
+    }
+
+    // 7. 결과 조립 (hanja 문자열로 후보 매핑)
+    const candByHanja = Object.fromEntries(topCandidates.map(c => [c.hanjaStr, c]));
+    const alternatives = llmItems
+      .filter(item => item.hanja && candByHanja[item.hanja])
+      .map(item => {
+        const cand = candByHanja[item.hanja];
+        return {
+          hanja:             cand.hanjaStr,
+          score:             Math.min(100, cand.baseScore + (item.meaning_score || 0)),
+          is_recommended:    false,
+          elements_jawon:    cand.jawon,
+          elements_eumryeong: eumryeongList,
+          meaning:           item.meaning || '—',
+          explanation:       item.explanation || '',
+          category:          item.category || (cand.jawon.includes(saju_yongsin) ? 'saju_match' : 'meaning'),
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (alternatives.length > 0) alternatives[0].is_recommended = true;
+
+    return res.json({ base_name: name, alternatives });
+
+  } catch (err) {
+    console.error('[hanja-alt] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
+});
+
 // ── 정의되지 않은 API 경로 ─────────────────────────────────────
 app.use('/api', (req, res) => res.status(404).json({ detail: 'Not found' }));
 
