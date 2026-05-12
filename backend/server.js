@@ -243,6 +243,72 @@ app.post('/api/worldcup/rarity', async (req, res) => {
   return res.json({ estimated_population: null, rarity: '매우 희귀', source: 'names_db' });
 });
 
+// ── POST /api/enrich ──────────────────────────────────────────
+// 이름에 어울리는 한자·뜻을 DB 또는 LLM으로 반환
+
+async function chatOnce(prompt) {
+  for (const model of MODELS) {
+    try {
+      const res = await client.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+      });
+      const content = res.choices?.[0]?.message?.content?.trim();
+      if (!content) throw new Error('빈 응답');
+      return content;
+    } catch (e) {
+      const status = e?.status ?? e?.response?.status;
+      console.warn(`[enrich] ${model} 실패 (${status ?? e.code})`);
+      const retryable = status === 429 || status === 503 || status === 500
+        || e.code === 'ETIMEDOUT' || e.code === 'ECONNRESET';
+      if (!retryable) throw e;
+    }
+  }
+  throw new Error('모든 모델이 응답하지 않습니다.');
+}
+
+function parseJsonSafe(text) {
+  text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const block = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (block) { try { return JSON.parse(block[1].trim()); } catch (_) {} }
+  try { return JSON.parse(text); } catch (_) {}
+  const start = text.search(/\{/);
+  if (start !== -1) { try { return JSON.parse(text.slice(start)); } catch (_) {} }
+  return null;
+}
+
+app.post('/api/enrich', async (req, res) => {
+  const { name, gender } = req.body;
+  if (!name || typeof name !== 'string') return res.status(400).json({ detail: '이름을 입력해주세요.' });
+
+  // 1순위: names_db.json
+  const db = loadDB();
+  const found = db.find(n => n.name === name && (gender ? n.gender === gender : true));
+  if (found?.hanja && found?.meaning) {
+    console.log(`[enrich] DB 히트: ${name}`);
+    return res.json({ hanja: found.hanja, meaning: found.meaning });
+  }
+
+  // 2순위: LLM
+  try {
+    const prompt = `한국 이름 "${name}"(${gender || '성별 무관'})에 어울리는 한자 조합과 이름 뜻을 추천해주세요.
+아래 JSON 형식으로만 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
+{"hanja":"한자조합","meaning":"이름의 뜻 (1~2문장)"}`;
+
+    const raw = await chatOnce(prompt);
+    const data = parseJsonSafe(raw);
+    if (data?.hanja && data?.meaning) {
+      console.log(`[enrich] LLM 성공: ${name} → ${data.hanja}`);
+      return res.json({ hanja: data.hanja, meaning: data.meaning });
+    }
+    throw new Error('LLM 응답 파싱 실패');
+  } catch (e) {
+    console.warn(`[enrich] LLM 실패: ${e.message}`);
+    return res.status(500).json({ detail: '한자·뜻 생성에 실패했습니다.' });
+  }
+});
+
 // ── 정의되지 않은 API 경로 ─────────────────────────────────────
 app.use('/api', (req, res) => res.status(404).json({ detail: 'Not found' }));
 

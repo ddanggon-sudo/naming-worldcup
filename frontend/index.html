@@ -2374,8 +2374,34 @@ async function confirmAddName() {
   if (!ok) return;
   closeAddNameModal();
   renderProfile();
-  showToast(`"${fullName}" 저장 완료! 희귀도 조회 중...`);
 
+  const needsEnrich = !hanja || !meaning;
+  showToast(`"${fullName}" 저장 완료!${needsEnrich ? ' 한자·뜻 검색 중...' : ' 희귀도 조회 중...'}`);
+
+  // 한자·뜻 미입력 시 AI로 자동 보완
+  if (needsEnrich) {
+    try {
+      const enrichRes = await fetch(API + '/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, gender }),
+      });
+      if (enrichRes.ok) {
+        const enrichData = await enrichRes.json();
+        const all = getSavedNames();
+        const target = all.find(s => s.id === newEntry.id);
+        if (target) {
+          if (!hanja && enrichData.hanja) target.hanja = enrichData.hanja;
+          if (!meaning && enrichData.meaning) target.meaning = enrichData.meaning;
+          await setSavedNames(all);
+          renderProfile();
+          showToast(`"${fullName}" 한자·뜻 업데이트 완료!`);
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 희귀도 조회
   try {
     const res = await fetch(API + '/api/worldcup/rarity', {
       method: 'POST',
