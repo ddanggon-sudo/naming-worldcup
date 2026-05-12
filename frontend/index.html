@@ -1655,10 +1655,7 @@ function incrementFreq(name) {
 
 function getFrequentNames() {
   const map = getFreqMap();
-  // 1회 이상 등장한 이름, 최근 등장 순으로 최대 50개만 반환
-  return Object.keys(map)
-    .filter(n => map[n] >= 1)
-    .slice(-50);
+  return Object.keys(map).filter(n => map[n] >= 1);
 }
 
 // 느낌 체크박스 최대 3개 제한 (페이지 로드 시 1회 셋업)
@@ -1753,8 +1750,6 @@ async function generateNames() {
           const name = JSON.parse(dataLine);
           if (name.error) throw new Error(name.error);
           if (generatedNames.length >= totalCount) continue;
-          const freqMap = getFreqMap();
-          if ((freqMap[name.name] || 0) >= 1) continue; // 1회 이상 등장 → 건너뜀
           incrementFreq(name.name);
           const enriched = { ...name, last_name: lastName, gender: baseBody.gender };
           generatedNames.push(enriched);
