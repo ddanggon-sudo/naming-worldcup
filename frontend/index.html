@@ -3277,6 +3277,11 @@ setTimeout(() => {
 }, 5000);
 
 _supabase.auth.onAuthStateChange(async (event, session) => {
+  // OAuth 콜백 후 URL에 남는 # 제거
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
   if (event === 'TOKEN_REFRESHED') {
     _cachedToken = session?.access_token || null;
     _tokenExpiry = Date.now() + 55 * 60 * 1000;
