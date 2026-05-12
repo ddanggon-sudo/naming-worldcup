@@ -1709,6 +1709,7 @@ async function generateNames() {
   };
 
   const totalCount = 10;
+  const MAX_RETRIES = 3;
 
   generatedNames = [];
   showProgressToast('이름 탐색 중...');
@@ -1717,48 +1718,59 @@ async function generateNames() {
   btnGenerate.textContent = '⏳ 탐색 중...';
   document.getElementById('result-list').innerHTML = '';
 
-  const freqExclude = getFrequentNames();
-
   try {
-    const res = await fetch(API + '/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...baseBody, count: totalCount, exclude: freqExclude }),
-    });
+    let retries = 0;
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.detail || '생성 실패');
-    }
+    while (generatedNames.length < totalCount && retries <= MAX_RETRIES) {
+      const needed = totalCount - generatedNames.length;
+      const exclude = getFrequentNames(); // 매 요청마다 최신 상태 반영
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let sseBuf = '';
+      const res = await fetch(API + '/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...baseBody, count: needed, exclude }),
+      });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      sseBuf += decoder.decode(value, { stream: true });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || '생성 실패');
+      }
 
-      const parts = sseBuf.split('\n\n');
-      sseBuf = parts.pop() ?? '';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let sseBuf = '';
+      let batchCount = 0;
 
-      for (const part of parts) {
-        const dataLine = part.replace(/^data:\s*/, '').trim();
-        if (!dataLine || dataLine === '[DONE]') continue;
-        try {
-          const name = JSON.parse(dataLine);
-          if (name.error) throw new Error(name.error);
-          if (generatedNames.length >= totalCount) continue;
-          incrementFreq(name.name);
-          const enriched = { ...name, last_name: lastName, gender: baseBody.gender };
-          generatedNames.push(enriched);
-          showProgressToast(`이름 탐색 중... ${generatedNames.length}/${totalCount}개`);
-        } catch (err) {
-          if (err.message !== '생성 실패') console.warn('SSE 파싱:', err.message);
-          else throw err;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        sseBuf += decoder.decode(value, { stream: true });
+
+        const parts = sseBuf.split('\n\n');
+        sseBuf = parts.pop() ?? '';
+
+        for (const part of parts) {
+          const dataLine = part.replace(/^data:\s*/, '').trim();
+          if (!dataLine || dataLine === '[DONE]') continue;
+          try {
+            const name = JSON.parse(dataLine);
+            if (name.error) throw new Error(name.error);
+            if (generatedNames.length >= totalCount) continue;
+            incrementFreq(name.name);
+            const enriched = { ...name, last_name: lastName, gender: baseBody.gender };
+            generatedNames.push(enriched);
+            batchCount++;
+            showProgressToast(`이름 탐색 중... ${generatedNames.length}/${totalCount}개`);
+          } catch (err) {
+            if (err.message !== '생성 실패') console.warn('SSE 파싱:', err.message);
+            else throw err;
+          }
         }
       }
+
+      // 이번 배치에서 0개 → 더 이상 후보 없음, 중단
+      if (batchCount === 0) break;
+      retries++;
     }
 
     if (generatedNames.length === 0) {
