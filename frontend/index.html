@@ -1205,8 +1205,6 @@
   }
   .btn-logout:hover { color: var(--text); border-color: var(--sub); }
 
-  /* 가족 구분선 */
-  .vault-sep { border:none; border-top:1px solid var(--border); margin:20px 0 16px; }
 
 
 </style>
@@ -1258,69 +1256,6 @@
   </div>
 </div>
 
-<!-- 온보딩: 가족 연결 -->
-<div class="auth-overlay hidden" id="page-onboarding">
-
-  <div style="font-size:48px;margin-bottom:10px">👨‍👩‍👧</div>
-  <div class="auth-logo">가족 연결</div>
-  <p class="auth-sub">이름 보관함을 공유할<br>가족을 연결해주세요</p>
-
-  <div class="onboard-tabs">
-    <button class="onboard-tab active" id="tab-create" onclick="switchOnboardTab('create')">새 가족 만들기</button>
-    <button class="onboard-tab" id="tab-join" onclick="switchOnboardTab('join')">초대 코드 입력</button>
-  </div>
-
-  <!-- 새 가족 만들기 패널 -->
-  <div class="onboard-panel" id="panel-create">
-    <p class="auth-error" id="create-error" role="alert" aria-live="polite"></p>
-
-    <button class="btn btn-primary" id="btn-create-family"
-      onclick="createFamily()" style="padding:14px;font-size:15px">
-      <span class="btn-text">가족 만들기</span>
-    </button>
-
-    <!-- 초대 코드 발급 후 노출 -->
-    <div id="invite-code-wrap" style="display:none;flex-direction:column;gap:12px">
-      <p style="font-size:13px;color:var(--sub);text-align:center;margin:0;line-height:1.6">
-        아래 코드를 파트너에게 공유하세요.<br>
-        상대방이 "초대 코드 입력"에 입력하면 연결됩니다.
-      </p>
-      <!-- 3-3 하이픈 형식으로 JS에서 렌더링 -->
-      <div class="invite-code-box" id="invite-code-text" aria-label="초대 코드"></div>
-
-      <!-- 공유 버튼 행 -->
-      <div class="invite-share-group">
-        <button class="btn-share" onclick="shareInviteCode()">
-          <span aria-hidden="true">&#128279;</span> 공유하기
-        </button>
-        <button class="btn-share" id="btn-copy-code" onclick="copyInviteCode()">
-          <span aria-hidden="true">&#128203;</span> 복사
-        </button>
-      </div>
-      <button class="btn btn-primary" onclick="finishOnboarding()" style="padding:14px;font-size:15px">
-        <span class="btn-text">시작하기</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- 초대 코드 입력 패널 -->
-  <div class="onboard-panel" id="panel-join" style="display:none">
-    <input class="auth-input join-code-input" id="join-code-input"
-      placeholder="ABC-DEF" maxlength="7"
-      aria-label="초대 코드 6자리"
-      oninput="formatJoinCode(this)"
-      onkeydown="if(event.key==='Enter') joinFamily()">
-    <p class="auth-error" id="join-error" role="alert" aria-live="polite"></p>
-    <button class="btn btn-primary" id="btn-join-family"
-      onclick="joinFamily()" style="padding:14px;font-size:15px">
-      <span class="btn-text">합류하기</span>
-    </button>
-  </div>
-
-  <button class="btn-auth-back" onclick="logoutFromOnboarding()">
-    ← 다른 계정으로 로그인
-  </button>
-</div>
 
 
 <!-- 사용자 전환 바 -->
@@ -1684,17 +1619,6 @@
   </div>
 
   <div id="saved-names-list"></div>
-
-  <hr class="vault-sep">
-
-  <!-- 가족 초대 코드 (연결됐을 때 표시) -->
-  <div id="family-code-bar" style="display:none;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid var(--primary);border-radius:12px;padding:10px 14px;margin-bottom:12px;gap:10px">
-    <div>
-      <div style="font-size:11px;color:var(--primary);font-weight:700;letter-spacing:.4px;margin-bottom:2px">우리 가족 초대 코드</div>
-      <div id="family-code-display" style="font-size:18px;font-weight:900;letter-spacing:4px;color:var(--text);font-family:monospace"></div>
-    </div>
-    <button onclick="_copyFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">복사</button>
-  </div>
 
 </section>
 
@@ -2458,18 +2382,6 @@ function rarityBadgeHtml(rarity) {
 function renderProfile() {
   const saved = getSavedNames();
   document.getElementById('stat-subtitle').textContent = `저장된 이름 ${saved.length}개`;
-
-  const bar = document.getElementById('family-code-bar');
-  const joinSection = document.getElementById('join-section');
-  if (_familyCode) {
-    document.getElementById('family-code-display').textContent = _familyCode;
-    bar.style.display = 'flex';
-    if (joinSection) joinSection.style.display = 'none';
-  } else {
-    bar.style.display = 'none';
-    if (joinSection) joinSection.style.display = 'block';
-  }
-
   renderSavedNames();
 }
 
@@ -2650,7 +2562,6 @@ const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let _namesCache = [];
 let _currentProfile = null; // { id, family_id, role }
-let _familyCode = null;     // 가족 invite_code (3-3 형식)
 let _lastHandledUserId = null;
 let _authInFlight = false;
 let _cachedToken = null;
@@ -2729,36 +2640,11 @@ async function _sbFetch(path, opts = {}) {
 async function loadNamesFromDB() {
   if (!_currentProfile?.family_id) { _namesCache = []; return; }
   try {
-    const [namesRes, familyRes] = await Promise.all([
-      _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`),
-      _sbFetch(`/families?id=eq.${_currentProfile.family_id}&select=invite_code`),
-    ]);
+    const namesRes = await _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`);
     _namesCache = (await namesRes.json()).map(fromRow);
-    const families = await familyRes.json();
-    if (families?.[0]?.invite_code) {
-      const raw = families[0].invite_code;
-      _familyCode = raw.slice(0, 3) + '-' + raw.slice(3);
-    }
   } catch (e) {
     console.error('[Supabase] 로드 실패:', e);
   }
-}
-
-async function shareFamilyCode() {
-  if (!_familyCode) return;
-  const shareData = {
-    title: 'PickMeBaby 초대 코드',
-    text: `아기 이름 같이 골라요! PickMeBaby 초대 코드: ${_familyCode}\n앱에서 "초대 코드 입력"에 넣어주세요.`,
-  };
-  if (navigator.share) {
-    try { await navigator.share(shareData); } catch (e) { if (e.name !== 'AbortError') _copyFamilyCode(); }
-  } else {
-    _copyFamilyCode();
-  }
-}
-
-function _copyFamilyCode() {
-  navigator.clipboard?.writeText(_familyCode).then(() => showToast('초대 코드가 복사됐어요!'));
 }
 
 
@@ -2867,7 +2753,6 @@ function _clearAuthState() {
   _tokenExpiry = 0;
   _currentProfile = null;
   _namesCache = [];
-  _familyCode = null;
 }
 
 async function logoutUser() {
@@ -2877,186 +2762,16 @@ async function logoutUser() {
   _supabase.auth.signOut().catch(() => {});
 }
 
-async function logoutFromOnboarding() {
-  _clearAuthState();
-  _showAuthPage();
-  _supabase.auth.signOut().catch(() => {});
-}
-
-// ── 온보딩 함수 ───────────────────────────
-
-let _generatedCode = '';
-
-function switchOnboardTab(tab) {
-  document.getElementById('panel-create').style.display = tab === 'create' ? '' : 'none';
-  document.getElementById('panel-join').style.display = tab === 'join' ? '' : 'none';
-  document.getElementById('tab-create').classList.toggle('active', tab === 'create');
-  document.getElementById('tab-join').classList.toggle('active', tab === 'join');
-  // 탭 전환 시 에러 초기화
-  document.getElementById('create-error').textContent = '';
-  document.getElementById('join-error').textContent = '';
-}
-
-
-function generateInviteCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const arr = new Uint8Array(6);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, b => chars[b % chars.length]).join('');
-}
-
-/** 초대 코드를 3-3 하이픈 형식으로 표시 (예: ABC-DEF) */
-function _formatCodeDisplay(raw) {
-  return raw.slice(0, 3) + '-' + raw.slice(3, 6);
-}
-
-/** 입력 중인 코드 필드를 자동으로 ABC-DEF 형식으로 포맷 */
-function formatJoinCode(input) {
-  let v = input.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 6);
-  input.value = v.length > 3 ? v.slice(0, 3) + '-' + v.slice(3) : v;
-}
-
-async function createFamily() {
-  const errEl = document.getElementById('create-error');
-  errEl.textContent = '';
-  _setLoading('btn-create-family', true);
-
-  const { data: { user } } = await _supabase.auth.getUser();
-
-  // 코드 충돌 시 최대 3회 재시도
-  let family = null;
-  for (let attempt = 0; attempt < 3 && !family; attempt++) {
-    const code = generateInviteCode();
-    _generatedCode = code;
-    const { data, error } = await _supabase.from('families').insert({ invite_code: code }).select('id').single();
-    if (!error) { family = data; }
-    else if (error.code !== '23505') break; // unique violation이 아니면 재시도 불필요
-  }
-
-  if (!family) {
-    errEl.textContent = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-    _setLoading('btn-create-family', false);
-    return;
-  }
-
-  const { error: pErr } = await _supabase.from('profiles')
-    .update({ family_id: family.id }).eq('id', user.id);
-  if (pErr) {
-    await _supabase.from('families').delete().eq('id', family.id);
-    errEl.textContent = '프로필 저장에 실패했습니다. 다시 시도해주세요.';
-    _setLoading('btn-create-family', false);
-    return;
-  }
-
-  // 기존 데이터 마이그레이션 (family_id 없는 row 인계)
-  try {
-    await _sbFetch('/naming_list?family_id=is.null', {
-      method: 'PATCH', body: JSON.stringify({ family_id: family.id }),
-    });
-  } catch (_) {}
-
-  // 코드 3-3 형식으로 표시
-  document.getElementById('invite-code-text').textContent = _formatCodeDisplay(_generatedCode);
-  document.getElementById('invite-code-wrap').style.display = 'flex';
-  document.getElementById('btn-create-family').style.display = 'none';
-}
-
-function copyInviteCode() {
-  const displayCode = document.getElementById('invite-code-text').textContent;
-  navigator.clipboard?.writeText(displayCode).then(() => {
-    const btn = document.getElementById('btn-copy-code');
-    const original = btn.innerHTML;
-    btn.innerHTML = '<span aria-hidden="true">&#10003;</span> 복사됨';
-    btn.style.color = '#38a169';
-    btn.style.borderColor = '#38a169';
-    setTimeout(() => {
-      btn.innerHTML = original;
-      btn.style.color = '';
-      btn.style.borderColor = '';
-    }, 2000);
-  });
-}
-
-/** Web Share API 또는 클립보드 폴백으로 공유 */
-async function shareInviteCode() {
-  const displayCode = document.getElementById('invite-code-text').textContent;
-  const shareData = {
-    title: 'PickMeBaby 초대 코드',
-    text: `아기 이름 같이 골라요! PickMeBaby 초대 코드: ${displayCode}\n앱에서 "초대 코드 입력"에 넣어주세요.`,
-  };
-  if (navigator.share) {
-    try {
-      await navigator.share(shareData);
-    } catch (e) {
-      if (e.name !== 'AbortError') copyInviteCode();
-    }
-  } else {
-    // Web Share API 미지원 환경 — 클립보드 복사로 폴백
-    copyInviteCode();
-    showToast('초대 코드가 복사됐어요! 파트너에게 전달해주세요.');
-  }
-}
-
-async function finishOnboarding() {
-  const { data: { user } } = await _supabase.auth.getUser();
-  const { data: profile } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-  _currentProfile = profile;
-  await loadNamesFromDB();
-  _showApp();
-}
-
-async function joinFamily() {
-  const raw = document.getElementById('join-code-input').value.replace(/-/g, '').trim().toUpperCase();
-  const errEl = document.getElementById('join-error');
-  if (raw.length !== 6) { errEl.textContent = '초대 코드 6자리를 모두 입력해주세요. (예: ABC-DEF)'; return; }
-  errEl.textContent = '';
-  _setLoading('btn-join-family', true);
-
-  const { data: { user } } = await _supabase.auth.getUser();
-
-  // 이미 가족에 속해 있는지 확인
-  const { data: existingProfile } = await _supabase.from('profiles').select('family_id').eq('id', user.id).maybeSingle();
-  if (existingProfile?.family_id) {
-    errEl.textContent = '이미 가족에 합류되어 있습니다.';
-    _setLoading('btn-join-family', false);
-    return;
-  }
-
-  const { data: families, error: fErr } = await _supabase
-    .from('families').select('id').eq('invite_code', raw);
-  if (fErr || !families?.length) {
-    errEl.textContent = '유효하지 않은 초대 코드입니다. 코드를 다시 확인해주세요.';
-    _setLoading('btn-join-family', false);
-    return;
-  }
-
-  const { error: pErr } = await _supabase.from('profiles')
-    .update({ family_id: families[0].id }).eq('id', user.id);
-  if (pErr) {
-    errEl.textContent = '합류에 실패했습니다. 잠시 후 다시 시도해주세요.';
-    _setLoading('btn-join-family', false);
-    return;
-  }
-
-  await finishOnboarding();
-}
-
 // ── 화면 전환 ─────────────────────────────
 
 function _hideOverlays() {
   document.getElementById('page-loading').classList.add('hidden');
   document.getElementById('page-auth').classList.add('hidden');
-  document.getElementById('page-onboarding').classList.add('hidden');
 }
 
 function _showAuthPage() {
   _hideOverlays();
   document.getElementById('page-auth').classList.remove('hidden');
-}
-
-function _showOnboardingPage() {
-  _hideOverlays();
-  document.getElementById('page-onboarding').classList.remove('hidden');
 }
 
 function _showApp() {
@@ -3076,11 +2791,19 @@ async function _handleSession(session) {
     profile = newProfile;
   }
   if (_lastHandledUserId !== session.user.id) return;
-  _currentProfile = profile;
   if (!profile?.family_id) {
-    _showOnboardingPage();
-    return;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const arr = new Uint8Array(6);
+    crypto.getRandomValues(arr);
+    const code = Array.from(arr, b => chars[b % chars.length]).join('');
+    const { data: family } = await _supabase.from('families').insert({ invite_code: code }).select('id').maybeSingle();
+    if (family) {
+      await _supabase.from('profiles').update({ family_id: family.id }).eq('id', session.user.id);
+      profile = { ...profile, family_id: family.id };
+    }
+    if (_lastHandledUserId !== session.user.id) return;
   }
+  _currentProfile = profile;
   _showApp();
   await loadNamesFromDB();
   if (_lastHandledUserId !== session.user.id) return;
@@ -3145,7 +2868,6 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     _tokenExpiry = 0;
     _currentProfile = null;
     _namesCache = [];
-    _familyCode = null;
     localStorage.removeItem('pmb_session_until');
     _showAuthPage();
     renderProfile();
