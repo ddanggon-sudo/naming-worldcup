@@ -1090,20 +1090,6 @@
   }
   .auth-overlay.hidden { display: none; }
 
-  /* 진행 단계 표시 (1/2, 2/2) */
-  .auth-step-indicator {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 24px;
-  }
-  .auth-step-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--border); transition: background .2s, transform .2s;
-  }
-  .auth-step-dot.active { background: var(--primary); transform: scale(1.35); }
-  .auth-step-dot.done { background: var(--primary); opacity: 0.4; }
-  .auth-step-label {
-    font-size: 12px; color: var(--sub); font-weight: 600; letter-spacing: .3px;
-  }
 
   .auth-logo { font-size: 28px; font-weight: 900; color: var(--primary); margin-bottom: 6px; }
   .auth-sub { font-size: 14px; color: var(--sub); margin-bottom: 28px; text-align: center; line-height: 1.6; }
@@ -1139,10 +1125,7 @@
   }
   .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
-  /* 모드 전환 텍스트 */
-  .auth-toggle { font-size: 13px; color: var(--sub); text-align: center; }
-  .auth-toggle a { color: var(--primary); cursor: pointer; font-weight: 600; }
-  .auth-toggle a:hover { text-decoration: underline; }
+
 
   /* 에러/성공 메시지 */
   .auth-error {
@@ -1262,16 +1245,16 @@
 
 <!-- 로그인/가입 페이지 -->
 <div class="auth-overlay" id="page-auth">
-  <!-- 단계 표시 (1/2) -->
-  <div class="auth-step-indicator">
-    <div class="auth-step-dot active" id="auth-step-1"></div>
-    <div class="auth-step-dot" id="auth-step-2"></div>
-    <span class="auth-step-label">1 / 2 — 계정</span>
-  </div>
 
   <div style="font-size:48px;margin-bottom:10px">👶</div>
   <div class="auth-logo">PickMeBaby</div>
   <p class="auth-sub">아기 이름을 함께 골라보세요</p>
+
+  <!-- 로그인 / 가입하기 탭 -->
+  <div class="onboard-tabs" style="margin-bottom:20px">
+    <button class="onboard-tab active" id="tab-login" onclick="switchAuthTab('login')">로그인</button>
+    <button class="onboard-tab" id="tab-signup" onclick="switchAuthTab('signup')">가입하기</button>
+  </div>
 
   <div class="auth-form">
     <!-- Google 소셜 로그인 -->
@@ -1282,7 +1265,6 @@
 
     <div class="auth-divider">또는</div>
 
-    <!-- 이메일 / 비밀번호 -->
     <input class="auth-input" id="auth-email" type="email"
       placeholder="이메일" autocomplete="email"
       onkeydown="handleAuthKey(event)">
@@ -1290,28 +1272,17 @@
       placeholder="비밀번호 (6자 이상)" autocomplete="current-password"
       onkeydown="handleAuthKey(event)">
 
-    <!-- 에러 메시지 영역 -->
     <p class="auth-error" id="auth-error" role="alert" aria-live="polite"></p>
 
     <button class="btn btn-primary" id="btn-auth-submit"
       onclick="submitAuth()" style="padding:14px;font-size:15px">
       <span class="btn-text">로그인</span>
     </button>
-
-    <p class="auth-toggle" id="auth-toggle-text">
-      계정이 없으신가요? <a onclick="toggleAuthMode()">가입하기</a>
-    </p>
   </div>
 </div>
 
 <!-- 온보딩: 가족 연결 -->
 <div class="auth-overlay hidden" id="page-onboarding">
-  <!-- 단계 표시 (2/2) -->
-  <div class="auth-step-indicator">
-    <div class="auth-step-dot done"></div>
-    <div class="auth-step-dot active"></div>
-    <span class="auth-step-label">2 / 2 — 가족 연결</span>
-  </div>
 
   <div style="font-size:48px;margin-bottom:10px">👨‍👩‍👧</div>
   <div class="auth-logo">가족 연결</div>
@@ -2846,14 +2817,12 @@ function handleAuthKey(e) {
   if (e.key === 'Enter') submitAuth();
 }
 
-function toggleAuthMode() {
-  _isSignUp = !_isSignUp;
-  const submitBtn = document.getElementById('btn-auth-submit');
-  submitBtn.querySelector('.btn-text').textContent = _isSignUp ? '가입하기' : '로그인';
-  document.getElementById('auth-toggle-text').innerHTML = _isSignUp
-    ? `이미 계정이 있으신가요? <a onclick="toggleAuthMode()">로그인</a>`
-    : `계정이 없으신가요? <a onclick="toggleAuthMode()">가입하기</a>`;
-  // 에러 초기화 및 인풋 상태 초기화
+function switchAuthTab(tab) {
+  _isSignUp = (tab === 'signup');
+  document.getElementById('tab-login').classList.toggle('active', !_isSignUp);
+  document.getElementById('tab-signup').classList.toggle('active', _isSignUp);
+  document.getElementById('btn-auth-submit').querySelector('.btn-text').textContent = _isSignUp ? '가입하기' : '로그인';
+  document.getElementById('btn-google').querySelector('.btn-text').textContent = _isSignUp ? 'Google로 가입하기' : 'Google로 계속하기';
   const errEl = document.getElementById('auth-error');
   errEl.textContent = '';
   errEl.className = 'auth-error';
