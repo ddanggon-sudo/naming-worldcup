@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { calculateSaju, getElement } from './lib/saju.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -29,6 +30,57 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// ── hanja_db.json 로드 (서버 시작 시 1회) ──────────────────────
+
+let _hanjaDB = null;
+function loadHanjaDB() {
+  if (_hanjaDB) return _hanjaDB;
+  const p = path.join(__dirname, 'data', 'hanja_db.json');
+  const raw = readFileSync(p, 'utf-8').replace(/^﻿/, '');
+  const parsed = JSON.parse(raw);
+  // 플랫 or 중첩 구조 모두 지원
+  _hanjaDB = (parsed.hanja && typeof parsed.hanja === 'object' && !Array.isArray(parsed.hanja))
+    ? parsed.hanja : parsed;
+  console.log(`[db] 한자 DB 로드 완료: ${Object.keys(_hanjaDB).length}자`);
+  return _hanjaDB;
+}
+
+// ── 음령오행 계산 ────────────────────────────────────────────────
+// 초성 인덱스 → 오행: ㄱㄲㅋ=木 / ㄴㄷㄸㄹㅌ=火 / ㅇㅎ=土 / ㅅㅆㅈㅉㅊ=金 / ㅁㅂㅃㅍ=水
+const CHOSEONG_OHAENG = [
+  '木','木','火','火','火','火','水','水','水','金',
+  '金','土','金','金','金','木','火','水','土',
+];
+
+function getEumryeongOhaeng(koreanChar) {
+  const code = koreanChar.charCodeAt(0);
+  if (code < 0xAC00 || code > 0xD7A3) return null; // 한글 음절 아님
+  const choseongIdx = Math.floor((code - 0xAC00) / (21 * 28));
+  return CHOSEONG_OHAENG[choseongIdx] || null;
+}
+
+function calcEumryeong(fullName) {
+  // fullName: 성+이름 (예: '김지우')
+  return [...fullName]
+    .map(c => getEumryeongOhaeng(c))
+    .filter(Boolean);
+}
+
+// ── 오행 균형 점수 ───────────────────────────────────────────────
+function calcBalanceScore(elements) {
+  // 5개 오행 중 0인 것의 비율로 감점
+  const zeros = Object.values(elements).filter(v => v === 0).length;
+  return Math.round(20 * (1 - zeros / 5));
+}
+
+// ── 적합도 점수 라벨 ─────────────────────────────────────────────
+function scoreLabel(score) {
+  if (score >= 90) return '매우 적합';
+  if (score >= 70) return '보통 적합';
+  if (score >= 50) return '다소 부족';
+  return '부적합';
+}
 
 // ── names_db.json 로드 (서버 시작 시 1회) ──────────────────────
 
@@ -306,6 +358,114 @@ app.post('/api/enrich', async (req, res) => {
   } catch (e) {
     console.warn(`[enrich] LLM 실패: ${e.message}`);
     return res.status(500).json({ detail: '한자·뜻 생성에 실패했습니다.' });
+  }
+});
+
+// ── POST /api/saju/analyze ────────────────────────────────────
+app.post('/api/saju/analyze', async (req, res) => {
+  const {
+    birth_date, birth_hour = null,
+    is_due_date = false,
+    name, hanja, last_name, gender,
+    is_premium = false,
+  } = req.body;
+
+  // 필수 필드 검증
+  if (!birth_date || !name || !hanja || !last_name || !gender) {
+    return res.status(400).json({ detail: 'birth_date, name, hanja, last_name, gender 필드가 필요합니다.' });
+  }
+
+  // birth_date 파싱
+  const [year, month, day] = birth_date.split('-').map(Number);
+  if (!year || !month || !day) {
+    return res.status(400).json({ detail: 'birth_date 형식은 YYYY-MM-DD 입니다.' });
+  }
+
+  try {
+    // 1. 사주 계산
+    const sajuResult = calculateSaju({
+      year, month, day,
+      hour: (birth_hour !== null && birth_hour !== '') ? Number(birth_hour) : null,
+    });
+    const { palja, elements, yongsin, yongsin_desc, hour_known } = sajuResult;
+
+    // 2. 자원오행 추출
+    const hanjaDB = loadHanjaDB();
+const jawonList = [...hanja].map(ch => {
+      const entry = hanjaDB[ch];
+      if (!entry) {
+        console.warn(`[saju] 한자 DB 미등록: ${ch} → 土 임시 처리`);
+        return '土';
+      }
+      return entry.ohaeng_won;
+    });
+
+    // 3. 음령오행 (성+이름 모두)
+    const fullName = last_name + name;
+    const eumryeongList = calcEumryeong(fullName);
+
+    // 4. 점수 계산
+    let score = 0;
+    if (eumryeongList.includes(yongsin)) score += 30;
+    if (jawonList.includes(yongsin))     score += 50;
+    score += calcBalanceScore(elements);
+    if (!hour_known) score -= 5;
+    score = Math.max(0, Math.min(100, score));
+
+    // 5. LLM 자연어 풀이
+    const model = is_premium ? 'openai/gpt-4o' : 'openai/gpt-4o-mini';
+    const sajuStr = [
+      `년주 ${palja.year.cheon}${palja.year.ji}`,
+      `월주 ${palja.month.cheon}${palja.month.ji}`,
+      `일주 ${palja.day.cheon}${palja.day.ji}`,
+      palja.hour ? `시주 ${palja.hour.cheon}${palja.hour.ji}` : '시주 미상',
+    ].join(' / ');
+    const elemStr = Object.entries(elements).map(([k,v]) => `${k}:${v}`).join(' ');
+    const llmPrompt = `한국 아기 이름 분석 결과를 자연스러운 한국어로 2~3문장으로 풀어 써주세요.
+
+이름: ${last_name}${name} (${hanja})
+성별: ${gender}
+사주팔자: ${sajuStr}
+오행 분포: ${elemStr}
+용신(부족 오행): ${yongsin}
+자원오행: ${jawonList.join(' ')}
+음령오행: ${eumryeongList.join(' ')}
+적합도 점수: ${score}점 (${scoreLabel(score)})
+
+부모가 이 이름을 지어주며 어떤 의미를 담았는지, 사주와 이름의 조화 여부를 따뜻하게 설명해 주세요.`;
+
+    let narrative = '';
+    try {
+      const llmRes = await client.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: llmPrompt }],
+        temperature: 0.7,
+        max_tokens: 300,
+      });
+      narrative = llmRes.choices?.[0]?.message?.content?.trim() || '';
+    } catch (llmErr) {
+      console.warn(`[saju] LLM 호출 실패: ${llmErr.message}`);
+      // narrative는 빈 값으로 나머지 데이터는 정상 반환
+    }
+
+    return res.json({
+      palja,
+      elements,
+      yongsin,
+      yongsin_desc,
+      hour_known,
+      name_analysis: {
+        eumryeong: eumryeongList,
+        jawon:     jawonList,
+      },
+      score,
+      score_label: scoreLabel(score),
+      narrative,
+    });
+
+  } catch (err) {
+    console.error('[saju] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
   }
 });
 
