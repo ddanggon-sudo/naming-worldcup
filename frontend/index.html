@@ -1865,6 +1865,7 @@ async function saveGeneratedName(idx) {
 function startWorldcup() {
   if (generatedNames.length < 2) { alert('이름이 2개 이상 필요합니다.'); return; }
   const shuffled = shuffle(generatedNames);
+  const selectedVibes = Array.from(document.querySelectorAll('input[name="vibe"]:checked')).map(el => el.value);
   wcState = {
     names: shuffled,
     champion: shuffled[0],
@@ -1872,6 +1873,7 @@ function startWorldcup() {
     totalRounds: shuffled.length - 1,
     currentRound: 0,
     history: [],
+    selectedVibes,
   };
   goPage('worldcup');
   showWcRunning();
@@ -1899,7 +1901,11 @@ function renderWcRound() {
     if (!n.tier) return '';
     const parts = [n.tier];
     if (n.rank) parts.push(`${n.rank.toLocaleString()}위`);
-    if (n.vibes && n.vibes.length) parts.push(n.vibes.join(' · '));
+    const sel = s.selectedVibes || [];
+    const matchingVibes = sel.length
+      ? (n.vibes || []).filter(v => sel.includes(v))
+      : [];
+    if (matchingVibes.length) parts.push(matchingVibes.join(' · '));
     return parts.join(' · ');
   };
   document.getElementById('wc-left-tier').textContent = fmtTier(champ);
