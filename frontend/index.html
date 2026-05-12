@@ -3122,14 +3122,29 @@ async function submitAuth() {
   }
 }
 
-async function logoutUser() {
+function _clearAuthState() {
+  const ref = SUPABASE_URL.split('//')[1].split('.')[0];
+  localStorage.removeItem('sb-' + ref + '-auth-token');
   localStorage.removeItem('pmb_session_until');
-  await _supabase.auth.signOut();
+  _lastHandledUserId = null;
+  _cachedToken = null;
+  _tokenExpiry = 0;
+  _currentProfile = null;
+  _namesCache = [];
+  _familyCode = null;
+}
+
+async function logoutUser() {
+  _clearAuthState();
+  _showAuthPage();
+  renderProfile();
+  _supabase.auth.signOut().catch(() => {});
 }
 
 async function logoutFromOnboarding() {
-  localStorage.removeItem('pmb_session_until');
-  await _supabase.auth.signOut();
+  _clearAuthState();
+  _showAuthPage();
+  _supabase.auth.signOut().catch(() => {});
 }
 
 // ── 온보딩 함수 ───────────────────────────
