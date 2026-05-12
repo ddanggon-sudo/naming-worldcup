@@ -2918,6 +2918,47 @@ function renderProfile() {
 
 let _savedCardSajuMap = {};
 
+function _buildSavedCardEl(n) {
+  const metaParts = [
+    n.gender,
+    new Date(n.saved_at).toLocaleDateString('ko-KR'),
+  ].filter(v => v);
+  const metaHtml = metaParts.map((p, i) =>
+    i === 0 ? `<span>${p}</span>` : `<span class="saved-card-meta-dot"></span><span>${p}</span>`
+  ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'saved-card' + (n.is_final ? ' is-final' : '');
+  div.dataset.savedId = n.id;
+  div.innerHTML = `
+    <div class="saved-card-header">
+      <div class="saved-card-name-wrap">
+        <div class="saved-card-name">${n.full_name}${n.hanja ? `<span class="hanja-inline">${n.hanja}</span>` : ''}</div>
+      </div>
+      <div class="saved-card-badges">
+        ${n.is_final ? '<span class="badge badge-final">👑 최종확정</span>' : ''}
+        ${n.is_manual ? '<span class="badge badge-manual">직접 추가</span>' : ''}
+        ${rarityBadgeHtml(n.rarity)}
+      </div>
+    </div>
+    <div class="saved-card-body">
+      <div class="saved-card-meta">${metaHtml}</div>
+      ${n.meaning ? `<div class="saved-card-meaning">${n.meaning}</div>` : ''}
+      ${n.rarity ? `
+        <div class="saved-card-population">
+          <span class="pop-icon">👥</span>
+          사용 인구 <strong>${n.estimated_population != null ? Number(n.estimated_population).toLocaleString() + '명' : '20명 미만'}</strong>
+          <span style="color:var(--sub);font-size:13px">(2008년 이후)</span>
+        </div>` : ''}
+    </div>
+    <div class="saved-card-footer">
+      ${n.hanja ? `<button class="btn-saju-sm" onclick="openSajuFlow(_savedCardSajuMap['${n.id}'])">🔮 사주보기</button>` : ''}
+      <button class="btn-delete" onclick="openDeleteModal('${n.id}','${n.full_name}')">삭제</button>
+    </div>
+  `;
+  return div;
+}
+
 function renderSavedNames() {
   const sort = document.getElementById('sort-select').value;
   let saved = getSavedNames();
@@ -2938,48 +2979,39 @@ function renderSavedNames() {
     }
     return;
   }
-  // 보관함 사주 버튼용 매핑 테이블
+
+  // 보관함 사주 버튼용 매핑 테이블 갱신
   _savedCardSajuMap = {};
   saved.forEach(n => {
     if (n.hanja) _savedCardSajuMap[n.id] = { name: n.name, hanja: n.hanja, last_name: n.last_name || '', gender: n.gender || '남아' };
   });
 
-  el.innerHTML = saved.map(n => {
-    const metaParts = [
-      n.gender,
-      new Date(n.saved_at).toLocaleDateString('ko-KR'),
-    ].filter(v => v);
-    const metaHtml = metaParts.map((p, i) =>
-      i === 0 ? `<span>${p}</span>` : `<span class="saved-card-meta-dot"></span><span>${p}</span>`
-    ).join('');
-    return `
-    <div class="saved-card${n.is_final ? ' is-final' : ''}">
-      <div class="saved-card-header">
-        <div class="saved-card-name-wrap">
-          <div class="saved-card-name">${n.full_name}${n.hanja ? `<span class="hanja-inline">${n.hanja}</span>` : ''}</div>
-        </div>
-        <div class="saved-card-badges">
-          ${n.is_final ? '<span class="badge badge-final">👑 최종확정</span>' : ''}
-          ${n.is_manual ? '<span class="badge badge-manual">직접 추가</span>' : ''}
-          ${rarityBadgeHtml(n.rarity)}
-        </div>
-      </div>
-      <div class="saved-card-body">
-        <div class="saved-card-meta">${metaHtml}</div>
-        ${n.meaning ? `<div class="saved-card-meaning">${n.meaning}</div>` : ''}
-        ${n.rarity ? `
-          <div class="saved-card-population">
-            <span class="pop-icon">👥</span>
-            사용 인구 <strong>${n.estimated_population != null ? Number(n.estimated_population).toLocaleString() + '명' : '20명 미만'}</strong>
-            <span style="color:var(--sub);font-size:13px">(2008년 이후)</span>
-          </div>` : ''}
-      </div>
-      <div class="saved-card-footer">
-        ${n.hanja ? `<button class="btn-saju-sm" onclick="openSajuFlow(_savedCardSajuMap['${n.id}'])">🔮 사주</button>` : ''}
-        <button class="btn-delete" onclick="openDeleteModal('${n.id}','${n.full_name}')">삭제</button>
-      </div>
-    </div>
-  `;}).join('');
+  // 현재 렌더링된 카드 id 목록
+  const existingIds = new Set(
+    Array.from(el.querySelectorAll('[data-saved-id]')).map(c => c.dataset.savedId)
+  );
+  // 새 목록의 id 집합
+  const newIds = new Set(saved.map(n => n.id));
+
+  // 삭제된 카드 제거
+  existingIds.forEach(id => {
+    if (!newIds.has(id)) {
+      const old = el.querySelector(`[data-saved-id="${id}"]`);
+      if (old) old.remove();
+    }
+  });
+
+  // DocumentFragment로 추가/재정렬
+  const fragment = document.createDocumentFragment();
+  saved.forEach(n => {
+    const existing = el.querySelector(`[data-saved-id="${n.id}"]`);
+    if (existing) {
+      fragment.appendChild(existing);
+    } else {
+      fragment.appendChild(_buildSavedCardEl(n));
+    }
+  });
+  el.appendChild(fragment);
 }
 
 async function setFinal(id) {
