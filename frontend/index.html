@@ -2926,17 +2926,20 @@ async function submitFamilyChange() {
       });
     }
 
-    // 3. 내 프로필 → 대상 가족으로 업데이트
-    await _supabase.from('profiles').update({ family_id: targetFamilyId }).eq('id', user.id);
-    _currentProfile = { ..._currentProfile, family_id: targetFamilyId };
-
-    // 4. 기존 가족이 비었으면 삭제
+    // 3. 기존 가족에 나 외 다른 멤버 없으면 삭제
+    //    (프로필 업데이트 전에 해야 RLS 통과: 내 프로필이 아직 old family 가리킴)
     if (myFamilyId) {
-      const { data: remaining } = await _supabase.from('profiles').select('id').eq('family_id', myFamilyId);
-      if (!remaining?.length) {
+      const { data: others } = await _supabase.from('profiles')
+        .select('id').eq('family_id', myFamilyId).neq('id', user.id);
+      if (!others?.length) {
         await _supabase.from('families').delete().eq('id', myFamilyId);
+        // ON DELETE SET NULL → profile.family_id 자동으로 null 됨
       }
     }
+
+    // 4. 내 프로필 → 대상 가족으로 업데이트
+    await _supabase.from('profiles').update({ family_id: targetFamilyId }).eq('id', user.id);
+    _currentProfile = { ..._currentProfile, family_id: targetFamilyId };
 
     // 5. 데이터 갱신
     await loadNamesFromDB();
