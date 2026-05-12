@@ -3123,10 +3123,12 @@ async function submitAuth() {
 }
 
 async function logoutUser() {
+  localStorage.removeItem('pmb_session_until');
   await _supabase.auth.signOut();
 }
 
 async function logoutFromOnboarding() {
+  localStorage.removeItem('pmb_session_until');
   await _supabase.auth.signOut();
 }
 
@@ -3321,6 +3323,7 @@ function _showOnboardingPage() {
 function _showApp(role) {
   _hideOverlays();
   localStorage.setItem('current_author', role);
+  localStorage.setItem('pmb_session_until', Date.now() + 7 * 24 * 60 * 60 * 1000);
   applyTheme(role);
   renderUserBar();
   renderProfile();
@@ -3345,20 +3348,40 @@ async function _handleSession(session) {
   renderProfile();
 }
 
-// 5초 안에 세션 확인 안 되면 로그인 화면으로 강제 이동
-setTimeout(() => {
-  if (!document.getElementById('page-loading').classList.contains('hidden')) {
-    console.warn('[auth] 세션 확인 타임아웃 → 로그인 화면');
-    _showAuthPage();
-  }
-}, 5000);
+// localStorage에서 Supabase 세션 직접 확인 (Supabase 초기화 완료 불필요)
+function _readLocalSupabaseSession() {
+  try {
+    const ref = SUPABASE_URL.split('//')[1].split('.')[0];
+    const raw = localStorage.getItem('sb-' + ref + '-auth-token');
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return (s?.access_token && s?.user) ? s : null;
+  } catch { return null; }
+}
+
+const _localSession = _readLocalSupabaseSession();
+const _hasLocalAuth = !!_localSession;
+
+if (_hasLocalAuth) {
+  // localStorage에 세션 있음 → 즉시 앱 표시 (Supabase 초기화 기다리지 않음)
+  const _cachedRole = localStorage.getItem('current_author') || '아빠';
+  _hideOverlays();
+  applyTheme(_cachedRole);
+  renderUserBar();
+} else {
+  // 세션 없음 → onAuthStateChange 대기, 30초 폴백
+  setTimeout(() => {
+    if (!document.getElementById('page-loading').classList.contains('hidden')) {
+      _showAuthPage();
+    }
+  }, 30000);
+}
 
 _supabase.auth.onAuthStateChange(async (event, session) => {
   // OAuth 콜백 후 URL에 남는 # 제거
   if (window.location.hash) {
     history.replaceState(null, '', window.location.pathname + window.location.search);
   }
-
   if (event === 'TOKEN_REFRESHED') {
     _cachedToken = session?.access_token || null;
     _tokenExpiry = Date.now() + 55 * 60 * 1000;
@@ -3367,6 +3390,14 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
   if (session) {
     if (_lastHandledUserId === session.user.id) return;
     _lastHandledUserId = session.user.id;
+    _cachedToken = session.access_token;
+    _tokenExpiry = Date.now() + 55 * 60 * 1000;
+    // 로딩 화면 아직 있으면 즉시 제거
+    if (!document.getElementById('page-loading').classList.contains('hidden')) {
+      _hideOverlays();
+      applyTheme(localStorage.getItem('current_author') || '아빠');
+      renderUserBar();
+    }
     try {
       await _handleSession(session);
     } catch (e) {
@@ -3375,12 +3406,14 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
       _showAuthPage();
     }
   } else {
+    // 세션 없음 — 로그인 화면으로
     _lastHandledUserId = null;
     _cachedToken = null;
     _tokenExpiry = 0;
     _currentProfile = null;
     _namesCache = [];
     _familyCode = null;
+    localStorage.removeItem('pmb_session_until');
     _showAuthPage();
     renderProfile();
   }
