@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PickMeBaby</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --primary: #6C63FF;
@@ -1079,12 +1080,136 @@
   .welcome-btn-mom { background: var(--accent); color: #fff; box-shadow: 0 4px 20px rgba(255,101,132,0.35); }
   .welcome-btn-mom:hover { box-shadow: 0 6px 24px rgba(255,101,132,0.45); transform: translateY(-2px); }
   .welcome-btn-emoji { font-size: 26px; line-height: 1; }
+
+  /* ── 인증 / 온보딩 오버레이 ── */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 24px; overflow-y: auto;
+  }
+  .auth-overlay.hidden { display: none; }
+  .auth-logo { font-size: 28px; font-weight: 900; color: var(--primary); margin-bottom: 6px; }
+  .auth-sub { font-size: 14px; color: var(--sub); margin-bottom: 28px; text-align: center; line-height: 1.6; }
+  .auth-form { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+  .auth-input {
+    width: 100%; padding: 14px 16px; border: 1.5px solid var(--border);
+    border-radius: var(--radius); font-size: 15px; background: var(--card);
+    outline: none; box-sizing: border-box; transition: border-color .15s;
+  }
+  .auth-input:focus { border-color: var(--primary); }
+  .btn-google {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px; border-radius: var(--radius); border: 1.5px solid var(--border);
+    background: white; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: box-shadow .15s, transform .1s; width: 100%;
+  }
+  .btn-google:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); transform: translateY(-1px); }
+  .auth-divider {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--sub); font-size: 13px;
+  }
+  .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .auth-toggle { font-size: 13px; color: var(--sub); text-align: center; }
+  .auth-toggle a { color: var(--primary); cursor: pointer; font-weight: 600; }
+  .auth-error { font-size: 13px; color: #e53e3e; text-align: center; min-height: 18px; }
+  /* 온보딩 */
+  .onboard-tabs {
+    display: flex; width: 100%; max-width: 320px; margin-bottom: 20px;
+    border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  }
+  .onboard-tab {
+    flex: 1; padding: 12px; border: none; background: transparent;
+    font-size: 14px; font-weight: 600; cursor: pointer; color: var(--sub);
+    transition: background .15s, color .15s;
+  }
+  .onboard-tab.active { background: var(--primary); color: white; }
+  .onboard-panel { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+  .onboard-role-group { display: flex; gap: 10px; }
+  .onboard-role-btn {
+    flex: 1; padding: 14px; border-radius: var(--radius);
+    border: 1.5px solid var(--border); background: var(--card);
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .onboard-role-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+  .invite-code-box {
+    font-size: 30px; font-weight: 900; letter-spacing: 6px; color: var(--primary);
+    text-align: center; padding: 18px; background: var(--primary-light);
+    border-radius: var(--radius);
+  }
+  /* 로그아웃 버튼 */
+  .btn-logout {
+    background: none; border: 1px solid var(--border); border-radius: 99px;
+    padding: 4px 12px; font-size: 12px; color: var(--sub); cursor: pointer;
+  }
+  .btn-logout:hover { color: var(--text); border-color: var(--sub); }
 </style>
 </head>
 <body>
 
+<!-- 로그인/가입 페이지 -->
+<div class="auth-overlay" id="page-auth">
+  <div style="font-size:48px;margin-bottom:10px">👶</div>
+  <div class="auth-logo">PickMeBaby</div>
+  <p class="auth-sub">아기 이름을 함께 골라보세요</p>
+  <div class="auth-form">
+    <button class="btn-google" onclick="loginWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+      Google로 계속하기
+    </button>
+    <div class="auth-divider">또는</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="이메일">
+    <input class="auth-input" id="auth-password" type="password" placeholder="비밀번호 (6자 이상)">
+    <p class="auth-error" id="auth-error"></p>
+    <button class="btn btn-primary" id="btn-auth-submit" onclick="submitAuth()" style="padding:14px;font-size:15px">로그인</button>
+    <p class="auth-toggle" id="auth-toggle-text">계정이 없으신가요? <a onclick="toggleAuthMode()">가입하기</a></p>
+  </div>
+</div>
+
+<!-- 온보딩: 가족 연결 -->
+<div class="auth-overlay hidden" id="page-onboarding">
+  <div style="font-size:48px;margin-bottom:10px">👨‍👩‍👧</div>
+  <div class="auth-logo" style="margin-bottom:6px">가족 연결</div>
+  <p class="auth-sub">이름 보관함을 공유할<br>가족을 연결해주세요</p>
+  <div class="onboard-tabs">
+    <button class="onboard-tab active" id="tab-create" onclick="switchOnboardTab('create')">새 가족 만들기</button>
+    <button class="onboard-tab" id="tab-join" onclick="switchOnboardTab('join')">초대 코드 입력</button>
+  </div>
+
+  <!-- 새 가족 만들기 -->
+  <div class="onboard-panel" id="panel-create">
+    <div class="onboard-role-group">
+      <button class="onboard-role-btn" id="create-role-dad" onclick="selectOnboardRole('create','아빠')">👨 아빠</button>
+      <button class="onboard-role-btn" id="create-role-mom" onclick="selectOnboardRole('create','엄마')">👩 엄마</button>
+    </div>
+    <p class="auth-error" id="create-error"></p>
+    <button class="btn btn-primary" id="btn-create-family" onclick="createFamily()" style="padding:14px;font-size:15px">가족 만들기</button>
+    <div id="invite-code-wrap" style="display:none;flex-direction:column;gap:10px">
+      <p style="font-size:13px;color:var(--sub);text-align:center;margin:0">상대방에게 아래 코드를 공유하세요</p>
+      <div class="invite-code-box" id="invite-code-text"></div>
+      <button class="btn btn-outline" onclick="copyInviteCode()">코드 복사</button>
+      <button class="btn btn-primary" onclick="finishOnboarding()">시작하기</button>
+    </div>
+  </div>
+
+  <!-- 초대 코드로 합류 -->
+  <div class="onboard-panel" id="panel-join" style="display:none">
+    <div class="onboard-role-group">
+      <button class="onboard-role-btn" id="join-role-dad" onclick="selectOnboardRole('join','아빠')">👨 아빠</button>
+      <button class="onboard-role-btn" id="join-role-mom" onclick="selectOnboardRole('join','엄마')">👩 엄마</button>
+    </div>
+    <input class="auth-input" id="join-code-input" placeholder="초대 코드 6자리" maxlength="6"
+      style="text-align:center;letter-spacing:4px;font-size:20px;font-weight:700;text-transform:uppercase"
+      oninput="this.value=this.value.toUpperCase()">
+    <p class="auth-error" id="join-error"></p>
+    <button class="btn btn-primary" onclick="joinFamily()" style="padding:14px;font-size:15px">합류하기</button>
+  </div>
+  <button onclick="logoutFromOnboarding()" style="margin-top:20px;background:none;border:none;color:var(--sub);font-size:13px;cursor:pointer">← 다른 계정으로 로그인</button>
+</div>
+
 <!-- 웰컴 오버레이 -->
-<div class="welcome-overlay" id="welcome-overlay">
+<div class="welcome-overlay" id="welcome-overlay" style="display:none">
   <div class="welcome-sub">지금 누가 작업하시나요?<br>이름 저장 시 자동으로 기록됩니다.</div>
   <div class="welcome-btns">
     <button class="welcome-btn welcome-btn-dad" onclick="selectWelcomeUser('아빠')">
@@ -1104,9 +1229,9 @@
         <div class="site-logo-text">AI 아기 이름 <span>월드컵</span></div>
       </button>
     </div>
-    <div class="user-toggle">
-    <button class="user-toggle-btn" id="user-btn-dad" onclick="switchUser('아빠')">👨 아빠</button>
-    <button class="user-toggle-btn" id="user-btn-mom" onclick="switchUser('엄마')">👩 엄마</button>
+    <div class="user-toggle" style="display:flex;align-items:center;gap:8px">
+      <span id="user-role-display" style="font-size:14px;font-weight:700;color:var(--primary)"></span>
+      <button class="btn-logout" onclick="logoutUser()">로그아웃</button>
     </div>
   </div>
 </div>
@@ -1571,8 +1696,8 @@ function switchUser(name) {
 }
 function renderUserBar() {
   const u = getCurrentUser();
-  document.getElementById('user-btn-dad').classList.toggle('active', u === '아빠');
-  document.getElementById('user-btn-mom').classList.toggle('active', u === '엄마');
+  const el = document.getElementById('user-role-display');
+  if (el) el.textContent = u === '아빠' ? '👨 아빠' : '👩 엄마';
 }
 function selectWelcomeUser(name) {
   localStorage.setItem('current_author', name);
@@ -1581,11 +1706,6 @@ function selectWelcomeUser(name) {
   const overlay = document.getElementById('welcome-overlay');
   overlay.classList.add('hidden');
   setTimeout(() => overlay.style.display = 'none', 300);
-}
-// 첫 접속 시에만 웰컴 오버레이 표시
-if (localStorage.getItem('current_author')) {
-  const overlay = document.getElementById('welcome-overlay');
-  overlay.style.display = 'none';
 }
 applyTheme(getCurrentUser());
 renderUserBar();
@@ -2441,12 +2561,15 @@ async function confirmDelete() {
 }
 
 // ════════════════════════════════
-// Supabase 연동
+// Supabase 연동 (Auth + DB)
 // ════════════════════════════════
 const SUPABASE_URL = 'https://lsrlwmwtxaggmcahdhez.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxzcmx3bXd0eGFnZ21jYWhkaGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzg4ODEsImV4cCI6MjA5MzkxNDg4MX0.ejHTZiBYsMBN4cBcVJ6D5JYuEnrsIPMUQHm9Y3HuLoc';
 
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let _namesCache = [];
+let _currentProfile = null; // { id, family_id, role }
 
 function toRow(n) {
   return {
@@ -2467,6 +2590,7 @@ function toRow(n) {
     is_manual: !!n.is_manual,
     author: n.author || null,
     saved_at: n.saved_at || new Date().toISOString(),
+    family_id: _currentProfile?.family_id || null,
   };
 }
 
@@ -2493,9 +2617,11 @@ function fromRow(r) {
 }
 
 async function _sbFetch(path, opts = {}) {
+  const { data: { session } } = await _supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY;
   const headers = {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
   if (opts.method && opts.method !== 'GET') headers['Prefer'] = 'return=minimal';
@@ -2508,14 +2634,195 @@ async function _sbFetch(path, opts = {}) {
 }
 
 async function loadNamesFromDB() {
+  if (!_currentProfile?.family_id) { _namesCache = []; return; }
   try {
-    const res = await _sbFetch('/naming_list?order=saved_at.asc');
+    const res = await _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`);
     _namesCache = (await res.json()).map(fromRow);
   } catch (e) {
     console.error('[Supabase] 로드 실패:', e);
-    // 실패 시 캐시 유지 (초기화하지 않음)
   }
 }
+
+// ── 인증 함수 ─────────────────────────────
+
+let _isSignUp = false;
+
+function toggleAuthMode() {
+  _isSignUp = !_isSignUp;
+  document.getElementById('btn-auth-submit').textContent = _isSignUp ? '가입하기' : '로그인';
+  document.getElementById('auth-toggle-text').innerHTML = _isSignUp
+    ? `이미 계정이 있으신가요? <a onclick="toggleAuthMode()">로그인</a>`
+    : `계정이 없으신가요? <a onclick="toggleAuthMode()">가입하기</a>`;
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function loginWithGoogle() {
+  const { error } = await _supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) document.getElementById('auth-error').textContent = error.message;
+}
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
+  let error;
+  if (_isSignUp) {
+    ({ error } = await _supabase.auth.signUp({ email, password }));
+    if (!error) { errEl.textContent = '가입 완료! 이메일을 확인하거나 로그인해주세요.'; return; }
+  } else {
+    ({ error } = await _supabase.auth.signInWithPassword({ email, password }));
+  }
+  if (error) errEl.textContent = error.message === 'Invalid login credentials'
+    ? '이메일 또는 비밀번호가 올바르지 않습니다.' : error.message;
+}
+
+async function logoutUser() {
+  await _supabase.auth.signOut();
+}
+
+async function logoutFromOnboarding() {
+  await _supabase.auth.signOut();
+}
+
+// ── 온보딩 함수 ───────────────────────────
+
+let _onboardRole = { create: null, join: null };
+
+function switchOnboardTab(tab) {
+  document.getElementById('panel-create').style.display = tab === 'create' ? '' : 'none';
+  document.getElementById('panel-join').style.display = tab === 'join' ? '' : 'none';
+  document.getElementById('tab-create').classList.toggle('active', tab === 'create');
+  document.getElementById('tab-join').classList.toggle('active', tab === 'join');
+}
+
+function selectOnboardRole(panel, role) {
+  _onboardRole[panel] = role;
+  document.getElementById(`${panel}-role-dad`).classList.toggle('selected', role === '아빠');
+  document.getElementById(`${panel}-role-mom`).classList.toggle('selected', role === '엄마');
+}
+
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+async function createFamily() {
+  const role = _onboardRole.create;
+  const errEl = document.getElementById('create-error');
+  if (!role) { errEl.textContent = '아빠 또는 엄마를 선택해주세요.'; return; }
+  errEl.textContent = '';
+  document.getElementById('btn-create-family').disabled = true;
+
+  const code = generateInviteCode();
+  const { data: { user } } = await _supabase.auth.getUser();
+
+  const { data: family, error: fErr } = await _supabase
+    .from('families').insert({ invite_code: code }).select('id').single();
+  if (fErr) { errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.'; document.getElementById('btn-create-family').disabled = false; return; }
+
+  const { error: pErr } = await _supabase.from('profiles')
+    .update({ family_id: family.id, role }).eq('id', user.id);
+  if (pErr) { errEl.textContent = '프로필 저장에 실패했습니다.'; document.getElementById('btn-create-family').disabled = false; return; }
+
+  // 기존 데이터 마이그레이션 (family_id 없는 row 인계)
+  try {
+    await _sbFetch('/naming_list?family_id=is.null', {
+      method: 'PATCH', body: JSON.stringify({ family_id: family.id }),
+    });
+  } catch (_) {}
+
+  document.getElementById('invite-code-text').textContent = code;
+  document.getElementById('invite-code-wrap').style.display = 'flex';
+  document.getElementById('btn-create-family').style.display = 'none';
+}
+
+function copyInviteCode() {
+  const code = document.getElementById('invite-code-text').textContent;
+  navigator.clipboard?.writeText(code).then(() => showToast('코드가 복사됐어요!'));
+}
+
+async function finishOnboarding() {
+  const { data: { user } } = await _supabase.auth.getUser();
+  const { data: profile } = await _supabase.from('profiles').select('*').eq('id', user.id).single();
+  _currentProfile = profile;
+  await loadNamesFromDB();
+  _showApp(profile.role || '아빠');
+}
+
+async function joinFamily() {
+  const role = _onboardRole.join;
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('join-error');
+  if (!role) { errEl.textContent = '아빠 또는 엄마를 선택해주세요.'; return; }
+  if (code.length !== 6) { errEl.textContent = '6자리 코드를 입력해주세요.'; return; }
+  errEl.textContent = '';
+
+  const { data: { user } } = await _supabase.auth.getUser();
+
+  const { data: families, error: fErr } = await _supabase
+    .from('families').select('id').eq('invite_code', code);
+  if (fErr || !families?.length) { errEl.textContent = '유효하지 않은 초대 코드입니다.'; return; }
+
+  const { error: pErr } = await _supabase.from('profiles')
+    .update({ family_id: families[0].id, role }).eq('id', user.id);
+  if (pErr) { errEl.textContent = '합류에 실패했습니다. 다시 시도해주세요.'; return; }
+
+  await finishOnboarding();
+}
+
+// ── 화면 전환 ─────────────────────────────
+
+function _showAuthPage() {
+  document.getElementById('page-auth').classList.remove('hidden');
+  document.getElementById('page-onboarding').classList.add('hidden');
+}
+
+function _showOnboardingPage() {
+  document.getElementById('page-auth').classList.add('hidden');
+  document.getElementById('page-onboarding').classList.remove('hidden');
+}
+
+function _showApp(role) {
+  document.getElementById('page-auth').classList.add('hidden');
+  document.getElementById('page-onboarding').classList.add('hidden');
+  localStorage.setItem('current_author', role);
+  applyTheme(role);
+  renderUserBar();
+  renderProfile();
+}
+
+// ── Auth 상태 초기화 ──────────────────────
+
+async function _handleSession(session) {
+  let { data: profile } = await _supabase.from('profiles').select('*').eq('id', session.user.id).single();
+  if (!profile) {
+    await _supabase.from('profiles').insert({ id: session.user.id });
+    ({ data: profile } = await _supabase.from('profiles').select('*').eq('id', session.user.id).single());
+  }
+  _currentProfile = profile;
+  if (!profile?.family_id) {
+    _showOnboardingPage();
+  } else {
+    await loadNamesFromDB();
+    _showApp(profile.role || getCurrentUser());
+  }
+}
+
+_supabase.auth.onAuthStateChange(async (event, session) => {
+  if (session) {
+    await _handleSession(session);
+  } else {
+    _currentProfile = null;
+    _namesCache = [];
+    _showAuthPage();
+    renderProfile();
+  }
+});
 
 function getSavedNames() { return JSON.parse(JSON.stringify(_namesCache)); }
 
@@ -2543,8 +2850,7 @@ async function setSavedNames(newArr) {
   return true;
 }
 
-// 페이지 로드 시 캐시 선행 로드 (월드컵 등 다른 기능용)
-loadNamesFromDB();
+// 인증 상태는 onAuthStateChange가 처리하므로 여기서 loadNamesFromDB 직접 호출 불필요
 
 // ════════════════════════════════
 // 유틸
