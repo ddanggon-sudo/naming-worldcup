@@ -1239,6 +1239,29 @@
     padding: 4px 12px; font-size: 12px; color: var(--sub); cursor: pointer;
   }
   .btn-logout:hover { color: var(--text); border-color: var(--sub); }
+
+  /* 역할 변경 드롭다운 */
+  .role-btn {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-size: 14px; font-weight: 700; color: var(--primary);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .role-btn::after { content: '▾'; font-size: 10px; opacity: 0.7; }
+  .role-dropdown-wrap { position: relative; }
+  .role-dropdown {
+    display: none; position: absolute; top: calc(100% + 8px); right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); overflow: hidden; min-width: 110px; z-index: 200;
+  }
+  .role-dropdown.open { display: block; }
+  .role-dropdown button {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 11px 16px; font-size: 14px; font-weight: 600;
+    background: none; border: none; cursor: pointer; color: var(--text);
+    transition: background .15s;
+  }
+  .role-dropdown button:hover { background: var(--bg); }
+  .role-dropdown button.active { color: var(--primary); }
 </style>
 </head>
 <body>
@@ -1382,7 +1405,13 @@
       </button>
     </div>
     <div class="user-toggle" style="display:flex;align-items:center;gap:8px">
-      <span id="user-role-display" style="font-size:14px;font-weight:700;color:var(--primary)"></span>
+      <div class="role-dropdown-wrap">
+        <button class="role-btn" id="user-role-display" onclick="toggleRoleDropdown()"></button>
+        <div class="role-dropdown" id="role-dropdown">
+          <button id="role-opt-dad" onclick="changeRole('아빠')">👨 아빠</button>
+          <button id="role-opt-mom" onclick="changeRole('엄마')">👩 엄마</button>
+        </div>
+      </div>
       <button class="btn-logout" onclick="logoutUser()">로그아웃</button>
     </div>
   </div>
@@ -1882,7 +1911,33 @@ function renderUserBar() {
   const u = getCurrentUser();
   const el = document.getElementById('user-role-display');
   if (el) el.textContent = u === '아빠' ? '👨 아빠' : '👩 엄마';
+  document.getElementById('role-opt-dad')?.classList.toggle('active', u === '아빠');
+  document.getElementById('role-opt-mom')?.classList.toggle('active', u === '엄마');
 }
+
+function toggleRoleDropdown() {
+  document.getElementById('role-dropdown').classList.toggle('open');
+}
+
+async function changeRole(role) {
+  document.getElementById('role-dropdown').classList.remove('open');
+  if (role === getCurrentUser()) return;
+  applyTheme(role);
+  localStorage.setItem('current_author', role);
+  renderUserBar();
+  // Supabase profile 업데이트
+  if (_currentProfile) {
+    _currentProfile = { ..._currentProfile, role };
+    await _supabase.from('profiles').update({ role }).eq('id', _currentProfile.id);
+  }
+}
+
+// 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('.role-dropdown-wrap')) {
+    document.getElementById('role-dropdown')?.classList.remove('open');
+  }
+});
 function selectWelcomeUser(name) {
   localStorage.setItem('current_author', name);
   applyTheme(name);
