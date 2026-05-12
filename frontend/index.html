@@ -303,7 +303,10 @@
     border-radius: 18px;
     pointer-events: none;
   }
-  .wc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(108,99,255,0.18); }
+  /* 호버 효과는 마우스가 있는 기기(데스크톱)에서만 적용 - 모바일 호버 잔상 방지 */
+  @media (hover: hover) and (pointer: fine) {
+    .wc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(108,99,255,0.18); }
+  }
   .wc-card:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(108,99,255,0.12); }
 
   .wc-card .wc-badge {
@@ -885,10 +888,12 @@
     font-weight: 600;
   }
 
-  /* 진행 중: 카드 골드 호버 */
-  #grand-running .wc-card:hover {
-    border-color: var(--gold);
-    box-shadow: 0 8px 28px rgba(245,166,35,0.22);
+  /* 진행 중: 카드 골드 호버 - 마우스 있는 기기에서만 적용 (모바일 호버 잔상 방지) */
+  @media (hover: hover) and (pointer: fine) {
+    #grand-running .wc-card:hover {
+      border-color: var(--gold);
+      box-shadow: 0 8px 28px rgba(245,166,35,0.22);
+    }
   }
   #grand-running .wc-card.selected {
     border-color: var(--gold);
