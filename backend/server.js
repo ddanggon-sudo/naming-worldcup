@@ -223,67 +223,24 @@ const TIER_TO_RARITY = {
   '🌙희귀':   '매우 희귀',
 };
 
-function calcRarity(pop) {
-  if (pop >= 50000) return '매우 흔함';
-  if (pop >= 10000) return '흔한 편';
-  if (pop >= 2000)  return '보통';
-  if (pop >= 200)   return '희귀';
-  return '매우 희귀';
-}
-
-function lookupRarityFromDB(name, gender) {
-  const db = loadDB();
-  const found = db.find(n => n.name === name && n.gender === gender);
-  if (!found) return null;
-  return {
-    estimated_population: found.count,
-    rarity: TIER_TO_RARITY[found.tier] || '보통',
-    rarity_description: `${found.tier} · 누적 ${found.count.toLocaleString()}건 등록 · ${found.rank}위`,
-    source: 'names_db',
-  };
-}
-
-async function fetchKoreannameRarity(name, gender) {
-  const url = `https://koreanname.me/api/name/${encodeURIComponent(name)}`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://koreanname.me/' },
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!res.ok) throw new Error(`koreanname.me ${res.status}`);
-  const data = await res.json();
-  const rank = data.rank;
-  if (!rank || typeof rank.count !== 'number') throw new Error('데이터 없음');
-  const pop = gender === '여아' ? (rank.female?.count ?? rank.count)
-            : gender === '남아' ? (rank.male?.count  ?? rank.count)
-            : rank.count;
-  const years = (data.year || []).filter(y => y.count > 0);
-  const latestYear = years.length ? years[years.length - 1].year : null;
-  return { estimated_population: pop, rarity: calcRarity(pop), data_year: latestYear, source: 'koreanname.me' };
-}
-
 app.post('/api/worldcup/rarity', async (req, res) => {
   const { name, gender } = req.body;
   if (!name || typeof name !== 'string') return res.status(400).json({ detail: '이름을 입력해주세요.' });
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
 
-  // 1순위: 로컬 names_db.json
-  const dbResult = lookupRarityFromDB(name, gender);
-  if (dbResult) {
-    console.log(`[rarity] DB 히트: ${name} ${dbResult.estimated_population}건`);
-    return res.json(dbResult);
+  const db = loadDB();
+  const found = db.find(n => n.name === name && n.gender === gender);
+  if (found) {
+    console.log(`[rarity] DB 히트: ${name} ${found.count}건`);
+    return res.json({
+      estimated_population: found.count,
+      rarity: TIER_TO_RARITY[found.tier] || '보통',
+      source: 'names_db',
+    });
   }
 
-  // 2순위: koreanname.me
-  try {
-    const result = await fetchKoreannameRarity(name, gender);
-    console.log(`[rarity] koreanname.me 성공: ${name} ${result.estimated_population}명`);
-    return res.json(result);
-  } catch (e) {
-    console.warn(`[rarity] koreanname.me 실패 (${e.message})`);
-  }
-
-  // 3순위: 매우 희귀 처리
-  return res.json({ estimated_population: 0, rarity: '매우 희귀', data_year: null, source: 'names_db' });
+  // DB에 없으면 20명 미만 · 매우 희귀
+  return res.json({ estimated_population: null, rarity: '매우 희귀', source: 'names_db' });
 });
 
 // ── 정의되지 않은 API 경로 ─────────────────────────────────────

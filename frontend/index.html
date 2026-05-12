@@ -1991,11 +1991,10 @@ async function showWcResult() {
       body: JSON.stringify({ name: w.name, gender: w.gender || '남아' }),
     });
     const d = await res.json();
-    const isReal = d.source === 'koreanname.me';
-    document.getElementById('rarity-pop-label').textContent = isReal ? '사용인구 (2008년 이후)' : '사용인구 (AI 추정)';
-    document.getElementById('rarity-pop').textContent = (d.estimated_population || 0).toLocaleString() + '명';
+    document.getElementById('rarity-pop-label').textContent = '사용인구 (2008년 이후)';
+    document.getElementById('rarity-pop').textContent = d.estimated_population != null ? d.estimated_population.toLocaleString() + '명' : '20명 미만';
     document.getElementById('rarity-grade').textContent = d.rarity || '-';
-    document.getElementById('rarity-source').textContent = isReal ? '출처: 대법원 전자가족관계시스템' : '출처: AI 추정값 · 실제와 다를 수 있음';
+    document.getElementById('rarity-source').textContent = '출처: 대법원 전자가족관계시스템';
     wcState.rarityData = d;
   } catch(e) {
     document.getElementById('rarity-desc').textContent = '희귀도 정보를 불러오지 못했습니다.';
@@ -2167,11 +2166,10 @@ async function showGrandResult() {
       body: JSON.stringify({ name: w.name, gender: w.gender || '남아' }),
     });
     const d = await res.json();
-    const isRealGrand = d.source === 'koreanname.me';
-    document.getElementById('grand-rarity-pop-label').textContent = isRealGrand ? '사용인구 (2008년 이후)' : '사용인구 (AI 추정)';
-    document.getElementById('grand-rarity-pop').textContent = (d.estimated_population || 0).toLocaleString() + '명';
+    document.getElementById('grand-rarity-pop-label').textContent = '사용인구 (2008년 이후)';
+    document.getElementById('grand-rarity-pop').textContent = d.estimated_population != null ? d.estimated_population.toLocaleString() + '명' : '20명 미만';
     document.getElementById('grand-rarity-grade').textContent = d.rarity || '-';
-    document.getElementById('grand-rarity-source').textContent = isRealGrand ? '출처: 대법원 전자가족관계시스템' : '출처: AI 추정값 · 실제와 다를 수 있음';
+    document.getElementById('grand-rarity-source').textContent = '출처: 대법원 전자가족관계시스템';
     grandState.rarityData = d;
   } catch(e) {
     document.getElementById('grand-rarity-desc').textContent = '희귀도 정보를 불러오지 못했습니다.';
