@@ -150,9 +150,24 @@ def _build_curation_prompt(
     candidates: list,
     count: int,
 ) -> str:
+    """
+    AI에게 '30개 중 N개 선별 + 추천 이유 작성' 요청.
+    한자/의미는 DB에 이미 있으므로 AI에게 묻지 않음.
+    """
     pop_desc = POPULARITY_DESC.get(popularity, popularity)
     vibes_str = ', '.join(vibes) if vibes else '특별한 선호 없음'
-    candidate_str = ', '.join(c['name'] for c in candidates)
+
+    # 후보 정보 풍부하게 (한자·tier·느낌 태그까지 보여줌 → AI 판단 도움)
+    lines = []
+    for c in candidates:
+        bits = [f"{c['name']}"]
+        if c.get('hanja'):
+            bits.append(f"({c['hanja']})")
+        bits.append(f"· {c.get('tier', '')}")
+        if c.get('vibes'):
+            bits.append(f"· {' · '.join(c['vibes'])}")
+        lines.append('- ' + ' '.join(bits))
+    candidate_block = '\n'.join(lines)
 
     return f"""당신은 한국 작명 전문가입니다.
 
@@ -162,28 +177,25 @@ def _build_curation_prompt(
 - 인기도 선호: {pop_desc}
 - 원하는 느낌: {vibes_str}
 
-[후보 이름 {len(candidates)}개 - 한국 대법원 가족관계 통계의 실제 등록 이름]
-{candidate_str}
+[후보 이름 {len(candidates)}개 - 통계로 사전 필터링됨]
+{candidate_block}
 
-위 조건을 가장 잘 만족하는 이름 {count}개를 위 후보에서 골라주세요.
-각 이름마다 어울리는 한자·의미·추천 이유를 작성해주세요.
+위 후보 중에서 부모의 요청에 가장 잘 맞는 이름 {count}개를 골라주세요.
+각 이름마다 "왜 이 이름이 부모님께 어울리는지" 한 문장 추천 이유를 작성해주세요.
 
-반드시 아래 형식의 JSON 배열로만 응답하세요. 다른 텍스트는 절대 쓰지 마세요.
+반드시 아래 JSON 배열 형식으로만 응답하세요. 다른 텍스트 절대 쓰지 마세요.
 
 [
   {{
-    "name": "이름(성 제외, 반드시 후보 리스트에서 선택)",
-    "hanja": "어울리는 한자 조합",
-    "meaning": "이름의 뜻 (1~2문장)",
-    "reason": "이 이름이 부모 조건과 맞는 이유 (1문장)"
+    "name": "이름 (반드시 후보 리스트에서)",
+    "reason": "이 이름이 부모 조건과 맞는 이유 (1문장, 인기도와 느낌을 구체적으로 연결)"
   }}
 ]
 
 규칙:
-- 반드시 위 후보 리스트에 있는 이름만 선택할 것
-- 한자는 이름 뜻이 잘 살아나는 일반적인 조합으로
-- 의미는 한자에 기반하여 자연스럽게 1~2문장
-- 추천 이유는 부모의 인기도/느낌 선호와 구체적으로 연결
+- 반드시 위 후보 리스트의 이름만 선택 (창작 X)
+- 한자나 의미는 작성하지 마세요 (이미 DB에 있음)
+- 추천 이유에서 부모의 인기도/느낌 선호를 구체적으로 언급
 - 중복 없이 다양하게 {count}개
 """
 
@@ -216,75 +228,86 @@ def generate_names_stream(
     count: int = 10,
 ):
     """
-    이름 추천 제너레이터.
+    이름 추천 제너레이터 (다이어그램 구조).
 
-    [전략]
-    1. 필터링으로 상위 후보 추출 (코드만)
-    2. 보강된 한자/의미가 있으면 그대로 사용 (AI 호출 0회)
-    3. 보강 안 된 이름이 있으면 LLM으로 즉석 생성 (fallback)
+    [흐름]
+    1. 코드 필터링: 5,400개 → 30개 후보 (LLM X, names_db.json 기반)
+    2. AI 큐레이션: 30개 중 N개 선별 + 추천 이유 작성 (LLM 1회)
+    3. 결과 yield: 한자/의미는 DB에서, 이유는 AI에서, 메타데이터 합쳐서
     """
     vibes = vibes or []
     exclude = exclude or []
 
-    # 1. 후보 추출 (count보다 약간 넉넉히)
+    # ─────────────────────────────────────────
+    # 1. 코드 필터링: 30개 후보 추출
+    # ─────────────────────────────────────────
     candidates = _filter_candidates(
         gender=gender,
         popularity=popularity,
         vibes=vibes,
         exclude=exclude,
-        max_count=max(count * 2, 20),
+        max_count=30,
     )
 
     if not candidates:
         return
 
     actual_count = min(count, len(candidates))
-    selected = candidates[:actual_count]
+    candidate_names = {c['name'] for c in candidates}
+    candidate_map = {c['name']: c for c in candidates}
 
-    # 2. 보강 안 된 이름이 있는지 체크
-    unenriched = [c for c in selected if not c.get('hanja') or not c.get('meaning')]
+    # ─────────────────────────────────────────
+    # 2. AI 큐레이션: 30개 → N개 + 추천 이유
+    # ─────────────────────────────────────────
+    ai_picks = {}  # {name: reason}
+    try:
+        prompt = _build_curation_prompt(
+            last_name=last_name,
+            gender=gender,
+            popularity=popularity,
+            vibes=vibes,
+            candidates=candidates,
+            count=actual_count,
+        )
+        raw = _chat(prompt)
+        llm_results = _extract_json(raw)
+        for r in llm_results:
+            if not isinstance(r, dict):
+                continue
+            name = r.get('name', '').strip()
+            if name and name in candidate_names:
+                ai_picks[name] = r.get('reason', '').strip()
+    except Exception:
+        pass  # AI 실패시 아래 fallback에서 처리
 
-    # 3. 보강 안 된 이름만 LLM으로 즉석 생성 (있을 때만)
-    fallback_data = {}
-    if unenriched:
-        try:
-            prompt = _build_curation_prompt(
-                last_name=last_name,
-                gender=gender,
-                popularity=popularity,
-                vibes=vibes,
-                candidates=unenriched,
-                count=len(unenriched),
-            )
-            raw = _chat(prompt)
-            llm_results = _extract_json(raw)
-            for r in llm_results:
-                if isinstance(r, dict) and r.get('name'):
-                    fallback_data[r['name'].strip()] = r
-        except Exception:
-            pass  # 실패해도 빈 hanja/meaning으로 진행
+    # ─────────────────────────────────────────
+    # 3. 부족하면 후보 상위에서 보충 (fallback)
+    # ─────────────────────────────────────────
+    final_names = list(ai_picks.keys())
+    if len(final_names) < actual_count:
+        for c in candidates:
+            if len(final_names) >= actual_count:
+                break
+            if c['name'] not in final_names:
+                final_names.append(c['name'])
 
-    # 4. 결과 yield
-    for c in selected:
-        name = c['name']
-        hanja = c.get('hanja') or ''
-        meaning = c.get('meaning') or ''
-
-        # DB에 없으면 fallback 사용
-        if (not hanja or not meaning) and name in fallback_data:
-            fb = fallback_data[name]
-            hanja = hanja or fb.get('hanja', '')
-            meaning = meaning or fb.get('meaning', '')
+    # ─────────────────────────────────────────
+    # 4. yield: AI 선별 이름 + DB 한자/의미 + AI 이유
+    # ─────────────────────────────────────────
+    for name in final_names[:actual_count]:
+        meta = candidate_map.get(name, {})
+        ai_reason = ai_picks.get(name, '')
+        reason = ai_reason or _build_static_reason(meta, popularity, vibes)
 
         yield {
             'name': name,
-            'hanja': hanja,
-            'meaning': meaning,
-            'reason': _build_static_reason(c, popularity, vibes),
-            'tier': c.get('tier', ''),
-            'rank': c.get('rank'),
-            'count_in_db': c.get('count'),
-            'vibes': c.get('vibes', []),
+            'hanja': meta.get('hanja') or '',
+            'meaning': meta.get('meaning') or '',
+            'reason': reason,
+            'tier': meta.get('tier', ''),
+            'rank': meta.get('rank'),
+            'count_in_db': meta.get('count'),
+            'vibes': meta.get('vibes', []),
         }
 
 
