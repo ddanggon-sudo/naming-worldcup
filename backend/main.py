@@ -1,12 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional
 import os
+import json
 
-from openrouter import generate_names, get_name_rarity
+from openrouter import generate_names_stream, get_name_rarity
 
 app = FastAPI(title="아기 이름 생성기")
 
@@ -20,16 +19,20 @@ app.add_middleware(
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
 
-# ── 요청/응답 모델 ──────────────────────────────────────
+# ── 요청 모델 ──────────────────────────────────────────
 
 class GenerateRequest(BaseModel):
     last_name: str = Field(..., min_length=1)
     gender: str  # "남아" | "여아"
-    syllables: list[str] = []  # ["두자", "외자"]
-    criteria: list[str] = []
-    sibling_names: list[str] = []
-    impression: str = "부드러운 느낌"
-    count: int = Field(10, ge=10, le=100)
+
+    # 새 필드: 인기도와 느낌
+    popularity: str = "any"  # "any" 또는 tier 라벨 (예: "🔥매우인기")
+    vibes: list[str] = []     # 최대 3개
+
+    # 호환성 유지 (현재 미사용)
+    syllables: list[str] = []
+    exclude: list[str] = []
+    count: int = Field(10, ge=1, le=30)
 
 
 class RarityRequest(BaseModel):
@@ -41,19 +44,27 @@ class RarityRequest(BaseModel):
 
 @app.post("/api/generate")
 async def api_generate(req: GenerateRequest):
-    try:
-        names = generate_names(
-            last_name=req.last_name,
-            gender=req.gender,
-            syllables=req.syllables,
-            criteria=req.criteria,
-            sibling_names=req.sibling_names,
-            impression=req.impression,
-            count=req.count,
-        )
-        return {"names": names}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    이름 추천 (SSE 스트리밍).
+    프론트엔드는 'data: {...}\\n\\n' 형식의 이벤트를 하나씩 받아 표시.
+    """
+    def event_stream():
+        try:
+            for name_obj in generate_names_stream(
+                last_name=req.last_name,
+                gender=req.gender,
+                popularity=req.popularity,
+                vibes=req.vibes,
+                exclude=req.exclude,
+                count=req.count,
+            ):
+                yield f"data: {json.dumps(name_obj, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            err = {"error": str(e)}
+            yield f"data: {json.dumps(err, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/api/worldcup/rarity")

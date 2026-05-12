@@ -1143,30 +1143,82 @@
 
 
   <div class="card">
-    <label>참고 이름 <span style="font-weight:400;font-size:13px;color:var(--sub)">(선택 사항, 쉼표로 여러 개 입력 가능)</span></label>
-    <input type="text" id="preferred-names" placeholder="예: 서준, 하은, 지우">
-    <p style="margin:6px 0 0;font-size:12px;color:var(--sub)">좋아하는 이름의 느낌·스타일을 기준으로, 아직 생각해보지 못한 새로운 이름을 탐색해요.</p>
-  </div>
-
-  <div class="card">
-    <label>만들기 개수</label>
+    <label>인기도</label>
     <div class="check-group">
       <label class="check-item">
-        <input type="radio" name="count" value="10" checked>
-        <span class="check-item-label">10개</span>
+        <input type="radio" name="popularity" value="any" checked>
+        <span class="check-item-label">🤷 상관없음</span>
       </label>
       <label class="check-item">
-        <input type="radio" name="count" value="20">
-        <span class="check-item-label">20개</span>
+        <input type="radio" name="popularity" value="🔥매우인기">
+        <span class="check-item-label">🔥 매우 인기</span>
       </label>
       <label class="check-item">
-        <input type="radio" name="count" value="30">
-        <span class="check-item-label">30개</span>
+        <input type="radio" name="popularity" value="⭐인기">
+        <span class="check-item-label">⭐ 인기</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="popularity" value="✨적당">
+        <span class="check-item-label">✨ 적당</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="popularity" value="💎개성">
+        <span class="check-item-label">💎 개성있게</span>
+      </label>
+      <label class="check-item">
+        <input type="radio" name="popularity" value="🌙희귀">
+        <span class="check-item-label">🌙 독특하게</span>
       </label>
     </div>
   </div>
 
-  <button class="btn btn-primary" id="btn-generate" onclick="generateNames()">🔍 새 이름 탐색하기</button>
+  <div class="card">
+    <label>느낌 <span style="font-weight:400;font-size:13px;color:var(--sub)">(최대 3개 선택)</span></label>
+    <div class="check-group" id="vibe-group">
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="부드러움">
+        <span class="check-item-label">🌸 부드러움</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="강함">
+        <span class="check-item-label">🦁 강함</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="우아함">
+        <span class="check-item-label">👑 우아함</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="활달함">
+        <span class="check-item-label">🌟 활달함</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="지적">
+        <span class="check-item-label">📚 지적</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="따뜻함">
+        <span class="check-item-label">☀️ 따뜻함</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="신비로움">
+        <span class="check-item-label">🔮 신비로움</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="현대적">
+        <span class="check-item-label">✨ 현대적</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="고전적">
+        <span class="check-item-label">🎋 고전적</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" name="vibe" value="단아함">
+        <span class="check-item-label">💠 단아함</span>
+      </label>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-generate" onclick="generateNames()">🔍 새 이름 탐색하기 (10개)</button>
   <!-- 생성 상태: js에서 동적 텍스트 변경 -->
 
   <div class="loading" id="loading-generate">
@@ -1206,6 +1258,7 @@
         <div class="wc-name" id="wc-left-name">-</div>
         <div class="wc-hanja" id="wc-left-hanja"></div>
         <div class="wc-meaning" id="wc-left-meaning"></div>
+        <div class="wc-tier" id="wc-left-tier" style="margin-top:8px;font-size:11px;color:var(--sub);font-weight:500"></div>
         <button class="wc-save-inline" onclick="event.stopPropagation(); saveWcName('left')">♡ 저장</button>
       </div>
 
@@ -1218,6 +1271,7 @@
         <div class="wc-name" id="wc-right-name">-</div>
         <div class="wc-hanja" id="wc-right-hanja"></div>
         <div class="wc-meaning" id="wc-right-meaning"></div>
+        <div class="wc-tier" id="wc-right-tier" style="margin-top:8px;font-size:11px;color:var(--sub);font-weight:500"></div>
         <button class="wc-save-inline" onclick="event.stopPropagation(); saveWcName('right')">♡ 저장</button>
       </div>
     </div>
@@ -1607,6 +1661,33 @@ function getFrequentNames() {
     .slice(-50);
 }
 
+// 느낌 체크박스 최대 3개 제한 (페이지 로드 시 1회 셋업)
+// ════════════════════════════════
+(function setupVibeLimit() {
+  const init = () => {
+    const vibeGroup = document.getElementById('vibe-group');
+    if (!vibeGroup) return;
+    vibeGroup.addEventListener('change', (e) => {
+      if (!e.target.matches('input[type="checkbox"]')) return;
+      const checked = vibeGroup.querySelectorAll('input[name="vibe"]:checked');
+      if (checked.length > 3) {
+        e.target.checked = false;
+        if (typeof showProgressToast === 'function') {
+          showProgressToast('느낌은 최대 3개까지만 선택할 수 있어요');
+          setTimeout(() => {
+            if (typeof hideProgressToast === 'function') hideProgressToast();
+          }, 1500);
+        }
+      }
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
 // STEP 1: 이름 생성
 // ════════════════════════════════
 async function generateNames() {
@@ -1615,17 +1696,22 @@ async function generateNames() {
 
   const syllables = ['두자 이름'];
 
-  const preferredNames = document.getElementById('preferred-names').value
-    .split(',').map(s => s.trim()).filter(Boolean);
+  // 인기도 (라디오) - 'any'이면 백엔드에서 전체 후보 사용
+  const popularity = document.querySelector('input[name="popularity"]:checked')?.value || 'any';
+
+  // 느낌 (체크박스, 0~3개)
+  const vibes = Array.from(document.querySelectorAll('input[name="vibe"]:checked'))
+    .map(el => el.value);
 
   const baseBody = {
     last_name: lastName,
     gender: document.querySelector('input[name="gender"]:checked')?.value || '남아',
     syllables,
-    preferred_names: preferredNames,
+    popularity,
+    vibes,
   };
 
-  const totalCount = parseInt(document.querySelector('input[name="count"]:checked')?.value || '10', 10);
+  const totalCount = 10;
 
   generatedNames = [];
   showProgressToast('이름 탐색 중...');
@@ -1695,7 +1781,7 @@ async function generateNames() {
   } finally {
     hideProgressToast();
     btnGenerate.disabled = false;
-    btnGenerate.textContent = '🔍 새 이름 탐색하기';
+    btnGenerate.textContent = '🔍 새 이름 탐색하기 (10개)';
   }
 }
 
@@ -1704,10 +1790,17 @@ function appendNameCard(n, i) {
   const card = document.createElement('div');
   card.className = 'name-card';
   card.style.animation = 'fadeIn .3s ease';
+
+  // 디버그용: 인기도/랭킹/느낌 뱃지
+  const tierBadge = n.tier ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;background:rgba(108,99,255,0.1);color:var(--primary);font-size:11px;font-weight:600;margin-right:4px">${n.tier}</span>` : '';
+  const rankBadge = n.rank ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;background:rgba(0,0,0,0.05);color:var(--sub);font-size:11px;font-weight:500;margin-right:4px">랭킹 ${n.rank.toLocaleString()}위</span>` : '';
+  const vibesBadge = (n.vibes && n.vibes.length) ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;background:rgba(255,193,7,0.12);color:#a07000;font-size:11px;font-weight:500">🏷️ ${n.vibes.join(' · ')}</span>` : '';
+
   card.innerHTML = `
     <div class="name-card-info">
       <div class="hanja">${n.hanja || ''}</div>
       <h3>${n.name}</h3>
+      <div style="margin:6px 0 8px;display:flex;flex-wrap:wrap;gap:4px">${tierBadge}${rankBadge}${vibesBadge}</div>
       <div class="meaning">${n.meaning || ''}</div>
       <div class="reason" style="margin-top:4px">${n.reason || ''}</div>
     </div>
@@ -1796,6 +1889,18 @@ function renderWcRound() {
   document.getElementById('wc-right-name').textContent = (challenger.last_name || '') + challenger.name;
   document.getElementById('wc-right-hanja').textContent = challenger.hanja || '';
   document.getElementById('wc-right-meaning').textContent = challenger.meaning || '';
+
+  // 인기도 카테고리 + 랭킹 (이름탐색에서 추천받은 경우 표시)
+  const fmtTier = (n) => {
+    if (!n.tier) return '';
+    const parts = [n.tier];
+    if (n.rank) parts.push(`${n.rank.toLocaleString()}위`);
+    if (n.vibes && n.vibes.length) parts.push(n.vibes.join(' · '));
+    return parts.join(' · ');
+  };
+  document.getElementById('wc-left-tier').textContent = fmtTier(champ);
+  document.getElementById('wc-right-tier').textContent = fmtTier(challenger);
+
   const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
   document.getElementById('wc-progress-fill').style.width = pct + '%';
   document.getElementById('wc-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
