@@ -898,9 +898,6 @@
     box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
   }
 
-  /* 왕중왕전: 한자뜻·이름뜻 숨김 */
-  #grand-running .wc-hanja,
-  #grand-running .wc-meaning { display: none; }
 
   /* 진행 중: VS 원 골드 */
   #grand-running .wc-vs {
@@ -1373,6 +1370,7 @@
         <div class="wc-name" id="grand-left-name">-</div>
         <div class="wc-hanja" id="grand-left-hanja"></div>
         <div class="wc-meaning" id="grand-left-meaning"></div>
+        <div class="wc-tier" id="grand-left-tier" style="margin-top:8px;font-size:11px;color:var(--sub);font-weight:500"></div>
       </div>
 
       <div class="wc-vs-wrap">
@@ -1384,6 +1382,7 @@
         <div class="wc-name" id="grand-right-name">-</div>
         <div class="wc-hanja" id="grand-right-hanja"></div>
         <div class="wc-meaning" id="grand-right-meaning"></div>
+        <div class="wc-tier" id="grand-right-tier" style="margin-top:8px;font-size:11px;color:var(--sub);font-weight:500"></div>
       </div>
     </div>
 
@@ -2105,6 +2104,15 @@ function renderGrandRound() {
   document.getElementById('grand-right-name').textContent = (challenger.last_name || '') + challenger.name;
   document.getElementById('grand-right-hanja').textContent = challenger.hanja || '';
   document.getElementById('grand-right-meaning').textContent = challenger.meaning || '';
+  const fmtGrandTier = (n) => {
+    if (!n.tier) return '';
+    const parts = [n.tier];
+    if (n.rank) parts.push(`${Number(n.rank).toLocaleString()}위`);
+    if (n.vibes && n.vibes.length) parts.push(n.vibes.join(' · '));
+    return parts.join(' · ');
+  };
+  document.getElementById('grand-left-tier').textContent = fmtGrandTier(champ);
+  document.getElementById('grand-right-tier').textContent = fmtGrandTier(challenger);
   const pct = s.totalRounds ? (s.currentRound / s.totalRounds * 100) : 0;
   document.getElementById('grand-progress-fill').style.width = pct + '%';
   document.getElementById('grand-progress-text').textContent = `${s.currentRound} / ${s.totalRounds}`;
