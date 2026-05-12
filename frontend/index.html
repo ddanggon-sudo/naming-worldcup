@@ -1713,6 +1713,15 @@
   <p class="sub-title">저장된 이름들을 관리하세요</p>
   <div id="migrate-status" style="display:none;font-size:12px;color:var(--primary);margin-bottom:10px;text-align:center;padding:6px 10px;background:var(--primary-light);border-radius:8px;"></div>
 
+  <!-- 가족 초대 코드 -->
+  <div id="family-code-bar" style="display:none;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid var(--primary);border-radius:12px;padding:10px 14px;margin-bottom:16px;gap:10px">
+    <div>
+      <div style="font-size:11px;color:var(--primary);font-weight:700;letter-spacing:.4px;margin-bottom:2px">우리 가족 초대 코드</div>
+      <div id="family-code-display" style="font-size:18px;font-weight:900;letter-spacing:4px;color:var(--text);font-family:monospace"></div>
+    </div>
+    <button onclick="shareFamilyCode()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">공유</button>
+  </div>
+
   <div class="profile-stat">
     <div class="stat-box">
       <div class="stat-num" id="stat-total">0</div>
@@ -2537,6 +2546,15 @@ function rarityBadgeHtml(rarity) {
 function renderProfile() {
   const saved = getSavedNames();
   document.getElementById('stat-total').textContent = saved.length;
+
+  const bar = document.getElementById('family-code-bar');
+  if (_familyCode) {
+    document.getElementById('family-code-display').textContent = _familyCode;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+
   renderSavedNames();
 }
 
@@ -2715,6 +2733,7 @@ const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let _namesCache = [];
 let _currentProfile = null; // { id, family_id, role }
+let _familyCode = null;     // 가족 invite_code (3-3 형식)
 let _lastHandledUserId = null;
 let _authInFlight = false;
 let _cachedToken = null;
@@ -2793,11 +2812,36 @@ async function _sbFetch(path, opts = {}) {
 async function loadNamesFromDB() {
   if (!_currentProfile?.family_id) { _namesCache = []; return; }
   try {
-    const res = await _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`);
-    _namesCache = (await res.json()).map(fromRow);
+    const [namesRes, familyRes] = await Promise.all([
+      _sbFetch(`/naming_list?family_id=eq.${_currentProfile.family_id}&order=saved_at.asc`),
+      _sbFetch(`/families?id=eq.${_currentProfile.family_id}&select=invite_code`),
+    ]);
+    _namesCache = (await namesRes.json()).map(fromRow);
+    const families = await familyRes.json();
+    if (families?.[0]?.invite_code) {
+      const raw = families[0].invite_code;
+      _familyCode = raw.slice(0, 3) + '-' + raw.slice(3);
+    }
   } catch (e) {
     console.error('[Supabase] 로드 실패:', e);
   }
+}
+
+async function shareFamilyCode() {
+  if (!_familyCode) return;
+  const shareData = {
+    title: 'PickMeBaby 초대 코드',
+    text: `아기 이름 같이 골라요! PickMeBaby 초대 코드: ${_familyCode}\n앱에서 "초대 코드 입력"에 넣어주세요.`,
+  };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch (e) { if (e.name !== 'AbortError') _copyFamilyCode(); }
+  } else {
+    _copyFamilyCode();
+  }
+}
+
+function _copyFamilyCode() {
+  navigator.clipboard?.writeText(_familyCode).then(() => showToast('초대 코드가 복사됐어요!'));
 }
 
 // ── 인증 함수 ─────────────────────────────
@@ -3123,6 +3167,7 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     _tokenExpiry = 0;
     _currentProfile = null;
     _namesCache = [];
+    _familyCode = null;
     _showAuthPage();
     renderProfile();
   }
