@@ -106,7 +106,16 @@ async function chat(prompt) {
 
 const SYLLABLE_MAP = { '외자 이름': 1, '두자 이름': 2, '세자 이름': 3 };
 
-function buildPrompt({ last_name, gender, syllables, preferred_names, count, exclude }) {
+const POPULARITY_DESC = {
+  'any':    null,
+  '🔥매우인기': '🔥 매우 인기 (최근 10년 인기 상위권, 많이 쓰이는 이름)',
+  '⭐인기':    '⭐ 인기 (자주 쓰이지만 최상위는 아닌 이름)',
+  '✨적당':    '✨ 적당 (너무 흔하지도, 너무 생소하지도 않은 이름)',
+  '💎개성':   '💎 개성있게 (덜 흔하고 개성 있는 이름)',
+  '🌙희귀':   '🌙 독특하게 (등록 건수가 매우 적은 희귀한 이름, 인기 상위 500위 밖)',
+};
+
+function buildPrompt({ last_name, gender, syllables, preferred_names, popularity, vibes, count, exclude }) {
   const syllableNums   = syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean);
   const syllableStr    = syllableNums.length
     ? syllableNums.map(n => `${n}글자`).join(' 또는 ')
@@ -114,11 +123,22 @@ function buildPrompt({ last_name, gender, syllables, preferred_names, count, exc
   const excludeStr     = exclude.length ? `\n\n이미 추천한 이름이므로 제외: ${exclude.join(', ')}` : '';
   const preferred      = Array.isArray(preferred_names) ? preferred_names : [];
   const preferredStr   = preferred.length ? preferred.join(', ') : '없음';
+  const popDesc        = POPULARITY_DESC[popularity] ?? null;
+  const vibesArr       = Array.isArray(vibes) ? vibes : [];
+  const vibesStr       = vibesArr.length ? vibesArr.join(', ') : null;
+
+  const popularityLine = popDesc ? `- 인기도: ${popDesc}` : '';
+  const vibesLine      = vibesStr ? `- 원하는 느낌: ${vibesStr}` : '';
+
+  // 🌙희귀 선택 시 탐색 원칙 강화
+  const rarePrinciple = popularity === '🌙희귀'
+    ? '- 반드시 생소하고 희귀한 이름을 추천하세요. 서준, 지우, 하은 같은 인기 이름은 물론, 인기 500위 안에 드는 이름도 절대 쓰지 마세요.'
+    : '- 서준, 지우, 하은, 민준, 서아, 지아, 예준, 수아, 하준, 지유 같은 최근 10년 인기 1~30위 이름은 반드시 피하세요';
 
   return `당신은 한국 아기 이름 탐험가입니다. 사용자는 이미 알고 있는 이름이 아닌, 미처 생각하지 못했던 새로운 이름을 발견하고 싶어합니다.
 
 [탐색 원칙]
-- 서준, 지우, 하은, 민준, 서아, 지아, 예준, 수아, 하준, 지유 같은 최근 10년 인기 1~30위 이름은 반드시 피하세요
+${rarePrinciple}
 - 아름답고 의미 있지만 잘 알려지지 않은, 사용자가 미처 생각하지 못했을 만한 이름을 찾아주세요
 - 첫 음절이 서로 다른 이름들로 구성해 다양성을 극대화하세요
 - 다채로운 한자 조합과 음감을 탐색하세요
@@ -127,6 +147,8 @@ function buildPrompt({ last_name, gender, syllables, preferred_names, count, exc
 - 성: ${last_name}
 - 성별: ${gender}
 - 이름 글자 수: 반드시 ${syllableStr}인 이름만 추천 (성 제외, 이 규칙은 절대 어기지 마세요)
+${popularityLine}
+${vibesLine}
 - 참고 이름 (느낌·스타일 기준): ${preferredStr}${preferredStr !== '없음' ? ' — 이 이름들과 비슷한 분위기이되, 이 이름들 자체는 추천하지 마세요. 같은 첫 음절도 피하세요' : ''}${excludeStr}
 
 위 탐색 원칙과 요청 조건에 맞는 한국 아기 이름 ${count}개를 추천해 주세요.
@@ -155,6 +177,8 @@ app.post('/api/generate', async (req, res) => {
     last_name, gender,
     syllables = [],
     preferred_names = [],
+    popularity = 'any',
+    vibes = [],
     count = 5,
     exclude = [],
   } = req.body;
@@ -164,7 +188,7 @@ app.post('/api/generate', async (req, res) => {
   if (!gender || typeof gender !== 'string') return res.status(400).json({ detail: '성별을 선택해주세요.' });
   const clampedCount = Math.min(30, Math.max(1, Number(count) || 10));
 
-  const prompt = buildPrompt({ last_name, gender, syllables, preferred_names, count: clampedCount, exclude });
+  const prompt = buildPrompt({ last_name, gender, syllables, preferred_names, popularity, vibes, count: clampedCount, exclude });
   const allowed = new Set(syllables.map(s => SYLLABLE_MAP[s]).filter(Boolean));
 
   res.setHeader('Content-Type', 'text/event-stream');
