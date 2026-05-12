@@ -1243,8 +1243,15 @@
 </head>
 <body>
 
+<!-- 세션 확인 중 로딩 스플래시 -->
+<div class="auth-overlay" id="page-loading" style="justify-content:center;align-items:center;flex-direction:column;gap:16px">
+  <div style="font-size:56px">👶</div>
+  <div class="auth-logo">PickMeBaby</div>
+  <div style="width:32px;height:32px;border:3px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin-top:8px"></div>
+</div>
+
 <!-- 로그인/가입 페이지 -->
-<div class="auth-overlay" id="page-auth">
+<div class="auth-overlay hidden" id="page-auth">
 
   <div style="font-size:48px;margin-bottom:10px">👶</div>
   <div class="auth-logo">PickMeBaby</div>
@@ -3115,19 +3122,24 @@ async function joinFamily() {
 
 // ── 화면 전환 ─────────────────────────────
 
-function _showAuthPage() {
-  document.getElementById('page-auth').classList.remove('hidden');
+function _hideOverlays() {
+  document.getElementById('page-loading').classList.add('hidden');
+  document.getElementById('page-auth').classList.add('hidden');
   document.getElementById('page-onboarding').classList.add('hidden');
 }
 
+function _showAuthPage() {
+  _hideOverlays();
+  document.getElementById('page-auth').classList.remove('hidden');
+}
+
 function _showOnboardingPage() {
-  document.getElementById('page-auth').classList.add('hidden');
+  _hideOverlays();
   document.getElementById('page-onboarding').classList.remove('hidden');
 }
 
 function _showApp(role) {
-  document.getElementById('page-auth').classList.add('hidden');
-  document.getElementById('page-onboarding').classList.add('hidden');
+  _hideOverlays();
   localStorage.setItem('current_author', role);
   applyTheme(role);
   renderUserBar();
@@ -3160,7 +3172,13 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
   if (session) {
     if (_lastHandledUserId === session.user.id) return;
     _lastHandledUserId = session.user.id;
-    await _handleSession(session);
+    try {
+      await _handleSession(session);
+    } catch (e) {
+      console.error('[auth] _handleSession 실패:', e);
+      _lastHandledUserId = null;
+      _showAuthPage();
+    }
   } else {
     _lastHandledUserId = null;
     _cachedToken = null;
