@@ -3062,9 +3062,13 @@ function switchAuthTab(tab) {
 
 async function loginWithGoogle() {
   _setLoading('btn-google', true);
+  const loginHint = localStorage.getItem('pmb_google_email') || '';
   const { error } = await _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: {
+      redirectTo: window.location.origin,
+      queryParams: loginHint ? { login_hint: loginHint } : {},
+    },
   });
   if (error) {
     document.getElementById('auth-error').textContent = 'Google 로그인에 실패했습니다. 다시 시도해주세요.';
@@ -3347,6 +3351,7 @@ function _showApp(role) {
 // ── Auth 상태 초기화 ──────────────────────
 
 async function _handleSession(session) {
+  if (session.user?.email) localStorage.setItem('pmb_google_email', session.user.email);
   let { data: profile } = await _supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
   if (_lastHandledUserId !== session.user.id) return; // 로그아웃 등으로 세션 변경됨
   if (!profile) {
