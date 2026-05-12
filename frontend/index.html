@@ -3157,11 +3157,21 @@ async function _handleSession(session) {
   _currentProfile = profile;
   if (!profile?.family_id) {
     _showOnboardingPage();
-  } else {
-    await loadNamesFromDB();
-    _showApp(profile.role || getCurrentUser());
+    return;
   }
+  // 앱 화면 먼저 보여주고 데이터는 백그라운드 로드
+  _showApp(profile.role || getCurrentUser());
+  await loadNamesFromDB();
+  renderProfile();
 }
+
+// 5초 안에 세션 확인 안 되면 로그인 화면으로 강제 이동
+setTimeout(() => {
+  if (!document.getElementById('page-loading').classList.contains('hidden')) {
+    console.warn('[auth] 세션 확인 타임아웃 → 로그인 화면');
+    _showAuthPage();
+  }
+}, 5000);
 
 _supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'TOKEN_REFRESHED') {
