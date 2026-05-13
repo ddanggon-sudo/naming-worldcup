@@ -911,8 +911,6 @@ async function buildPage2Html(data) {
     '{{last_name_strokes}}':   String(lastCharData.strokes),
     '{{last_name_yang_eum}}':  lastCharData.yang_eum,
     '{{name_ko}}':             full_name_korean,
-    '{{office_name}}':         '픽마이네임 작명연구소',
-    '{{seal_char}}':           '印',
     '{{GIVEN_NAME_CHARS_HTML}}': _renderGivenNameChars(givenCharData),
     '{{DEOKDAM_HTML}}':        _renderDeokdam(deokdamItems),
     '{{PALJA_HTML}}':          _renderPalja(pillars),

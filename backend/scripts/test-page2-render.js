@@ -53,8 +53,6 @@ const dummy = {
     { hanja: '良配貴子', ko: '양배귀자' },
   ],
 
-  office_name: '픽마이네임 작명연구소',
-  seal_char:   '印',
 };
 
 // ── HTML 블록 렌더링 ───────────────────────────────────────────
@@ -117,8 +115,6 @@ function render(data) {
     '{{last_name_strokes}}':  String(data.last_name_strokes),
     '{{last_name_yang_eum}}': data.last_name_yang_eum,
     '{{name_ko}}':            data.name_ko,
-    '{{office_name}}':        data.office_name,
-    '{{seal_char}}':          data.seal_char,
     '{{GIVEN_NAME_CHARS_HTML}}': renderGivenNameChars(data.given_name_chars),
     '{{DEOKDAM_HTML}}':       renderDeokdam(data.deokdam_items),
     '{{PALJA_HTML}}':         renderPalja(data.palja),

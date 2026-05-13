@@ -195,24 +195,6 @@
     line-height: 1.2;
   }
 
-  /* ═══════ Seal + Office — bottom left ═══════ */
-  .zone-seal {
-    bottom: 27mm;
-    left: 13mm;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 3mm;
-  }
-  .seal-svg { width: 21mm; height: 21mm; flex-shrink: 0; }
-  .office-name-vert {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    font-size: 8.5pt;
-    font-weight: 700;
-    color: #111;
-    letter-spacing: 0.18em;
-  }
 </style>
 </head>
 <body>
@@ -342,16 +324,6 @@
   </div>
 </div>
 
-<!-- Seal + Office -->
-<div class="abs zone-seal">
-  <svg class="seal-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <rect x="5" y="5" width="90" height="90" fill="rgba(196,30,58,0.06)" stroke="#c41e3a" stroke-width="4.5"/>
-    <rect x="13" y="13" width="74" height="74" fill="none" stroke="#c41e3a" stroke-width="1.2"/>
-    <text x="50" y="64" text-anchor="middle" font-size="40" font-weight="900" fill="#c41e3a"
-          font-family="'HYGungsuh','궁서','Gungsuh','Noto Serif KR',serif">{{seal_char}}</text>
-  </svg>
-  <div class="office-name-vert">{{office_name}}</div>
-</div>
 
 </body>
 </html>
