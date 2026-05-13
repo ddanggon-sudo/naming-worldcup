@@ -587,7 +587,7 @@ ${candidateList}
 
 각 항목 평가 기준:
 - hanja: 후보 한자 문자열 (그대로 복사)
-- meaning_score: 이름으로서 의미의 자연스러움 (0~30점)
+- meaning_score: 이름으로서 의미의 자연스러움 (0~20점)
 - meaning: 두 글자 합친 뜻 (10자 이내 한국어)
 - explanation: 사주·이름 조화 설명 (1문장, 해당 한자 언급 포함)
 - category: "saju_match"(용신 보완) | "meaning"(의미 아름다움) | "classic"(전통·인기)
@@ -629,7 +629,7 @@ ${candidateList}
         const cand = candByHanja[item.hanja];
         return {
           hanja:             cand.hanjaStr,
-          score:             Math.min(100, cand.baseScore + Math.max(10, item.meaning_score || 0)),
+          score:             Math.min(100, cand.baseScore + (item.meaning_score ?? 0)),
           is_recommended:    false,
           elements_jawon:    cand.jawon,
           elements_eumryeong: eumryeongList,
