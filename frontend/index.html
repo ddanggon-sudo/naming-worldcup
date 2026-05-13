@@ -3039,15 +3039,12 @@ function renderSavedNames() {
     }
   });
 
-  // DocumentFragment로 추가/재정렬
+  // 항상 최신 데이터로 카드 재빌드
   const fragment = document.createDocumentFragment();
   saved.forEach(n => {
     const existing = el.querySelector(`[data-saved-id="${n.id}"]`);
-    if (existing) {
-      fragment.appendChild(existing);
-    } else {
-      fragment.appendChild(_buildSavedCardEl(n));
-    }
+    if (existing) existing.remove();
+    fragment.appendChild(_buildSavedCardEl(n));
   });
   el.appendChild(fragment);
 }
