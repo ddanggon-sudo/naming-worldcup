@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PickMyName</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --primary: #6C63FF;
@@ -606,6 +605,8 @@
   /* 로딩 */
   .loading { display: none; text-align: center; padding: 36px 20px; }
   .loading.visible { display: block; }
+  #saju-loading { min-height: 200px; }
+  #saju-content { min-height: 600px; }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -2297,6 +2298,7 @@
   </div>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 // ════════════════════════════════
 // 상태
@@ -3710,6 +3712,7 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
   document.getElementById('saju-page-title').textContent = `🔮 ${nameObj.last_name || ''}${nameObj.name} 사주 풀이`;
 
   try {
+    // 1. 즉시 결과 수신
     const res = await fetch(API + '/api/saju/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3729,12 +3732,67 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
     }
     const data = await res.json();
     _currentSajuResult = data;
-    _renderSajuResult(data, nameObj);
+    // 풀이 placeholder로 렌더 먼저 표시
+    _renderSajuResult({ ...data, narrative: '' }, nameObj);
+    document.getElementById('saju-narrative').textContent = '풀이를 생성하는 중...';
+
+    // 2. LLM 풀이 스트리밍 (별도 요청)
+    _streamSajuNarrative(nameObj, data);
   } catch (e) {
     console.error('[saju] 분석 실패:', e);
     document.getElementById('saju-loading').style.display = 'none';
     document.getElementById('saju-error').style.display = 'block';
     document.getElementById('saju-error-msg').textContent = e.message;
+  }
+}
+
+async function _streamSajuNarrative(nameObj, sajuData) {
+  const narrativeEl = document.getElementById('saju-narrative');
+  try {
+    const res = await fetch(API + '/api/saju/narrative', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: nameObj.name,
+        hanja: nameObj.hanja,
+        last_name: nameObj.last_name || '',
+        gender: nameObj.gender || '남아',
+        palja: sajuData.palja,
+        elements: sajuData.elements,
+        yongsin: sajuData.yongsin,
+        score: sajuData.score,
+      }),
+    });
+    if (!res.ok) { narrativeEl.textContent = '풀이 생성에 실패했습니다.'; return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let text = '';
+    narrativeEl.textContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') break;
+        try {
+          const { token } = JSON.parse(payload);
+          if (token) { text += token; narrativeEl.textContent = text; }
+        } catch (_) {}
+      }
+    }
+    if (!text) narrativeEl.textContent = '풀이 생성에 실패했습니다.';
+    // _currentSajuResult에도 narrative 업데이트 (증명서 생성 등에 활용)
+    if (_currentSajuResult) _currentSajuResult.narrative = text;
+  } catch (e) {
+    console.warn('[saju/narrative] 스트리밍 실패:', e.message);
+    narrativeEl.textContent = '풀이 생성에 실패했습니다.';
   }
 }
 

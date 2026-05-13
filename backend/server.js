@@ -54,7 +54,7 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
 const CHROMIUM_REMOTE_URL =
   'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar';
 
-async function launchBrowser() {
+async function _createBrowser() {
   // Vercel/Lambda: @sparticuz/chromium-min + 원격 바이너리 다운로드
   try {
     const { default: chromium } = await import('@sparticuz/chromium-min');
@@ -92,64 +92,67 @@ async function launchBrowser() {
   });
 }
 
-// ── 작명증 외곽 테두리 이미지 base64 (서버 시작 시 1회 로드) ─────
-let _cert2BorderB64 = null;
-function loadCert2BorderB64() {
-  if (_cert2BorderB64) return _cert2BorderB64;
-  const p = path.join(__dirname, '..', 'frontend', 'img', 'cert2-border.jpg');
-  _cert2BorderB64 = readFileSync(p).toString('base64');
-  return _cert2BorderB64;
+// Item 6: warm 인스턴스에서 브라우저 재사용 (cold start 비용 1회로 감소)
+let _browserInstance = null;
+
+async function launchBrowser() {
+  if (_browserInstance) {
+    try {
+      // 살아있는지 확인 (연결 끊기면 예외)
+      await _browserInstance.pages();
+      return _browserInstance;
+    } catch {
+      _browserInstance = null;
+    }
+  }
+  _browserInstance = await _createBrowser();
+  return _browserInstance;
 }
 
-// ── 한양해서 폰트 base64 (서버 시작 시 1회 로드) ─────────────────
-let _hanyangFontB64 = null;
-function loadHanyangFontB64() {
-  if (_hanyangFontB64) return _hanyangFontB64;
+async function releaseBrowser(browser) {
+  // 재사용 모드: 브라우저를 닫지 않고 유지
+  // 단, 모듈 레벨 인스턴스가 아닌 경우(폴백 등)는 닫음
+  if (browser !== _browserInstance) {
+    try { await browser.close(); } catch {}
+  }
+}
+
+
+// ── 모듈 레벨 데이터 초기화 (Item 2: cold start 최적화) ──────────
+const _hanyangFontB64 = (() => {
   const p = path.join(__dirname, 'fonts', 'UNI_HSR_subset.woff2');
-  _hanyangFontB64 = readFileSync(p).toString('base64');
-  return _hanyangFontB64;
-}
+  return readFileSync(p).toString('base64');
+})();
+function loadHanyangFontB64() { return _hanyangFontB64; }
 
-// ── hanja_db.json 로드 (서버 시작 시 1회) ──────────────────────
-
-let _hanjaDB = null;
-function loadHanjaDB() {
-  if (_hanjaDB) return _hanjaDB;
+const _hanjaDB = (() => {
   const p = path.join(__dirname, 'data', 'hanja_db.json');
   const raw = readFileSync(p, 'utf-8').replace(/^﻿/, '');
   const parsed = JSON.parse(raw);
-  _hanjaDB = (parsed.hanja && typeof parsed.hanja === 'object' && !Array.isArray(parsed.hanja))
+  const db = (parsed.hanja && typeof parsed.hanja === 'object' && !Array.isArray(parsed.hanja))
     ? parsed.hanja : parsed;
-  console.log(`[db] 한자 DB 로드 완료: ${Object.keys(_hanjaDB).length}자`);
-  return _hanjaDB;
-}
+  console.log(`[db] 한자 DB 로드 완료: ${Object.keys(db).length}자`);
+  return db;
+})();
+function loadHanjaDB() { return _hanjaDB; }
 
-// ── hanja_meta_ext.json 로드 (음/뜻 확장 폴백) ───────────────────
-let _hanjaMetaExt = null;
-function loadHanjaMetaExt() {
-  if (_hanjaMetaExt) return _hanjaMetaExt;
+const _hanjaMetaExt = (() => {
   const p = path.join(__dirname, 'data', 'hanja_meta_ext.json');
-  _hanjaMetaExt = JSON.parse(readFileSync(p, 'utf-8'));
-  return _hanjaMetaExt;
-}
+  return JSON.parse(readFileSync(p, 'utf-8'));
+})();
+function loadHanjaMetaExt() { return _hanjaMetaExt; }
 
-// ── hanja_hun.json 로드 (전통 훈 형식) ───────────────────────────
-let _hanjaHun = null;
-function loadHanjaHun() {
-  if (_hanjaHun) return _hanjaHun;
+const _hanjaHun = (() => {
   const p = path.join(__dirname, 'data', 'hanja_hun.json');
-  _hanjaHun = JSON.parse(readFileSync(p, 'utf-8'));
-  return _hanjaHun;
-}
+  return JSON.parse(readFileSync(p, 'utf-8'));
+})();
+function loadHanjaHun() { return _hanjaHun; }
 
-// ── hanja_sound.json 로드 (Unihan kHangul 기반, ~7,900자 음 폴백) ──
-let _hanjaSound = null;
-function loadHanjaSound() {
-  if (_hanjaSound) return _hanjaSound;
+const _hanjaSound = (() => {
   const p = path.join(__dirname, 'data', 'hanja_sound.json');
-  _hanjaSound = JSON.parse(readFileSync(p, 'utf-8'));
-  return _hanjaSound;
-}
+  return JSON.parse(readFileSync(p, 'utf-8'));
+})();
+function loadHanjaSound() { return _hanjaSound; }
 
 // ── 음령오행 계산 ────────────────────────────────────────────────
 // 초성 인덱스 → 오행: ㄱㄲㅋ=木 / ㄴㄷㄸㄹㅌ=火 / ㅇㅎ=土 / ㅅㅆㅈㅉㅊ=金 / ㅁㅂㅃㅍ=水
@@ -233,17 +236,13 @@ function scoreLabel(score) {
 }
 
 // ── names_db.json 로드 (서버 시작 시 1회) ──────────────────────
-
-let _namesDB = null;
-
-function loadDB() {
-  if (_namesDB) return _namesDB;
+const _namesDB = (() => {
   const dataPath = path.join(__dirname, 'data', 'names_db.json');
-  const raw = JSON.parse(readFileSync(dataPath, 'utf-8'));
-  _namesDB = raw.names;
-  console.log(`[db] 이름 DB 로드 완료: ${_namesDB.length}개`);
-  return _namesDB;
-}
+  const names = JSON.parse(readFileSync(dataPath, 'utf-8')).names;
+  console.log(`[db] 이름 DB 로드 완료: ${names.length}개`);
+  return names;
+})();
+function loadDB() { return _namesDB; }
 
 // ── DB 필터링 (Python openrouter.py 포팅) ──────────────────────
 
@@ -584,42 +583,7 @@ const jawonList = [...hanja].map(ch => {
       hour_known,
     });
 
-    // 5. LLM 자연어 풀이
-    const model = 'google/gemini-2.5-flash';
-    const sajuStr = [
-      `년주 ${palja.year.cheon}${palja.year.ji}`,
-      `월주 ${palja.month.cheon}${palja.month.ji}`,
-      `일주 ${palja.day.cheon}${palja.day.ji}`,
-      palja.hour ? `시주 ${palja.hour.cheon}${palja.hour.ji}` : '시주 미상',
-    ].join(' / ');
-    const elemStr = Object.entries(elements).map(([k,v]) => `${k}:${v}`).join(' ');
-    const llmPrompt = `한국 아기 이름 분석 결과를 자연스러운 한국어로 2~3문장으로 풀어 써주세요.
-
-이름: ${last_name}${name} (${hanja})
-성별: ${gender}
-사주팔자: ${sajuStr}
-오행 분포: ${elemStr}
-용신(부족 오행): ${yongsin}
-자원오행: ${jawonList.join(' ')}
-음령오행: ${eumryeongList.join(' ')}
-적합도 점수: ${score}점 (${scoreLabel(score)})
-
-부모가 이 이름을 지어주며 어떤 의미를 담았는지, 사주와 이름의 조화 여부를 따뜻하게 설명해 주세요.`;
-
-    let narrative = '';
-    try {
-      const llmRes = await client.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: llmPrompt }],
-        temperature: 0.7,
-        max_tokens: 300,
-      });
-      narrative = llmRes.choices?.[0]?.message?.content?.trim() || '';
-    } catch (llmErr) {
-      console.warn(`[saju] LLM 호출 실패: ${llmErr.message}`);
-      // narrative는 빈 값으로 나머지 데이터는 정상 반환
-    }
-
+    // 5. 즉시 반환 (LLM 풀이는 /api/saju/narrative 에서 스트리밍)
     return res.json({
       palja,
       elements,
@@ -632,12 +596,73 @@ const jawonList = [...hanja].map(ch => {
       },
       score,
       score_label: scoreLabel(score),
-      narrative,
     });
 
   } catch (err) {
     console.error('[saju] 오류:', err.message);
     return res.status(500).json({ detail: err.message });
+  }
+});
+
+// ── POST /api/saju/narrative (LLM 풀이 SSE 스트리밍) ─────────────
+app.post('/api/saju/narrative', async (req, res) => {
+  const {
+    birth_date, birth_hour = null,
+    name, hanja, last_name, gender,
+    palja, elements, yongsin, score,
+  } = req.body;
+
+  if (!name || !hanja || !last_name || !gender || !palja || !elements || !yongsin) {
+    return res.status(400).json({ detail: 'name, hanja, last_name, gender, palja, elements, yongsin 필드가 필요합니다.' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const sajuStr = [
+    `년주 ${palja.year?.cheon}${palja.year?.ji}`,
+    `월주 ${palja.month?.cheon}${palja.month?.ji}`,
+    `일주 ${palja.day?.cheon}${palja.day?.ji}`,
+    palja.hour ? `시주 ${palja.hour.cheon}${palja.hour.ji}` : '시주 미상',
+  ].join(' / ');
+  const elemStr = Object.entries(elements).map(([k,v]) => `${k}:${v}`).join(' ');
+  const jawonList = [...hanja].map(ch => _hanjaDB[ch]?.ohaeng_won || '土');
+  const eumryeongList = calcEumryeong(last_name + name);
+  const scoreVal = score ?? 0;
+
+  const llmPrompt = `한국 아기 이름 분석 결과를 자연스러운 한국어로 2~3문장으로 풀어 써주세요.
+
+이름: ${last_name}${name} (${hanja})
+성별: ${gender}
+사주팔자: ${sajuStr}
+오행 분포: ${elemStr}
+용신(부족 오행): ${yongsin}
+자원오행: ${jawonList.join(' ')}
+음령오행: ${eumryeongList.join(' ')}
+적합도 점수: ${scoreVal}점 (${scoreLabel(scoreVal)})
+
+부모가 이 이름을 지어주며 어떤 의미를 담았는지, 사주와 이름의 조화 여부를 따뜻하게 설명해 주세요.`;
+
+  try {
+    const stream = await client.chat.completions.create({
+      model: 'google/gemini-2.5-flash',
+      messages: [{ role: 'user', content: llmPrompt }],
+      temperature: 0.7,
+      max_tokens: 300,
+      stream: true,
+    });
+    for await (const chunk of stream) {
+      const token = chunk.choices?.[0]?.delta?.content ?? '';
+      if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
+    }
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (llmErr) {
+    console.warn(`[saju/narrative] LLM 실패: ${llmErr.message}`);
+    res.write('data: [DONE]\n\n');
+    res.end();
   }
 });
 
@@ -923,8 +948,8 @@ const FIXED_DEOKDAM = [
   { hanja: '健康長壽', ko: '건강장수' }, { hanja: '良配貴子', ko: '양배귀자' },
 ];
 
-// 페이지2 HTML 생성
-function buildPage2Html(data) {
+// 페이지2 HTML 생성 (embedFont=false 이면 URL 사용, 브라우저 캐시 활용)
+function buildPage2Html(data, { embedFont = true } = {}) {
   const {
     full_name_hanja  = '',
     full_name_korean = '',
@@ -987,15 +1012,15 @@ function buildPage2Html(data) {
 
   // 템플릿 치환
   let html = readFileSync(path.join(__dirname, 'templates', 'certificate-page2.html'), 'utf-8');
-  // 폰트를 data URI로 인라인 (iframe 환경에서 URL 로딩 실패 방지)
-  const fontB64 = loadHanyangFontB64();
-  html = html.replace(
-    /src:\s*url\('[^']*UNI_HSR[^']*'\)\s*format\('woff2'\)[^;]*;/,
-    `src: url('data:font/woff2;base64,${fontB64}') format('woff2');`
-  );
-  // 외곽 테두리 이미지를 data URI로 인라인
-  const borderB64 = loadCert2BorderB64();
-  html = html.replace('{{CERT2_BORDER_B64}}', borderB64);
+  if (embedFont) {
+    // Puppeteer/스크린샷 환경: data URI 인라인 (URL 로딩 불가)
+    const fontB64 = loadHanyangFontB64();
+    html = html.replace(
+      /src:\s*url\('[^']*UNI_HSR[^']*'\)\s*format\('woff2'\)[^;]*;/,
+      `src: url('data:font/woff2;base64,${fontB64}') format('woff2');`
+    );
+  }
+  // embedFont=false 이면 템플릿 원본 URL (/fonts/UNI_HSR_subset.woff2) 그대로 사용
   const vars = {
     '{{cert_title}}':          '作名證',
     '{{birth_year_gapja}}':    birthYearGapja,
@@ -1036,7 +1061,8 @@ async function buildCertificatePdf(data) {
     printBackground: true,
     margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
-  await browser.close();
+  await page.close();
+  await releaseBrowser(browser);
   return Buffer.from(pdfRaw);
 }
 
@@ -1085,7 +1111,8 @@ async function buildCertificateFullPdf(data) {
     printBackground: true,
     margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
-  await browser.close();
+  await page.close();
+  await releaseBrowser(browser);
   return Buffer.from(pdfRaw);
 }
 
@@ -1096,7 +1123,7 @@ app.post('/api/certificate/preview-page2', (req, res) => {
   const { data } = req.body;
   if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
   try {
-    const html  = buildPage2Html(data);
+    const html  = buildPage2Html(data, { embedFont: false });
     const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
     _previewTokens.set(token, html);
     setTimeout(() => _previewTokens.delete(token), 5 * 60 * 1000);
@@ -1139,7 +1166,8 @@ async function buildCertificateJpg(data) {
     quality: 95,
     clip: { x: 0, y: 0, width: 794, height: captureHeight },
   });
-  await browser.close();
+  await page.close();
+  await releaseBrowser(browser);
   return Buffer.from(jpgBuffer);
 }
 
@@ -1199,7 +1227,8 @@ async function buildCert2Jpg(data) {
     quality: 95,
     clip: { x: 0, y: 0, width: 794, height: captureHeight },
   });
-  await browser.close();
+  await page.close();
+  await releaseBrowser(browser);
   return Buffer.from(jpgBuffer);
 }
 
@@ -1215,7 +1244,8 @@ async function buildCert2Pdf(data) {
     printBackground: true,
     margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
-  await browser.close();
+  await page.close();
+  await releaseBrowser(browser);
   return Buffer.from(pdfRaw);
 }
 
