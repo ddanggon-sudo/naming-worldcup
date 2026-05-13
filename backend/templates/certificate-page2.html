@@ -7,7 +7,7 @@
 <style>
   @font-face {
     font-family: 'HYGungsuh';
-    src: url('../fonts/hy.ttf') format('truetype');
+    src: url('/fonts/hy.ttf') format('truetype');
   }
 
   @page { size: A4; margin: 0; }
@@ -325,5 +325,24 @@
 </div>
 
 
+<script>
+  (function() {
+    function applyScale() {
+      var W = 794; // A4 기준 픽셀 너비
+      var vw = window.innerWidth || document.documentElement.clientWidth;
+      var scale = Math.min(1, vw / W);
+      document.body.style.transformOrigin = 'top left';
+      document.body.style.transform = 'scale(' + scale + ')';
+      document.documentElement.style.height = Math.ceil(1123 * scale) + 'px';
+      document.documentElement.style.overflow = 'hidden';
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyScale);
+    } else {
+      applyScale();
+    }
+    window.addEventListener('resize', applyScale);
+  })();
+</script>
 </body>
 </html>

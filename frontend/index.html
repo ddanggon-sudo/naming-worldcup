@@ -4007,8 +4007,6 @@ function openCertificate() {
   setTimeout(() => _renderCertificate(), 300);
 }
 
-let _cert2PrevBlobUrl = null;
-
 async function openCert2() {
   if (!_currentSajuName || !_currentSajuResult) {
     showToast('먼저 사주 분석을 완료해주세요.');
@@ -4022,27 +4020,26 @@ async function openCert2() {
   document.getElementById('cert2-content').style.display = 'none';
 
   try {
-    const payload = _buildCertPayload();
     const res = await fetch(API + '/api/certificate/preview-page2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: payload }),
+      body: JSON.stringify({ data: _buildCertPayload() }),
     });
     if (!res.ok) throw new Error('미리보기 생성 실패');
-    const html = await res.text();
-
-    if (_cert2PrevBlobUrl) URL.revokeObjectURL(_cert2PrevBlobUrl);
-    const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
-    _cert2PrevBlobUrl = URL.createObjectURL(blob);
+    const { token } = await res.json();
 
     const iframe = document.getElementById('cert2-iframe');
     iframe.onload = () => {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      iframe.style.height = (doc.documentElement.scrollHeight || 900) + 'px';
+      try {
+        const scale = Math.min(1, iframe.clientWidth / 794);
+        iframe.style.height = Math.ceil(1123 * scale) + 'px';
+      } catch(_) {
+        iframe.style.height = '600px';
+      }
       document.getElementById('cert2-loading').style.display = 'none';
       document.getElementById('cert2-content').style.display = 'block';
     };
-    iframe.src = _cert2PrevBlobUrl;
+    iframe.src = API + '/api/certificate/preview-page2/' + token;
   } catch (e) {
     console.error('[cert2]', e);
     document.getElementById('cert2-loading').style.display = 'none';

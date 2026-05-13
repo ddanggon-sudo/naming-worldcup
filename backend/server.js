@@ -37,6 +37,7 @@ const app = express();
 app.use(cors());
 app.use(compression());
 app.use(express.json({ limit: '100kb' }));
+app.use('/fonts', express.static(path.join(__dirname, 'fonts'), { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   maxAge: '1d',
   etag: true,
@@ -963,19 +964,31 @@ async function buildCertificatePdf(data) {
   return Buffer.from(pdfRaw);
 }
 
-// ── POST /api/certificate/preview-page2 ──────────────────────
+// ── POST /api/certificate/preview-page2 → token 발급 ─────────
+const _previewTokens = new Map(); // token → html (TTL 5분)
+
 app.post('/api/certificate/preview-page2', (req, res) => {
   const { data } = req.body;
   if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
   try {
-    const html = buildPage2Html(data);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-    return res.send(html);
+    const html  = buildPage2Html(data);
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    _previewTokens.set(token, html);
+    setTimeout(() => _previewTokens.delete(token), 5 * 60 * 1000);
+    return res.json({ token });
   } catch (err) {
     console.error('[cert-preview] 오류:', err.message);
     return res.status(500).json({ detail: err.message });
   }
+});
+
+// ── GET /api/certificate/preview-page2/:token ─────────────────
+app.get('/api/certificate/preview-page2/:token', (req, res) => {
+  const html = _previewTokens.get(req.params.token);
+  if (!html) return res.status(404).send('미리보기가 만료됐습니다.');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.send(html);
 });
 
 app.post('/api/certificate/generate', async (req, res) => {
