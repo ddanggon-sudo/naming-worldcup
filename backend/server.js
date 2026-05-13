@@ -496,7 +496,7 @@ const jawonList = [...hanja].map(ch => {
     });
 
     // 5. LLM 자연어 풀이
-    const model = 'openai/gpt-4o-mini';
+    const model = 'google/gemini-2.5-flash';
     const sajuStr = [
       `년주 ${palja.year.cheon}${palja.year.ji}`,
       `월주 ${palja.month.cheon}${palja.month.ji}`,
@@ -623,7 +623,7 @@ app.post('/api/hanja/alternatives', async (req, res) => {
     // 6. 상위 15개 후보 LLM 평가
     const TOP_N = 15;
     const topCandidates = scored.slice(0, TOP_N);
-    const model = 'openai/gpt-4o-mini';
+    const model = 'google/gemini-2.5-flash';
 
     const candidateList = topCandidates.map(({ hanjaStr, jawon, combo }, i) => {
       const details = combo.map(c => `${c.char}(${c.meaning})`).join('·');
