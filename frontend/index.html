@@ -2101,12 +2101,14 @@
     </div>
 
     <div class="cert-action-area">
-      <div class="cert-lock-text">
-        고화질 PDF로 저장하세요.
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="downloadCertJpg(this)" style="font-size:14px;flex:1">
+          🖼️ JPG로 다운로드
+        </button>
+        <button class="btn btn-accent" onclick="_doCertDownload()" style="font-size:14px;flex:1">
+          📥 PDF로 다운로드
+        </button>
       </div>
-      <button class="btn btn-accent" onclick="downloadCertPdf()" style="font-size:14px">
-        📥 PDF로 다운로드
-      </button>
     </div>
 
     <div class="help-text">
@@ -3851,8 +3853,9 @@ async function _saveAltToProfile(hanja, meaning) {
   if (!n) return;
   const fullName = (n.last_name || '') + n.name;
   const saved = getSavedNames();
-  if (saved.find(s => s.full_name === fullName && s.hanja === hanja)) {
-    showToast(`"${fullName}(${hanja})"는 이미 보관함에 있어요.`);
+  const existing = saved.find(s => s.full_name === fullName);
+  if (existing) {
+    showToast(`"${fullName}"은(는) 이미 보관함에 있는 이름이에요.`);
     return;
   }
   const newEntry = {
@@ -3932,10 +3935,21 @@ function _renderHanjaAlt(data) {
     `${_EL_EMOJI[saju.yongsin] || ''} ${saju.yongsin}`;
 
   // 카드 HTML 생성
+  const fullNameForCheck = (name?.last_name || '') + base_name;
+  const alreadyInBookmark = getSavedNames().some(s => s.full_name === fullNameForCheck);
+
   function altCardHtml(alt) {
     const isRec = alt.is_recommended;
     const jawonStr = [...alt.hanja].map((ch, i) => `${ch}(${alt.elements_jawon[i] || ''})`).join('·');
     const eumStr = alt.elements_eumryeong.join('·');
+    let actionBtn;
+    if (_sajuPrevPage === 'worldcup') {
+      actionBtn = alreadyInBookmark
+        ? `<button class="btn btn-outline" disabled style="font-size:13px;padding:8px 14px;width:100%;opacity:0.5;cursor:not-allowed">📦 이미 보관함에 있는 이름</button>`
+        : `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_saveAltToProfile('${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">보관함에 저장</button>`;
+    } else {
+      actionBtn = `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>`;
+    }
     return `
       <div class="hanja-alt-card${isRec ? ' recommended' : ''}">
         <div class="hanja-alt-top">
@@ -3944,12 +3958,7 @@ function _renderHanjaAlt(data) {
         </div>
         <div class="hanja-alt-meaning">${alt.meaning} — ${alt.explanation}</div>
         <div class="hanja-alt-elements">자원오행: ${jawonStr} / 음령오행: ${eumStr}</div>
-        <div style="margin-top:10px">
-          ${_sajuPrevPage === 'worldcup'
-            ? `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_saveAltToProfile('${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">보관함에 저장</button>`
-            : `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>`
-          }
-        </div>
+        <div style="margin-top:10px">${actionBtn}</div>
       </div>
     `;
   }
@@ -4021,6 +4030,14 @@ async function openCert2() {
   document.getElementById('cert2-loading').style.display = 'block';
   document.getElementById('cert2-content').style.display = 'none';
 
+  // 매번 iframe을 새로 생성해서 stale 상태 완전 제거
+  const wrapper = document.getElementById('cert2-wrapper');
+  wrapper.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:794px;height:1123px;border:none;transform-origin:top left;display:block';
+  iframe.setAttribute('scrolling', 'no');
+  wrapper.appendChild(iframe);
+
   try {
     const res = await fetch(API + '/api/certificate/preview-page2', {
       method: 'POST',
@@ -4030,11 +4047,12 @@ async function openCert2() {
     if (!res.ok) throw new Error('미리보기 생성 실패');
     const { token } = await res.json();
 
-    const iframe = document.getElementById('cert2-iframe');
-    const wrapper = document.getElementById('cert2-wrapper');
+    const htmlRes = await fetch(API + '/api/certificate/preview-page2/' + token);
+    const certHtml = await htmlRes.text();
 
-    iframe.onload = () => {
-      // 페이지 패딩(16px × 2) 제외한 실제 사용 너비
+    iframe.onload = async () => {
+      try { await iframe.contentDocument.fonts.ready; } catch(e) {}
+
       const pageEl = document.getElementById('page-cert2');
       const pageW = (pageEl.clientWidth || window.innerWidth) - 32;
       const scale = Math.min(1, pageW / 794);
@@ -4044,7 +4062,7 @@ async function openCert2() {
       document.getElementById('cert2-loading').style.display = 'none';
       document.getElementById('cert2-content').style.display = 'block';
     };
-    iframe.src = API + '/api/certificate/preview-page2/' + token;
+    iframe.srcdoc = certHtml;
   } catch (e) {
     console.error('[cert2]', e);
     document.getElementById('cert2-loading').style.display = 'none';
@@ -4127,14 +4145,45 @@ function _getHanjaForLastName(lastName) {
   return lastName;
 }
 
-async function downloadCertPdf() {
-  // 프리미엄 확인
-  const isPremium = localStorage.getItem('pmb_is_premium') === 'true';
-  if (!isPremium) {
-    openPaywallModal();
-    return;
+async function downloadCertJpg(btn) {
+  if (!_currentSajuResult || !_currentSajuName) return;
+
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
+
+  try {
+    const payload = { data: _buildCertPayload() };
+    const name = _currentSajuName;
+
+    const res = await fetch(API + '/api/certificate/generate-jpg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `오류 ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const safeKo = ((name.last_name || '') + name.name).replace(/\s/g, '');
+    anchor.href = url;
+    anchor.download = `작명감정서_${safeKo}.jpg`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast('✅ JPG 다운로드 완료!');
+
+  } catch (e) {
+    console.error('[cert-jpg]', e);
+    showToast('❌ JPG 생성 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
   }
-  await _doCertDownload();
 }
 
 function _buildCertPayload() {

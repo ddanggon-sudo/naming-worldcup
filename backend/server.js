@@ -48,6 +48,15 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   },
 }));
 
+// ── 한양해서 폰트 base64 (서버 시작 시 1회 로드) ─────────────────
+let _hanyangFontB64 = null;
+function loadHanyangFontB64() {
+  if (_hanyangFontB64) return _hanyangFontB64;
+  const p = path.join(__dirname, 'fonts', 'UNI_HSR_subset.woff2');
+  _hanyangFontB64 = readFileSync(p).toString('base64');
+  return _hanyangFontB64;
+}
+
 // ── hanja_db.json 로드 (서버 시작 시 1회) ──────────────────────
 
 let _hanjaDB = null;
@@ -56,11 +65,37 @@ function loadHanjaDB() {
   const p = path.join(__dirname, 'data', 'hanja_db.json');
   const raw = readFileSync(p, 'utf-8').replace(/^﻿/, '');
   const parsed = JSON.parse(raw);
-  // 플랫 or 중첩 구조 모두 지원
   _hanjaDB = (parsed.hanja && typeof parsed.hanja === 'object' && !Array.isArray(parsed.hanja))
     ? parsed.hanja : parsed;
   console.log(`[db] 한자 DB 로드 완료: ${Object.keys(_hanjaDB).length}자`);
   return _hanjaDB;
+}
+
+// ── hanja_meta_ext.json 로드 (음/뜻 확장 폴백) ───────────────────
+let _hanjaMetaExt = null;
+function loadHanjaMetaExt() {
+  if (_hanjaMetaExt) return _hanjaMetaExt;
+  const p = path.join(__dirname, 'data', 'hanja_meta_ext.json');
+  _hanjaMetaExt = JSON.parse(readFileSync(p, 'utf-8'));
+  return _hanjaMetaExt;
+}
+
+// ── hanja_hun.json 로드 (전통 훈 형식) ───────────────────────────
+let _hanjaHun = null;
+function loadHanjaHun() {
+  if (_hanjaHun) return _hanjaHun;
+  const p = path.join(__dirname, 'data', 'hanja_hun.json');
+  _hanjaHun = JSON.parse(readFileSync(p, 'utf-8'));
+  return _hanjaHun;
+}
+
+// ── hanja_sound.json 로드 (Unihan kHangul 기반, ~7,900자 음 폴백) ──
+let _hanjaSound = null;
+function loadHanjaSound() {
+  if (_hanjaSound) return _hanjaSound;
+  const p = path.join(__dirname, 'data', 'hanja_sound.json');
+  _hanjaSound = JSON.parse(readFileSync(p, 'utf-8'));
+  return _hanjaSound;
 }
 
 // ── 음령오행 계산 ────────────────────────────────────────────────
@@ -739,11 +774,15 @@ function _koreanNum(n) {
 
 // 페이지2 HTML 블록 렌더 헬퍼
 function _renderGivenNameChars(chars) {
+  const hun = loadHanjaHun();
   return chars.map(c => {
-    const meaning = (c.meaning || '').split(',')[0].trim();
+    const meaning = hun[c.char] || (c.meaning || '').split(',')[0].trim();
+    const sound   = c.sound || '';
+    const strokes = c.strokes || '?';
+    // 수직: 뜻(훈) → 공백 → 음 → 획수 순서 (top→bottom)
     return `
       <div class="name-char-row">
-        <div class="ann-left">${meaning} ${c.sound || ''} <span class="ann-strokes-h">(${c.strokes})</span></div>
+        <div class="ann-left">${meaning}　${sound}<span class="ann-strokes-h">(${strokes})</span></div>
         <span class="name-han-big">${c.char}</span>
       </div>`;
   }).join('');
@@ -870,11 +909,13 @@ function buildPage2Html(data) {
     ? suri.chars
     : [lastHanja, ...[...givenHanja]].map(c => ({ char: c, strokes: 0, yang_eum: '?' }));
   const lastCharData  = charData[0] || { char: lastHanja, strokes: 0, yang_eum: '?' };
-  const hanjaDB       = loadHanjaDB();
+  const hanjaDB    = loadHanjaDB();
+  const metaExt    = loadHanjaMetaExt();
+  const uniSound   = loadHanjaSound();
   const givenCharData = charData.slice(1).map(c => ({
     ...c,
-    sound:   hanjaDB[c.char]?.sound   || c.char,
-    meaning: hanjaDB[c.char]?.meaning || '',
+    sound:   hanjaDB[c.char]?.sound   || metaExt[c.char]?.sound   || uniSound[c.char] || c.char,
+    meaning: hanjaDB[c.char]?.meaning || metaExt[c.char]?.meaning || '',
   }));
 
   // 사주팔자 재계산
@@ -890,6 +931,12 @@ function buildPage2Html(data) {
 
   // 템플릿 치환
   let html = readFileSync(path.join(__dirname, 'templates', 'certificate-page2.html'), 'utf-8');
+  // 폰트를 data URI로 인라인 (iframe 환경에서 URL 로딩 실패 방지)
+  const fontB64 = loadHanyangFontB64();
+  html = html.replace(
+    /src:\s*url\('[^']*UNI_HSR[^']*'\)\s*format\('woff2'\)[^;]*;/,
+    `src: url('data:font/woff2;base64,${fontB64}') format('woff2');`
+  );
   const vars = {
     '{{cert_title}}':          '作名證',
     '{{birth_year_gapja}}':    birthYearGapja,
@@ -902,7 +949,7 @@ function buildPage2Html(data) {
     '{{birth_hour_ko}}':       birthHourKo,
     '{{birth_info_ko}}':       birthInfoKo,
     '{{last_name_hanja}}':     lastHanja,
-    '{{last_name_strokes}}':   String(lastCharData.strokes),
+    '{{last_name_strokes}}':   String(lastCharData.strokes || '?'),
     '{{last_name_yang_eum}}':  lastCharData.yang_eum,
     '{{name_ko}}':             full_name_korean,
     '{{GIVEN_NAME_CHARS_HTML}}': _renderGivenNameChars(givenCharData),
@@ -992,6 +1039,60 @@ app.get('/api/certificate/preview-page2/:token', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   return res.send(html);
+});
+
+// 감정서 JPG 생성 (page1만, 고해상도)
+async function buildCertificateJpg(data) {
+  const html1 = buildPage1Html(data);
+  const p1 = extractPageContent(html1);
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #fff; }
+    ${p1.styles}
+  </style>
+</head>
+<body>
+  <div style="width:794px;height:1123px;position:relative;overflow:hidden;padding:20mm 18mm;background:#fff;">${p1.bodyContent}</div>
+</body>
+</html>`;
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
+  const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
+  await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  const jpgBuffer = await page.screenshot({ type: 'jpeg', quality: 95, clip: { x: 0, y: 0, width: 794, height: 1123 } });
+  await browser.close();
+  return Buffer.from(jpgBuffer);
+}
+
+app.post('/api/certificate/generate-jpg', async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+
+  try {
+    const jpgBuffer = await buildCertificateJpg(data);
+    const safeKo = (data.full_name_korean || '').replace(/\s/g, '');
+    res.set({
+      'Content-Type': 'image/jpeg',
+      'Content-Disposition': `attachment; filename*=UTF-8''%EC%9E%91%EB%AA%85%EA%B0%90%EC%A0%95%EC%84%9C_${encodeURIComponent(safeKo)}.jpg`,
+      'Content-Length': jpgBuffer.length,
+    });
+    return res.send(jpgBuffer);
+  } catch (err) {
+    console.error('[cert-jpg] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
 });
 
 app.post('/api/certificate/generate', async (req, res) => {

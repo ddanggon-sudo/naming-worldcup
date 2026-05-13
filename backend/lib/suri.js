@@ -10,11 +10,12 @@ import path from 'path';
 import { strokesToYangEum } from './han-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const suri81  = JSON.parse(readFileSync(path.join(__dirname, '../data/suri_81.json'), 'utf-8'));
-const hanjaDB = JSON.parse(readFileSync(path.join(__dirname, '../data/hanja_db.json'), 'utf-8'));
+const suri81     = JSON.parse(readFileSync(path.join(__dirname, '../data/suri_81.json'), 'utf-8'));
+const hanjaDB    = JSON.parse(readFileSync(path.join(__dirname, '../data/hanja_db.json'), 'utf-8'));
+const strokesExt = JSON.parse(readFileSync(path.join(__dirname, '../data/strokes_ext.json'), 'utf-8'));
 
 function getStrokes(char) {
-  return hanjaDB[char]?.strokes ?? 0;
+  return hanjaDB[char]?.strokes ?? strokesExt[char] ?? 0;
 }
 
 function lookupSuri(num) {
