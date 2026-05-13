@@ -1997,8 +1997,12 @@
       <div class="ai-narrative" id="saju-narrative"></div>
     </div>
 
-    <div class="saju-action-row">
+    <div class="saju-action-row" style="flex-direction:column">
       <button class="btn btn-secondary" onclick="openHanjaAlt()">✨ 다른 한자 추천</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" style="flex:1" onclick="openCertificate()">📜 감정서 보기</button>
+        <button class="btn btn-accent" style="flex:1" onclick="_doCertDownload()">📋 증명서 보기</button>
+      </div>
     </div>
     <div class="help-text">
       <span class="gold">💎 사주 보기는 첫 1회 무료입니다.</span><br>
