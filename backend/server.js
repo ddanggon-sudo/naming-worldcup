@@ -7,6 +7,8 @@ import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import puppeteer from 'puppeteer';
+import puppeteerCore from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { calculateSaju, getElement } from './lib/saju.js';
 import { calculateSuri } from './lib/suri.js';
 import { generateDeokdam } from './lib/deokdam.js';
@@ -47,6 +49,24 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
     }
   },
 }));
+
+// ── Puppeteer 브라우저 런처 (Vercel: @sparticuz/chromium, 로컬: puppeteer) ──
+async function launchBrowser() {
+  try {
+    const execPath = await chromium.executablePath();
+    return puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: execPath,
+      headless: chromium.headless,
+    });
+  } catch {
+    return puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  }
+}
 
 // ── 한양해서 폰트 base64 (서버 시작 시 1회 로드) ─────────────────
 let _hanyangFontB64 = null;
@@ -971,10 +991,7 @@ function buildPage2Html(data) {
 // 감정서 PDF (page1만)
 async function buildCertificatePdf(data) {
   const html = buildPage1Html(data);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
@@ -1023,10 +1040,7 @@ async function buildCertificateFullPdf(data) {
 </body>
 </html>`;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(combined, { waitUntil: 'networkidle0', baseURL: templatesBase });
@@ -1071,10 +1085,7 @@ async function buildCertificateJpg(data) {
   // full page1 HTML을 그대로 사용 — extractPageContent 래퍼 방식은 이중 패딩 버그 유발
   const html = buildPage1Html(data);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
@@ -1137,10 +1148,7 @@ app.post('/api/certificate/generate', async (req, res) => {
 // 작명증 JPG 생성 (page2만)
 async function buildCert2Jpg(data) {
   const html = buildPage2Html(data);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
@@ -1162,10 +1170,7 @@ async function buildCert2Jpg(data) {
 // 작명증 PDF 생성 (page2만)
 async function buildCert2Pdf(data) {
   const html = buildPage2Html(data);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
