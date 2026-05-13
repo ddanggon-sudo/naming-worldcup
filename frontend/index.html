@@ -3803,6 +3803,13 @@ function _goHanjaAltPage() {
   window.scrollTo(0, 0);
 }
 
+function _replaceHanja(newHanja) {
+  const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
+  if (!birthInfo?.birth_date) { showToast('생년월일 정보가 없습니다.'); return; }
+  _currentSajuName = { ..._currentSajuName, hanja: newHanja };
+  _runSajuAnalysis(_currentSajuName, birthInfo);
+}
+
 function _renderHanjaAlt(data) {
   const { base_name, alternatives } = data;
   const name = _currentSajuName;
@@ -3834,6 +3841,9 @@ function _renderHanjaAlt(data) {
         </div>
         <div class="hanja-alt-meaning">${alt.meaning} — ${alt.explanation}</div>
         <div class="hanja-alt-elements">자원오행: ${jawonStr} / 음령오행: ${eumStr}</div>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>
+        </div>
       </div>
     `;
   }
