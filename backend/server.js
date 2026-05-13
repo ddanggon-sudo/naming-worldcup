@@ -6,7 +6,6 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
-import puppeteer from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import { calculateSaju, getElement } from './lib/saju.js';
 import { calculateSuri } from './lib/suri.js';
@@ -55,6 +54,7 @@ const CHROMIUM_REMOTE_URL =
   'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar';
 
 async function launchBrowser() {
+  // Vercel/Lambda: @sparticuz/chromium-min + 원격 바이너리 다운로드
   try {
     const { default: chromium } = await import('@sparticuz/chromium-min');
     const executablePath = await chromium.executablePath(CHROMIUM_REMOTE_URL);
@@ -65,12 +65,31 @@ async function launchBrowser() {
       headless: chromium.headless,
     });
   } catch (e) {
-    console.log('[launchBrowser] chromium-min 실패, 로컬 puppeteer 시도:', e.message);
-    return puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
+    console.log('[launchBrowser] chromium-min 실패, 로컬 Chrome 시도:', e.message);
   }
+  // 로컬 개발: 시스템에 설치된 Chrome으로 fallback
+  const localPaths = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  ];
+  for (const executablePath of localPaths) {
+    try {
+      return await puppeteerCore.launch({
+        executablePath,
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      });
+    } catch {}
+  }
+  // 최후 수단: puppeteer (로컬 관리 Chrome)
+  const { default: puppeteer } = await import('puppeteer');
+  return puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
 }
 
 // ── 한양해서 폰트 base64 (서버 시작 시 1회 로드) ─────────────────
