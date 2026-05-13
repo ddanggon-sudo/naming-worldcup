@@ -822,8 +822,16 @@ function buildPage1Html(data) {
     .replace('{{DATE}}',         dateStr);
 }
 
+// 덕담 고정 8개 (LLM 생성 불필요)
+const FIXED_DEOKDAM = [
+  { hanja: '富家成長', ko: '부가성장' }, { hanja: '父祖有德', ko: '부조유덕' },
+  { hanja: '人格出衆', ko: '인격출중' }, { hanja: '明哲人物', ko: '명철인물' },
+  { hanja: '專門才能', ko: '전문재능' }, { hanja: '博士得名', ko: '박사득명' },
+  { hanja: '健康長壽', ko: '건강장수' }, { hanja: '良配貴子', ko: '양배귀자' },
+];
+
 // 페이지2 HTML 생성
-async function buildPage2Html(data) {
+function buildPage2Html(data) {
   const {
     full_name_hanja  = '',
     full_name_korean = '',
@@ -874,25 +882,7 @@ async function buildPage2Html(data) {
     { header: '시주', cheon: sajuResult.palja.hour?.cheon || '', cheon_ko: getHanKoreanReading(sajuResult.palja.hour?.cheon || ''), ji: sajuResult.palja.hour?.ji || '', ji_ko: getHanKoreanReading(sajuResult.palja.hour?.ji || '') },
   ] : [];
 
-  // 덕담 LLM 생성 (실패 시 기본값)
-  const DEFAULT_DEOKDAM = [
-    { hanja:'富家成長', ko:'부가성장' }, { hanja:'父祖有德', ko:'부조유덕' },
-    { hanja:'人格出衆', ko:'인격출중' }, { hanja:'明哲人物', ko:'명철인물' },
-    { hanja:'專門家', ko:'전문가' }, { hanja:'博士得名', ko:'박사득명' },
-    { hanja:'健康長壽', ko:'건강장수' }, { hanja:'良配貴子', ko:'양배귀자' },
-  ];
-  let deokdamItems = DEFAULT_DEOKDAM;
-  try {
-    deokdamItems = await generateDeokdam({
-      name: full_name_korean.slice(1),
-      hanja: givenHanja,
-      saju: sajuResult ? { palja: sajuResult.palja, elements: sajuResult.elements } : {},
-      gender: gender || '무관',
-      isPremium: is_premium,
-    });
-  } catch (e) {
-    console.warn('[cert-gen] 덕담 생성 실패, 기본값 사용:', e.message);
-  }
+  const deokdamItems = FIXED_DEOKDAM;
 
   // 템플릿 치환
   let html = readFileSync(path.join(__dirname, 'templates', 'certificate-page2.html'), 'utf-8');
@@ -924,7 +914,7 @@ async function buildPage2Html(data) {
 // 2페이지 PDF 생성
 async function buildCertificatePdf(data) {
   const html1 = buildPage1Html(data);
-  const html2 = await buildPage2Html(data);
+  const html2 = buildPage2Html(data);
 
   const p1 = extractPageContent(html1);
   const p2 = extractPageContent(html2);
@@ -972,6 +962,21 @@ async function buildCertificatePdf(data) {
   await browser.close();
   return Buffer.from(pdfRaw);
 }
+
+// ── POST /api/certificate/preview-page2 ──────────────────────
+app.post('/api/certificate/preview-page2', (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+  try {
+    const html = buildPage2Html(data);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.send(html);
+  } catch (err) {
+    console.error('[cert-preview] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
+});
 
 app.post('/api/certificate/generate', async (req, res) => {
   const { data } = req.body;

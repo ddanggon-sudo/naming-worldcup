@@ -2001,7 +2001,7 @@
       <button class="btn btn-secondary" onclick="openHanjaAlt()">✨ 다른 한자 추천</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline" style="flex:1" onclick="openCertificate()">📜 감정서 보기</button>
-        <button class="btn btn-accent" style="flex:1" onclick="_doCertDownload()">📋 증명서 보기</button>
+        <button class="btn btn-accent" style="flex:1" onclick="openCert2()">📋 증명서 보기</button>
       </div>
     </div>
     <div class="help-text">
@@ -2112,6 +2112,33 @@
     <div class="help-text">
       <span class="gold">💎 사주 보기는 첫 1회 무료입니다.</span><br>
       다음부터는 30일 작명 패스(₩7,900)가 필요해요.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     PAGE 8: 작명증 미리보기
+════════════════════════════════════════ -->
+<section id="page-cert2" class="page">
+  <div class="page-top-bar">
+    <button class="back-btn" onclick="_goCert2Back()">←</button>
+    <h1>📋 작명증</h1>
+  </div>
+
+  <div id="cert2-loading" class="loading visible">
+    <div class="spinner"></div>
+    <p style="font-size:14px;color:var(--sub);margin-top:4px">작명증을 생성하는 중...</p>
+  </div>
+
+  <div id="cert2-content" style="display:none">
+    <iframe id="cert2-iframe"
+      style="width:100%;border:none;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)"
+      scrolling="no"></iframe>
+    <div class="cert-action-area" style="margin-top:16px">
+      <div class="cert-lock-text">고화질 PDF로 저장하세요.</div>
+      <button class="btn btn-accent" onclick="_doCertDownload()" style="font-size:14px">
+        📥 PDF로 다운로드
+      </button>
     </div>
   </div>
 </section>
@@ -3980,6 +4007,55 @@ function openCertificate() {
   setTimeout(() => _renderCertificate(), 300);
 }
 
+let _cert2PrevBlobUrl = null;
+
+async function openCert2() {
+  if (!_currentSajuName || !_currentSajuResult) {
+    showToast('먼저 사주 분석을 완료해주세요.');
+    return;
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-cert2').classList.add('active');
+  window.scrollTo(0, 0);
+
+  document.getElementById('cert2-loading').style.display = 'block';
+  document.getElementById('cert2-content').style.display = 'none';
+
+  try {
+    const payload = _buildCertPayload();
+    const res = await fetch(API + '/api/certificate/preview-page2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: payload }),
+    });
+    if (!res.ok) throw new Error('미리보기 생성 실패');
+    const html = await res.text();
+
+    if (_cert2PrevBlobUrl) URL.revokeObjectURL(_cert2PrevBlobUrl);
+    const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+    _cert2PrevBlobUrl = URL.createObjectURL(blob);
+
+    const iframe = document.getElementById('cert2-iframe');
+    iframe.onload = () => {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      iframe.style.height = (doc.documentElement.scrollHeight || 900) + 'px';
+      document.getElementById('cert2-loading').style.display = 'none';
+      document.getElementById('cert2-content').style.display = 'block';
+    };
+    iframe.src = _cert2PrevBlobUrl;
+  } catch (e) {
+    console.error('[cert2]', e);
+    document.getElementById('cert2-loading').style.display = 'none';
+    showToast('작명증 미리보기를 불러오지 못했습니다.');
+  }
+}
+
+function _goCert2Back() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-saju').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
 function _goCertBack() {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = _certPrevPage === 'hanja-alt' ? 'page-hanja-alt' : 'page-saju';
@@ -4059,48 +4135,47 @@ async function downloadCertPdf() {
   await _doCertDownload();
 }
 
+function _buildCertPayload() {
+  const saju = _currentSajuResult;
+  const name = _currentSajuName;
+  const { palja, hour_known } = saju;
+  const paljaStr = [
+    `${palja.year.cheon}${palja.year.ji}`,
+    `${palja.month.cheon}${palja.month.ji}`,
+    `${palja.day.cheon}${palja.day.ji}`,
+    hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주모름',
+  ].join(' / ');
+  const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
+  const jawonArr  = saju.name_analysis?.jawon     || [];
+  const eumArr    = saju.name_analysis?.eumryeong || [];
+  return {
+    full_name_hanja:  (name.hanja || ''),
+    full_name_korean: (name.last_name || '') + name.name,
+    palja_str:        paljaStr,
+    birth_date:       birthInfo?.birth_date || '',
+    birth_hour:       birthInfo?.birth_hour ?? null,
+    gender:           name.gender || '',
+    is_premium:       localStorage.getItem('pmb_is_premium') === 'true',
+    elements:         saju.elements,
+    yongsin:          saju.yongsin,
+    score:            saju.score,
+    score_label:      saju.score_label,
+    eum_str:          eumArr.join('·') || '—',
+    jawon_str:        jawonArr.join('·') || '—',
+    summary:          saju.narrative || '',
+  };
+}
+
 async function _doCertDownload() {
   if (!_currentSajuResult || !_currentSajuName) return;
 
-  const btn = document.querySelector('#page-certificate .btn-accent');
+  const btn = document.querySelector('.page.active .btn-accent');
   const origText = btn ? btn.textContent : '';
   if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
 
   try {
-    const saju = _currentSajuResult;
+    const payload = { data: _buildCertPayload() };
     const name = _currentSajuName;
-
-    // 사주팔자 문자열
-    const { palja, hour_known } = saju;
-    const paljaStr = [
-      `${palja.year.cheon}${palja.year.ji}`,
-      `${palja.month.cheon}${palja.month.ji}`,
-      `${palja.day.cheon}${palja.day.ji}`,
-      hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주모름',
-    ].join(' / ');
-
-    const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
-    const jawonArr  = saju.name_analysis?.jawon     || [];
-    const eumArr    = saju.name_analysis?.eumryeong || [];
-
-    const payload = {
-      data: {
-        full_name_hanja:  (name.hanja || ''),
-        full_name_korean: (name.last_name || '') + name.name,
-        palja_str:        paljaStr,
-        birth_date:       birthInfo?.birth_date || '',
-        birth_hour:       birthInfo?.birth_hour ?? null,
-        gender:           name.gender || '',
-        is_premium:       localStorage.getItem('pmb_is_premium') === 'true',
-        elements:         saju.elements,
-        yongsin:          saju.yongsin,
-        score:            saju.score,
-        score_label:      saju.score_label,
-        eum_str:          eumArr.join('·') || '—',
-        jawon_str:        jawonArr.join('·') || '—',
-        summary:          saju.narrative || '',
-      },
-    };
 
     const res = await fetch(API + '/api/certificate/generate', {
       method: 'POST',
