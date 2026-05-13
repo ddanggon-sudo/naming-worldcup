@@ -3841,7 +3841,45 @@ async function _saveAltToProfile(hanja, meaning) {
   };
   saved.push(newEntry);
   const ok = await setSavedNames(saved);
-  if (ok) showToast(`"${fullName}(${hanja})" 보관함에 저장됐어요!`);
+  if (!ok) return;
+  showToast(`"${fullName}(${hanja})" 저장 완료! 뜻 검색 중...`);
+
+  // 한자 뜻 보완 (enrich)
+  try {
+    const enrichRes = await fetch(API + '/api/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: n.name, gender: n.gender || '남아', hanja }),
+    });
+    if (enrichRes.ok) {
+      const enrichData = await enrichRes.json();
+      const all = getSavedNames();
+      const target = all.find(s => s.id === newEntry.id);
+      if (target && enrichData.meaning) {
+        target.meaning = enrichData.meaning;
+        await setSavedNames(all);
+        showToast(`"${fullName}(${hanja})" 뜻 업데이트 완료!`);
+      }
+    }
+  } catch (_) {}
+
+  // 희귀도 조회
+  try {
+    const rarityRes = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: n.name, gender: n.gender || '남아' }),
+    });
+    const d = await rarityRes.json();
+    const all = getSavedNames();
+    const target = all.find(s => s.id === newEntry.id);
+    if (target) {
+      target.rarity = d.rarity ?? null;
+      target.estimated_population = d.estimated_population ?? null;
+      target.data_year = d.data_year ?? null;
+      await setSavedNames(all);
+    }
+  } catch (_) {}
 }
 
 function _renderHanjaAlt(data) {
