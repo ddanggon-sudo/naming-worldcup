@@ -912,6 +912,9 @@ function buildPage2Html(data) {
   const hanjaDB    = loadHanjaDB();
   const metaExt    = loadHanjaMetaExt();
   const uniSound   = loadHanjaSound();
+  const hun        = loadHanjaHun();
+  const lastSound  = hanjaDB[lastHanja]?.sound  || metaExt[lastHanja]?.sound  || uniSound[lastHanja] || lastHanja;
+  const lastHun    = hun[lastHanja] || (hanjaDB[lastHanja]?.meaning || metaExt[lastHanja]?.meaning || '').split(',')[0].trim();
   const givenCharData = charData.slice(1).map(c => ({
     ...c,
     sound:   hanjaDB[c.char]?.sound   || metaExt[c.char]?.sound   || uniSound[c.char] || c.char,
@@ -951,6 +954,8 @@ function buildPage2Html(data) {
     '{{last_name_hanja}}':     lastHanja,
     '{{last_name_strokes}}':   String(lastCharData.strokes || '?'),
     '{{last_name_yang_eum}}':  lastCharData.yang_eum,
+    '{{last_name_hun}}':       lastHun,
+    '{{last_name_sound}}':     lastSound,
     '{{name_ko}}':             full_name_korean,
     '{{GIVEN_NAME_CHARS_HTML}}': _renderGivenNameChars(givenCharData),
     '{{DEOKDAM_HTML}}':        _renderDeokdam(deokdamItems),
@@ -963,7 +968,27 @@ function buildPage2Html(data) {
 }
 
 // 2페이지 PDF 생성
+// 감정서 PDF (page1만)
 async function buildCertificatePdf(data) {
+  const html = buildPage1Html(data);
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
+  await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  const pdfRaw = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  });
+  await browser.close();
+  return Buffer.from(pdfRaw);
+}
+
+// 감정서 + 증명서 합본 PDF (page1 + page2)
+async function buildCertificateFullPdf(data) {
   const html1 = buildPage1Html(data);
   const html2 = buildPage2Html(data);
 
@@ -1043,25 +1068,8 @@ app.get('/api/certificate/preview-page2/:token', (req, res) => {
 
 // 감정서 JPG 생성 (page1만, 고해상도)
 async function buildCertificateJpg(data) {
-  const html1 = buildPage1Html(data);
-  const p1 = extractPageContent(html1);
-
-  const html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background: #fff; }
-    ${p1.styles}
-  </style>
-</head>
-<body>
-  <div style="width:794px;height:1123px;position:relative;overflow:hidden;padding:20mm 18mm;background:#fff;">${p1.bodyContent}</div>
-</body>
-</html>`;
+  // full page1 HTML을 그대로 사용 — extractPageContent 래퍼 방식은 이중 패딩 버그 유발
+  const html = buildPage1Html(data);
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -1071,7 +1079,19 @@ async function buildCertificateJpg(data) {
   await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
-  const jpgBuffer = await page.screenshot({ type: 'jpeg', quality: 95, clip: { x: 0, y: 0, width: 794, height: 1123 } });
+
+  // 실제 렌더 높이 측정 후 viewport 재설정 (내용이 1123px를 넘어도 잘리지 않게)
+  const renderHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  const captureHeight = Math.max(renderHeight, 1123);
+  if (captureHeight > 1123) {
+    await page.setViewport({ width: 794, height: captureHeight, deviceScaleFactor: 2 });
+  }
+
+  const jpgBuffer = await page.screenshot({
+    type: 'jpeg',
+    quality: 95,
+    clip: { x: 0, y: 0, width: 794, height: captureHeight },
+  });
   await browser.close();
   return Buffer.from(jpgBuffer);
 }
@@ -1110,6 +1130,86 @@ app.post('/api/certificate/generate', async (req, res) => {
     return res.send(pdfBuffer);
   } catch (err) {
     console.error('[cert-gen] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
+});
+
+// 작명증 JPG 생성 (page2만)
+async function buildCert2Jpg(data) {
+  const html = buildPage2Html(data);
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
+  const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
+  await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  const renderHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  const captureHeight = Math.max(renderHeight, 1123);
+  if (captureHeight > 1123) {
+    await page.setViewport({ width: 794, height: captureHeight, deviceScaleFactor: 2 });
+  }
+  const jpgBuffer = await page.screenshot({
+    type: 'jpeg',
+    quality: 95,
+    clip: { x: 0, y: 0, width: 794, height: captureHeight },
+  });
+  await browser.close();
+  return Buffer.from(jpgBuffer);
+}
+
+// 작명증 PDF 생성 (page2만)
+async function buildCert2Pdf(data) {
+  const html = buildPage2Html(data);
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
+  await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  const pdfRaw = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  });
+  await browser.close();
+  return Buffer.from(pdfRaw);
+}
+
+app.post('/api/certificate/generate-cert2-jpg', async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+  try {
+    const jpgBuffer = await buildCert2Jpg(data);
+    const safeKo = (data.full_name_korean || '').replace(/\s/g, '');
+    res.set({
+      'Content-Type': 'image/jpeg',
+      'Content-Disposition': `attachment; filename*=UTF-8''%EC%9E%91%EB%AA%85%EC%A6%9D_${encodeURIComponent(safeKo)}.jpg`,
+      'Content-Length': jpgBuffer.length,
+    });
+    return res.send(jpgBuffer);
+  } catch (err) {
+    console.error('[cert2-jpg] 오류:', err.message);
+    return res.status(500).json({ detail: err.message });
+  }
+});
+
+app.post('/api/certificate/generate-cert2', async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+  try {
+    const pdfBuffer = await buildCert2Pdf(data);
+    const safeKo = (data.full_name_korean || '').replace(/\s/g, '');
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename*=UTF-8''%EC%9E%91%EB%AA%85%EC%A6%9D_${encodeURIComponent(safeKo)}.pdf`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error('[cert2-pdf] 오류:', err.message);
     return res.status(500).json({ detail: err.message });
   }
 });

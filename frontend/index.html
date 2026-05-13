@@ -2139,10 +2139,18 @@
         scrolling="no"></iframe>
     </div>
     <div class="cert-action-area" style="margin-top:16px">
-      <div class="cert-lock-text">고화질 PDF로 저장하세요.</div>
-      <button class="btn btn-accent" onclick="_doCertDownload()" style="font-size:14px">
-        📥 PDF로 다운로드
-      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="downloadCert2Jpg(this)" style="font-size:14px;flex:1">
+          🖼️ JPG로 다운로드
+        </button>
+        <button class="btn btn-accent" onclick="_doCert2Download()" style="font-size:14px;flex:1">
+          📥 PDF로 다운로드
+        </button>
+      </div>
+    </div>
+    <div class="help-text" style="margin-top:8px">
+      <span class="gold">💎 사주 보기는 첫 1회 무료입니다.</span><br>
+      다음부터는 30일 작명 패스(₩7,900)가 필요해요.
     </div>
   </div>
 </section>
@@ -4253,6 +4261,65 @@ async function _doCertDownload() {
 
   } catch (e) {
     console.error('[cert-pdf]', e);
+    showToast('❌ PDF 생성 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+async function downloadCert2Jpg(btn) {
+  if (!_currentSajuResult || !_currentSajuName) return;
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
+  try {
+    const payload = { data: _buildCertPayload() };
+    const name = _currentSajuName;
+    const res = await fetch(API + '/api/certificate/generate-cert2-jpg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `오류 ${res.status}`);
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `작명증_${((name.last_name || '') + name.name).replace(/\s/g, '')}.jpg`;
+    document.body.appendChild(anchor); anchor.click(); document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast('✅ JPG 다운로드 완료!');
+  } catch (e) {
+    console.error('[cert2-jpg]', e);
+    showToast('❌ JPG 생성 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+async function _doCert2Download() {
+  if (!_currentSajuResult || !_currentSajuName) return;
+  const btn = document.querySelector('#page-cert2 .btn-accent');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
+  try {
+    const payload = { data: _buildCertPayload() };
+    const name = _currentSajuName;
+    const res = await fetch(API + '/api/certificate/generate-cert2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `오류 ${res.status}`);
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `작명증_${((name.last_name || '') + name.name).replace(/\s/g, '')}.pdf`;
+    document.body.appendChild(anchor); anchor.click(); document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast('✅ PDF 다운로드 완료!');
+  } catch (e) {
+    console.error('[cert2-pdf]', e);
     showToast('❌ PDF 생성 실패: ' + e.message);
   } finally {
     if (btn) { btn.textContent = origText; btn.disabled = false; }
