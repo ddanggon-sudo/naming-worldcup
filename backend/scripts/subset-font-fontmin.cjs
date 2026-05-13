@@ -15,6 +15,8 @@ const metaExt    = JSON.parse(fs.readFileSync(HANJA_META_EXT, 'utf-8'));
 const hanjaSound = JSON.parse(fs.readFileSync(HANJA_SOUND, 'utf-8'));
 
 const FIXED_CHARS = [
+  // 이상적 공백 (U+3000) — 수직 텍스트 간격용, 사주 빈 기둥 등
+  '　',
   // Birth info labels
   '年月日時陽曆誕生',
   // arabicToHan output chars (0~31 range covers months/days)
