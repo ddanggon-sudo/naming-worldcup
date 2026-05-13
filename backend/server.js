@@ -90,12 +90,57 @@ function calcBalanceScore(elements) {
   return Math.round(20 * (1 - zeros / 5));
 }
 
+// ── 성씨 한자 변환 맵 ────────────────────────────────────────────
+const SURNAME_MAP = {
+  '김':'金','이':'李','박':'朴','최':'崔','정':'鄭',
+  '강':'姜','조':'趙','윤':'尹','장':'張','임':'林',
+  '한':'韓','오':'吳','서':'徐','신':'申','권':'權',
+  '황':'黃','안':'安','송':'宋','류':'柳','유':'柳',
+  '전':'全','홍':'洪','고':'高','문':'文','양':'梁',
+  '손':'孫','배':'裵','백':'白','허':'許','남':'南',
+  '심':'沈','노':'盧','하':'河','곽':'郭','성':'成',
+  '차':'車','주':'朱','우':'禹','구':'具','민':'閔',
+  '나':'羅','엄':'嚴','원':'元','채':'蔡','천':'千',
+  '방':'方','공':'孔','현':'玄','함':'咸','변':'邊',
+  '염':'廉','여':'呂','추':'秋','도':'都','소':'蘇',
+  '석':'石','진':'陳','선':'宣','마':'馬','길':'吉',
+  '왕':'王','지':'池','태':'太','용':'龍','봉':'奉',
+  '경':'慶','은':'殷','옥':'玉',
+};
+
+const SURI_LEVEL_PT = { '吉': 2, '中': 1, '凶': 0 };
+
+function calcSuriScore(lastNameKo, givenHanja) {
+  const lastHanja = SURNAME_MAP[lastNameKo];
+  if (!lastHanja || !givenHanja) return 0;
+  try {
+    const result = calculateSuri(lastHanja, givenHanja);
+    const gyeoks = [result.cheon_gyeok, result.in_gyeok, result.ji_gyeok, result.oe_gyeok, result.chong_gyeok];
+    return gyeoks.reduce((sum, g) => sum + (SURI_LEVEL_PT[g.level] ?? 0), 0); // 0~10
+  } catch { return 0; }
+}
+
+// ── 통합 적합도 공식 ─────────────────────────────────────────────
+// Base 45 + 자원오행 0~20 + 음령오행 0~15 + 오행균형 0~10 + 수리사격 0~10 - 시간패널티 0~5
+function calcUnifiedScore({ lastNameKo, givenHanja, givenNameKo, yongsin, elements, hour_known }) {
+  const hanjaDB = loadHanjaDB();
+  const jawon = [...(givenHanja || '')].map(c => hanjaDB[c]?.ohaeng_won).filter(Boolean);
+  const jawonScore = jawon.includes(yongsin) ? 20 : 0;
+  const eumList = calcEumryeong((lastNameKo || '') + (givenNameKo || ''));
+  const eumScore = eumList.includes(yongsin) ? 15 : 0;
+  const zeros = elements ? Object.values(elements).filter(v => v === 0).length : 2;
+  const balScore = Math.round(10 * (1 - zeros / 5));
+  const suriScore = calcSuriScore(lastNameKo, givenHanja);
+  const penalty = (hour_known === false) ? 5 : 0;
+  return Math.max(0, Math.min(100, 45 + jawonScore + eumScore + balScore + suriScore - penalty));
+}
+
 // ── 적합도 점수 라벨 ─────────────────────────────────────────────
 function scoreLabel(score) {
-  if (score >= 90) return '매우 적합';
-  if (score >= 70) return '보통 적합';
-  if (score >= 50) return '다소 부족';
-  return '부적합';
+  if (score >= 85) return '매우 적합';
+  if (score >= 70) return '적합';
+  if (score >= 55) return '보통';
+  return '다소 부족';
 }
 
 // ── names_db.json 로드 (서버 시작 시 1회) ──────────────────────
@@ -440,13 +485,15 @@ const jawonList = [...hanja].map(ch => {
     const fullName = last_name + name;
     const eumryeongList = calcEumryeong(fullName);
 
-    // 4. 점수 계산
-    let score = 0;
-    if (eumryeongList.includes(yongsin)) score += 30;
-    if (jawonList.includes(yongsin))     score += 50;
-    score += calcBalanceScore(elements);
-    if (!hour_known) score -= 5;
-    score = Math.max(0, Math.min(100, score));
+    // 4. 점수 계산 (통합 공식)
+    const score = calcUnifiedScore({
+      lastNameKo: last_name,
+      givenHanja: hanja,
+      givenNameKo: name,
+      yongsin,
+      elements,
+      hour_known,
+    });
 
     // 5. LLM 자연어 풀이
     const model = is_premium ? 'openai/gpt-4o' : 'openai/gpt-4o-mini';
@@ -631,7 +678,14 @@ ${candidateList}
         const cand = candByHanja[item.hanja];
         return {
           hanja:             cand.hanjaStr,
-          score:             Math.min(100, cand.baseScore + (item.meaning_score ?? 0)),
+          score:             calcUnifiedScore({
+            lastNameKo: last_name,
+            givenHanja: cand.hanjaStr,
+            givenNameKo: name,
+            yongsin: saju_yongsin,
+            elements,
+            hour_known,
+          }),
           is_recommended:    false,
           elements_jawon:    cand.jawon,
           elements_eumryeong: eumryeongList,
