@@ -8,7 +8,6 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import puppeteer from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import { calculateSaju, getElement } from './lib/saju.js';
 import { calculateSuri } from './lib/suri.js';
 import { generateDeokdam } from './lib/deokdam.js';
@@ -50,17 +49,23 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   },
 }));
 
-// ── Puppeteer 브라우저 런처 (Vercel: @sparticuz/chromium, 로컬: puppeteer) ──
+// ── Puppeteer 브라우저 런처 (Vercel: @sparticuz/chromium-min, 로컬: puppeteer) ──
+// chromium-min은 바이너리 미포함 — 런타임에 원격 URL에서 /tmp 로 다운로드
+const CHROMIUM_REMOTE_URL =
+  'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar';
+
 async function launchBrowser() {
   try {
-    const execPath = await chromium.executablePath();
+    const { default: chromium } = await import('@sparticuz/chromium-min');
+    const executablePath = await chromium.executablePath(CHROMIUM_REMOTE_URL);
     return puppeteerCore.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: execPath,
+      executablePath,
       headless: chromium.headless,
     });
-  } catch {
+  } catch (e) {
+    console.log('[launchBrowser] chromium-min 실패, 로컬 puppeteer 시도:', e.message);
     return puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
