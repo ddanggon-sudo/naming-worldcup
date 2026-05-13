@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import puppeteer from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import { calculateSaju, getElement } from './lib/saju.js';
 import { calculateSuri } from './lib/suri.js';
@@ -84,8 +85,7 @@ async function launchBrowser() {
       });
     } catch {}
   }
-  // 최후 수단: puppeteer (로컬 관리 Chrome)
-  const { default: puppeteer } = await import('puppeteer');
+  // 최후 수단: puppeteer 관리 Chrome
   return puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],

@@ -5,17 +5,17 @@
       "src": "backend/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["frontend/**", "backend/data/**", "backend/fonts/**"],
-        "maxLambdaSize": "50mb"
+        "includeFiles": [
+          "frontend/**",
+          "backend/data/**",
+          "backend/fonts/UNI_HSR_subset.woff2",
+          "backend/fonts/UNI_HSR_subset.ttf",
+          "backend/templates/**"
+        ]
       }
     }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "backend/server.js" }
-  ],
-  "functions": {
-    "backend/server.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
