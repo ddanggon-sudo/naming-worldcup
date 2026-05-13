@@ -3815,6 +3815,35 @@ function _replaceHanja(newHanja) {
   _runSajuAnalysis(_currentSajuName, birthInfo);
 }
 
+async function _saveAltToProfile(hanja, meaning) {
+  const n = _currentSajuName;
+  if (!n) return;
+  const fullName = (n.last_name || '') + n.name;
+  const saved = getSavedNames();
+  if (saved.find(s => s.full_name === fullName && s.hanja === hanja)) {
+    showToast(`"${fullName}(${hanja})"는 이미 보관함에 있어요.`);
+    return;
+  }
+  const newEntry = {
+    id: uuid(),
+    name: n.name,
+    hanja,
+    full_name: fullName,
+    last_name: n.last_name || '',
+    gender: n.gender || '남아',
+    meaning: meaning || '',
+    reason: '',
+    rarity: null, estimated_population: null, data_year: null,
+    criteria_used: [], impression: '',
+    is_final: false, is_manual: false,
+    author: null,
+    saved_at: new Date().toISOString(),
+  };
+  saved.push(newEntry);
+  const ok = await setSavedNames(saved);
+  if (ok) showToast(`"${fullName}(${hanja})" 보관함에 저장됐어요!`);
+}
+
 function _renderHanjaAlt(data) {
   const { base_name, alternatives } = data;
   const name = _currentSajuName;
@@ -3846,9 +3875,12 @@ function _renderHanjaAlt(data) {
         </div>
         <div class="hanja-alt-meaning">${alt.meaning} — ${alt.explanation}</div>
         <div class="hanja-alt-elements">자원오행: ${jawonStr} / 음령오행: ${eumStr}</div>
-        ${_sajuPrevPage !== 'worldcup' ? `<div style="margin-top:10px">
-          <button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>
-        </div>` : ''}
+        <div style="margin-top:10px">
+          ${_sajuPrevPage === 'worldcup'
+            ? `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_saveAltToProfile('${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">보관함에 저장</button>`
+            : `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>`
+          }
+        </div>
       </div>
     `;
   }
