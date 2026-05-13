@@ -511,6 +511,8 @@ app.post('/api/hanja/alternatives', async (req, res) => {
     name, current_hanja = '',
     saju_yongsin, gender = '남아',
     is_premium = false,
+    elements = null, hour_known = true,
+    last_name = '',
   } = req.body;
 
   if (!name || !saju_yongsin) {
@@ -629,7 +631,20 @@ ${candidateList}
         const cand = candByHanja[item.hanja];
         return {
           hanja:             cand.hanjaStr,
-          score:             Math.min(100, cand.baseScore + (item.meaning_score ?? 0)),
+          score:             (() => {
+            if (elements) {
+              // 사주 분석과 동일한 공식 → 교체 후 실제 나올 점수
+              const fullName = (last_name || '') + name;
+              const eumList  = calcEumryeong(fullName);
+              let s = 0;
+              if (eumList.includes(saju_yongsin))        s += 30;
+              if (cand.jawon.includes(saju_yongsin))     s += 50;
+              s += calcBalanceScore(elements);
+              if (!hour_known) s -= 5;
+              return Math.max(0, Math.min(100, s));
+            }
+            return Math.min(100, cand.baseScore + (item.meaning_score ?? 0));
+          })(),
           is_recommended:    false,
           elements_jawon:    cand.jawon,
           elements_eumryeong: eumryeongList,

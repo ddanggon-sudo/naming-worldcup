@@ -3776,10 +3776,13 @@ async function openHanjaAlt() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: _currentSajuName.name,
+        last_name: _currentSajuName.last_name || '',
         current_hanja: _currentSajuName.hanja || '',
         saju_yongsin: _currentSajuResult.yongsin,
         gender: _currentSajuName.gender || '남아',
         is_premium: false,
+        elements: _currentSajuResult.elements,
+        hour_known: _currentSajuResult.hour_known,
       }),
     });
     if (!res.ok) {
