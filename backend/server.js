@@ -8,6 +8,11 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import puppeteer from 'puppeteer';
 import { calculateSaju, getElement } from './lib/saju.js';
+import { calculateSuri } from './lib/suri.js';
+import { generateDeokdam } from './lib/deokdam.js';
+import {
+  getYearGapja, monthToHan, dayToHan, hourToShi, getHanKoreanReading,
+} from './lib/han-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -342,8 +347,28 @@ function parseJsonSafe(text) {
 }
 
 app.post('/api/enrich', async (req, res) => {
-  const { name, gender } = req.body;
+  const { name, gender, hanja } = req.body;
   if (!name || typeof name !== 'string') return res.status(400).json({ detail: '이름을 입력해주세요.' });
+
+  // 한자가 주어진 경우: 해당 한자의 뜻만 조회
+  if (hanja && typeof hanja === 'string') {
+    try {
+      const prompt = `한국 이름 "${name}"(${gender || '성별 무관'})의 한자 표기 "${hanja}"의 뜻을 설명해주세요.
+아래 JSON 형식으로만 반환하세요. 다른 텍스트는 절대 쓰지 마세요.
+{"meaning":"이름의 뜻 (1~2문장)"}`;
+
+      const raw = await chatOnce(prompt);
+      const data = parseJsonSafe(raw);
+      if (data?.meaning) {
+        console.log(`[enrich] LLM 한자뜻 성공: ${name} (${hanja})`);
+        return res.json({ hanja, meaning: data.meaning });
+      }
+      throw new Error('LLM 응답 파싱 실패');
+    } catch (e) {
+      console.warn(`[enrich] LLM 실패: ${e.message}`);
+      return res.status(500).json({ detail: '뜻 생성에 실패했습니다.' });
+    }
+  }
 
   // 1순위: names_db.json
   const db = loadDB();
@@ -628,10 +653,57 @@ ${candidateList}
 // ── POST /api/certificate/generate ───────────────────────────
 const OHAENG_COLOR = { 木:'#10b981', 火:'#ef4444', 土:'#a16207', 金:'#94a3b8', 水:'#3b82f6' };
 
-app.post('/api/certificate/generate', async (req, res) => {
-  const { data } = req.body;
-  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+// HTML에서 <style> 블록과 <body> 내용을 분리 추출
+function extractPageContent(html) {
+  const styles = [];
+  const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+  let m;
+  while ((m = styleRe.exec(html)) !== null) styles.push(m[1]);
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return { styles: styles.join('\n'), bodyContent: bodyMatch ? bodyMatch[1] : '' };
+}
 
+// 숫자 → 한글 음 (음력/양력 날짜 읽기용, 1~31)
+function _koreanNum(n) {
+  const ones = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+  if (n <= 0) return '';
+  if (n < 10) return ones[n];
+  const tens = Math.floor(n / 10);
+  const unit = n % 10;
+  return (tens > 1 ? ones[tens] : '') + '십' + (unit > 0 ? ones[unit] : '');
+}
+
+// 페이지2 HTML 블록 렌더 헬퍼
+function _renderGivenNameChars(chars) {
+  return chars.map(c => `
+      <div class="name-char-row">
+        <div class="stroke-aside">(${c.strokes})</div>
+        <span class="name-han-big">${c.char}</span>
+      </div>`).join('');
+}
+
+function _renderDeokdam(items) {
+  return items.map(it => `
+      <div class="deokdam-row">
+        <span class="dd-ko-side">${it.ko}</span>
+        <span class="dd-han-vert">${it.hanja}</span>
+      </div>`).join('');
+}
+
+function _renderPalja(pillars) {
+  return pillars.map(p => {
+    const cheon = p.cheon
+      ? `<div class="p-unit"><div class="p-ko">${p.cheon_ko}</div><div class="p-han">${p.cheon}</div></div>`
+      : `<div class="p-empty">　</div>`;
+    const ji = p.ji
+      ? `<div class="p-unit"><div class="p-ko">${p.ji_ko}</div><div class="p-han">${p.ji}</div></div>`
+      : `<div class="p-empty">　</div>`;
+    return `<div class="pillar-block"><div class="pillar-header">${p.header}</div>${cheon}${ji}</div>`;
+  }).join('');
+}
+
+// 페이지1 HTML 생성 (기존 로직 그대로)
+function buildPage1Html(data) {
   const {
     full_name_hanja  = '',
     full_name_korean = '',
@@ -647,22 +719,17 @@ app.post('/api/certificate/generate', async (req, res) => {
     summary          = '',
   } = data;
 
-  // 오행 분포 pill HTML
   const ohaengPills = ['木','火','土','金','水'].map(k => {
     const cnt = elements[k] || 0;
     const isLow = k === yongsin || cnt === 0;
     return `<span class="ohaeng-pill${isLow ? ' low' : ''}" style="color:${isLow ? '#ef4444' : OHAENG_COLOR[k]}">${k} ${cnt}</span>`;
   }).join('');
 
-  // 날짜
-  const today = new Date();
+  const today   = new Date();
   const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
-
-  // 한자 이름 글자 사이 공백
   const hanjaSpaced = [...full_name_hanja].join(' ');
   const koSpaced    = [...full_name_korean].join(' ');
 
-  // 사주 + 생년월일
   let paljaDisplay = palja_str;
   if (birth_date) {
     const bd = birth_date.replace(/-/g, '.');
@@ -670,45 +737,181 @@ app.post('/api/certificate/generate', async (req, res) => {
     paljaDisplay += `\n(양력 ${bd}${bh})`;
   }
 
+  let html = readFileSync(path.join(__dirname, 'templates', 'certificate.html'), 'utf-8');
+  return html
+    .replace('{{HANJA_NAME}}',   hanjaSpaced)
+    .replace('{{KO_NAME}}',      koSpaced)
+    .replace('{{PALJA_STR}}',    paljaDisplay)
+    .replace('{{OHAENG_PILLS}}', ohaengPills)
+    .replace('{{YONGSIN}}',      yongsin)
+    .replace('{{SCORE}}',        String(score))
+    .replace('{{SCORE_LABEL}}',  score_label)
+    .replace('{{EUM_STR}}',      eum_str)
+    .replace('{{JAWON_STR}}',    jawon_str)
+    .replace('{{SUMMARY}}',      summary)
+    .replace('{{DATE}}',         dateStr);
+}
+
+// 페이지2 HTML 생성
+async function buildPage2Html(data) {
+  const {
+    full_name_hanja  = '',
+    full_name_korean = '',
+    birth_date       = '',
+    birth_hour       = null,
+    gender           = '',
+    is_premium       = false,
+  } = data;
+
+  // 성/이름 분리 (성: 첫 글자)
+  const lastHanja  = full_name_hanja[0]  || '';
+  const givenHanja = full_name_hanja.slice(1) || '';
+
+  // 생년월일 파싱
+  const [y, mo, d] = birth_date ? birth_date.split('-').map(Number) : [2024, 1, 1];
+  const h = typeof birth_hour === 'number' ? birth_hour : null;
+
+  // 한자 날짜 변환
+  const birthYearGapja = getYearGapja(y);
+  const birthMonthHan  = monthToHan(mo);
+  const birthDayHan    = dayToHan(d);
+  const birthShiHan    = hourToShi(h);
+  const birthInfoKo    = `${y}년 양력 ${mo}월 ${d}일 ${h !== null ? h + '시' : '시 모름'} 탄생`;
+
+  // 한글 음 (출생정보 한자 옆 병기용)
+  const birthYearKo  = [...birthYearGapja].map(c => getHanKoreanReading(c)).join('') + '년';
+  const birthMonthKo = _koreanNum(mo) + '월';
+  const birthDayKo   = _koreanNum(d) + '일';
+  const birthHourKo  = h !== null ? getHanKoreanReading(birthShiHan[0]) + '시' : '시 모름';
+
+  // 수리 5격
+  const suri = (lastHanja && givenHanja) ? calculateSuri(lastHanja, givenHanja) : null;
+  const charData      = suri ? suri.chars : [...full_name_hanja].map(c => ({ char: c, strokes: 0, yang_eum: '?' }));
+  const lastCharData  = charData[0] || { char: lastHanja, strokes: 0, yang_eum: '?' };
+  const givenCharData = charData.slice(1);
+
+  // 사주팔자 재계산
+  const sajuResult = (y > 0) ? calculateSaju({ year: y, month: mo, day: d, hour: h }) : null;
+  const pillars = sajuResult ? [
+    { header: '년주', cheon: sajuResult.palja.year.cheon,  cheon_ko: getHanKoreanReading(sajuResult.palja.year.cheon),  ji: sajuResult.palja.year.ji,  ji_ko: getHanKoreanReading(sajuResult.palja.year.ji)  },
+    { header: '월주', cheon: sajuResult.palja.month.cheon, cheon_ko: getHanKoreanReading(sajuResult.palja.month.cheon), ji: sajuResult.palja.month.ji, ji_ko: getHanKoreanReading(sajuResult.palja.month.ji) },
+    { header: '일주', cheon: sajuResult.palja.day.cheon,   cheon_ko: getHanKoreanReading(sajuResult.palja.day.cheon),   ji: sajuResult.palja.day.ji,   ji_ko: getHanKoreanReading(sajuResult.palja.day.ji)   },
+    { header: '시주', cheon: sajuResult.palja.hour?.cheon || '', cheon_ko: getHanKoreanReading(sajuResult.palja.hour?.cheon || ''), ji: sajuResult.palja.hour?.ji || '', ji_ko: getHanKoreanReading(sajuResult.palja.hour?.ji || '') },
+  ] : [];
+
+  // 덕담 LLM 생성 (실패 시 기본값)
+  const DEFAULT_DEOKDAM = [
+    { hanja:'父祖有德', ko:'부조유덕' }, { hanja:'明哲人物', ko:'명철인물' },
+    { hanja:'博士得名', ko:'박사득명' }, { hanja:'富家成長', ko:'부가성장' },
+    { hanja:'人格出衆', ko:'인격출중' }, { hanja:'良配貴子', ko:'양배귀자' },
+    { hanja:'健康長壽', ko:'건강장수' }, { hanja:'專門才能', ko:'전문재능' },
+  ];
+  let deokdamItems = DEFAULT_DEOKDAM;
   try {
-    const tmplPath = path.join(__dirname, 'templates', 'certificate.html');
-    let html = readFileSync(tmplPath, 'utf-8');
-
-    html = html
-      .replace('{{HANJA_NAME}}',  hanjaSpaced)
-      .replace('{{KO_NAME}}',     koSpaced)
-      .replace('{{PALJA_STR}}',   paljaDisplay)
-      .replace('{{OHAENG_PILLS}}', ohaengPills)
-      .replace('{{YONGSIN}}',     yongsin)
-      .replace('{{SCORE}}',       String(score))
-      .replace('{{SCORE_LABEL}}', score_label)
-      .replace('{{EUM_STR}}',     eum_str)
-      .replace('{{JAWON_STR}}',   jawon_str)
-      .replace('{{SUMMARY}}',     summary)
-      .replace('{{DATE}}',        dateStr);
-
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    deokdamItems = await generateDeokdam({
+      name: full_name_korean.slice(1),
+      hanja: givenHanja,
+      saju: sajuResult ? { palja: sajuResult.palja, elements: sajuResult.elements } : {},
+      gender: gender || '무관',
+      isPremium: is_premium,
     });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfRaw = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
-    });
-    await browser.close();
-    const pdfBuffer = Buffer.from(pdfRaw);
+  } catch (e) {
+    console.warn('[cert-gen] 덕담 생성 실패, 기본값 사용:', e.message);
+  }
 
-    const safeKo = full_name_korean.replace(/\s/g, '');
+  // 템플릿 치환
+  let html = readFileSync(path.join(__dirname, 'templates', 'certificate-page2.html'), 'utf-8');
+  const vars = {
+    '{{cert_title}}':          '作名證',
+    '{{birth_year_gapja}}':    birthYearGapja,
+    '{{birth_year_ko}}':       birthYearKo,
+    '{{birth_month_han}}':     birthMonthHan,
+    '{{birth_month_ko}}':      birthMonthKo,
+    '{{birth_day_han}}':       birthDayHan,
+    '{{birth_day_ko}}':        birthDayKo,
+    '{{birth_shi_han}}':       birthShiHan,
+    '{{birth_hour_ko}}':       birthHourKo,
+    '{{birth_info_ko}}':       birthInfoKo,
+    '{{last_name_hanja}}':     lastHanja,
+    '{{last_name_strokes}}':   String(lastCharData.strokes),
+    '{{last_name_yang_eum}}':  lastCharData.yang_eum,
+    '{{name_ko}}':             full_name_korean,
+    '{{office_name}}':         '픽마이네임 작명연구소',
+    '{{seal_char}}':           '印',
+    '{{GIVEN_NAME_CHARS_HTML}}': _renderGivenNameChars(givenCharData),
+    '{{DEOKDAM_HTML}}':        _renderDeokdam(deokdamItems),
+    '{{PALJA_HTML}}':          _renderPalja(pillars),
+    '{{DIVIDER_TOP}}':         '148mm',
+    '{{PALJA_TOP}}':           '155mm',
+  };
+  for (const [k, v] of Object.entries(vars)) html = html.split(k).join(v);
+  return html;
+}
+
+// 2페이지 PDF 생성
+async function buildCertificatePdf(data) {
+  const html1 = buildPage1Html(data);
+  const html2 = await buildPage2Html(data);
+
+  const p1 = extractPageContent(html1);
+  const p2 = extractPageContent(html2);
+
+  const combined = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #fff; }
+    .pdf-page {
+      width: 210mm; height: 297mm;
+      position: relative;
+      page-break-after: always;
+      overflow: hidden;
+    }
+    .pdf-page:last-child { page-break-after: auto; }
+    ${p1.styles}
+    ${p2.styles}
+    body { padding: 0 !important; margin: 0 !important; }
+  </style>
+</head>
+<body>
+  <div class="pdf-page" style="padding:20mm 18mm;background:#fff;">${p1.bodyContent}</div>
+  <div class="pdf-page" style="background:#fefdf6;">${p2.bodyContent}</div>
+</body>
+</html>`;
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  await page.setContent(combined, { waitUntil: 'networkidle0' });
+  const pdfRaw = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  });
+  await browser.close();
+  return Buffer.from(pdfRaw);
+}
+
+app.post('/api/certificate/generate', async (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ detail: 'data 필드가 필요합니다.' });
+
+  try {
+    const pdfBuffer = await buildCertificatePdf(data);
+    const safeKo = (data.full_name_korean || '').replace(/\s/g, '');
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename*=UTF-8''%EC%9E%91%EB%AA%85%EA%B0%90%EC%A0%95%EC%84%9C_${encodeURIComponent(safeKo)}.pdf`,
       'Content-Length': pdfBuffer.length,
     });
     return res.send(pdfBuffer);
-
   } catch (err) {
     console.error('[cert-gen] 오류:', err.message);
     return res.status(500).json({ detail: err.message });

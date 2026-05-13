@@ -956,9 +956,26 @@
   .btn-saju-sm:hover { background: var(--primary); color: #fff; }
 
   /* 사주 CTA 카드 (결과 화면 내) */
-  .saju-cta-wrap { margin-top: 14px; }
-  .saju-cta-wrap .btn { font-size: 15px; padding: 14px; }
-  .saju-cta-wrap .help-text { margin-top: 8px; }
+  .saju-cta-wrap {
+    margin-top: 16px;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 18px 16px 16px;
+    box-shadow: var(--shadow);
+  }
+  .saju-cta-wrap .btn {
+    font-size: 15px;
+    padding: 14px;
+    width: 100%;
+    border-radius: 12px;
+  }
+  .saju-cta-wrap .help-text {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--sub);
+    line-height: 1.6;
+    text-align: center;
+  }
 
   /* 페이월 모달 */
   .paywall-overlay {
@@ -1740,10 +1757,10 @@
     </div>
 
     <div class="saju-cta-wrap">
-      <button class="btn btn-primary" id="btn-wc-saju" onclick="openSajuFlow(wcState?.champion)">🔮 사주 보기 시작</button>
+      <button class="btn btn-primary" id="btn-wc-saju" onclick="openSajuFlow(wcState?.champion)">🐰 사주 보기 시작</button>
       <div class="help-text">
-        아이의 사주와 이름이 잘 맞는지 분석해드려요<br>
-        <span class="gold">💡 사주 보기는 첫 1회 무료</span>
+        아이의 사주와 이름이 잘 맞는지 분석해드리고,<br>
+        대안 한자와 작명 감정서까지 한 번에 받아보세요.
       </div>
     </div>
 
@@ -1868,10 +1885,10 @@
     </div>
 
     <div class="saju-cta-wrap">
-      <button class="btn btn-primary" onclick="openSajuFlow(grandState?.champion)">🔮 사주 보기 시작</button>
+      <button class="btn btn-primary" onclick="openSajuFlow(grandState?.champion)">🐰 사주 보기 시작</button>
       <div class="help-text">
-        아이의 사주와 이름이 잘 맞는지 분석해드려요<br>
-        <span class="gold">💡 사주 보기는 첫 1회 무료</span>
+        아이의 사주와 이름이 잘 맞는지 분석해드리고,<br>
+        대안 한자와 작명 감정서까지 한 번에 받아보세요.
       </div>
     </div>
 
@@ -3071,10 +3088,12 @@ async function confirmAddName() {
   // 한자·뜻 미입력 시 AI로 자동 보완
   if (needsEnrich) {
     try {
+      const enrichBody = { name, gender };
+      if (hanja) enrichBody.hanja = hanja; // 한자 입력 시 해당 한자의 뜻 조회
       const enrichRes = await fetch(API + '/api/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, gender }),
+        body: JSON.stringify(enrichBody),
       });
       if (enrichRes.ok) {
         const enrichData = await enrichRes.json();
@@ -3954,6 +3973,8 @@ async function _doCertDownload() {
         palja_str:        paljaStr,
         birth_date:       birthInfo?.birth_date || '',
         birth_hour:       birthInfo?.birth_hour ?? null,
+        gender:           name.gender || '',
+        is_premium:       localStorage.getItem('pmb_is_premium') === 'true',
         elements:         saju.elements,
         yongsin:          saju.yongsin,
         score:            saju.score,

@@ -1,0 +1,18 @@
+{
+  "data": {
+    "full_name_hanja":  "金智宇",
+    "full_name_korean": "김지우",
+    "palja_str":        "丙午 / 壬辰 / 辛未 / 甲午",
+    "birth_date":       "2026-08-15",
+    "birth_hour":       4,
+    "gender":           "남아",
+    "is_premium":       false,
+    "elements":         { "木": 2, "火": 3, "土": 1, "金": 3, "水": 0 },
+    "yongsin":          "水",
+    "score":            78,
+    "score_label":      "보통 적합",
+    "eum_str":          "지·우",
+    "jawon_str":        "水·木",
+    "summary":          "지혜와 우주를 품는 단아한 이름. 총명하고 사려 깊은 성품을 나타내며, 인덕이 넓어 많은 이들의 신뢰를 받을 이름입니다."
+  }
+}

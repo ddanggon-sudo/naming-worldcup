@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: '궁서', 'Gungsuh', 'GungsuhChe', 'Noto Serif KR', 'Nanum Myeongjo', 'Batang', serif;
+    background: #fff;
+    width: 210mm;
+    height: 297mm;
+    position: relative;
+    overflow: hidden;
+    color: #111;
+  }
+
+  .abs { position: absolute; z-index: 3; }
+
+  /* ═══════ 作名證 title — far right ═══════ */
+  .zone-title {
+    right: 12mm;
+    top: 54mm;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 64pt;
+    font-weight: 900;
+    color: #111;
+    letter-spacing: 0.1em;
+    line-height: 1;
+  }
+
+  /* ═══════ Birth info — right center ═══════ */
+  .zone-birth {
+    right: 47mm;
+    top: 48mm;
+    display: flex;
+    flex-direction: column;
+    gap: 3mm;
+  }
+  .birth-seg {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1mm;
+  }
+  .bko {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 7pt;
+    color: #666;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+    min-width: 5mm;
+  }
+  .bhan {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 25pt;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.4;
+  }
+
+  /* ═══════ Saju pillars — top center ═══════ */
+  .zone-palja {
+    top: 48mm;
+    left: 74mm;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+  }
+  .pillar-block {
+    width: 12mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0.8mm;
+    border-right: 0.5px solid #bbb;
+  }
+  .pillar-block:last-child { border-right: none; }
+  .pillar-header {
+    font-size: 6pt;
+    color: #aaa;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.5mm;
+  }
+  .p-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0.3mm 0;
+  }
+  .p-ko  { font-size: 6.5pt; color: #888; line-height: 1.3; }
+  .p-han { font-size: 20pt; font-weight: 700; color: #111; line-height: 1.05; }
+  .p-empty { font-size: 20pt; color: #ddd; line-height: 1.05; }
+
+  /* ═══════ Name chars — center, vertical stack ═══════ */
+  .zone-name {
+    top: 80mm;
+    left: 70mm;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .name-section-label {
+    font-size: 8pt;
+    color: #a08040;
+    letter-spacing: 0.5em;
+    margin-bottom: 2mm;
+    align-self: center;
+    padding-left: 11mm;
+  }
+  .name-char-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  .stroke-aside {
+    font-size: 8.5pt;
+    color: #555;
+    width: 11mm;
+    text-align: right;
+    padding-right: 2mm;
+    flex-shrink: 0;
+  }
+  .name-han-big {
+    font-size: 110pt;
+    font-weight: 900;
+    color: #111;
+    line-height: 1.05;
+    display: block;
+  }
+  .name-ko-bottom {
+    font-size: 9pt;
+    color: #888;
+    letter-spacing: 0.35em;
+    margin-top: 3mm;
+    align-self: center;
+    padding-left: 11mm;
+  }
+
+  /* ═══════ Deokdam virtues — left side ═══════ */
+  .zone-deokdam {
+    top: 44mm;
+    left: 13mm;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .dd-section-label {
+    font-size: 7.5pt;
+    color: #a08040;
+    letter-spacing: 0.4em;
+    margin-bottom: 3mm;
+    padding-bottom: 2mm;
+    border-bottom: 0.6px solid #c9a84c;
+  }
+  .dd-list { display: flex; flex-direction: column; gap: 3.5mm; }
+  .deokdam-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1mm;
+  }
+  .dd-ko-side {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 7pt;
+    color: #888;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+    min-width: 5mm;
+  }
+  .dd-han-vert {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 13pt;
+    font-weight: 800;
+    color: #111;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  /* ═══════ Seal + Office — bottom left ═══════ */
+  .zone-seal {
+    bottom: 27mm;
+    left: 13mm;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3mm;
+  }
+  .seal-svg { width: 21mm; height: 21mm; flex-shrink: 0; }
+  .office-name-vert {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #111;
+    letter-spacing: 0.18em;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ BORDER SVG ═══════ -->
+<svg style="position:absolute;inset:0;width:210mm;height:297mm;z-index:1;pointer-events:none;"
+     viewBox="0 0 794 1123" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="bp" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="none" stroke="#222" stroke-width="0.55" opacity="0.6"/>
+    </pattern>
+    <!-- Corner flower (stems right + down from origin) -->
+    <g id="cf">
+      <circle cx="0" cy="0" r="20" fill="white"/>
+      <!-- 8 petals -->
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(45)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(90)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(135)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(180)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(225)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(270)"/>
+      <ellipse cx="0" cy="-12" rx="4.5" ry="9" fill="white" stroke="#111" stroke-width="1" transform="rotate(315)"/>
+      <circle cx="0" cy="0" r="5.5" fill="white" stroke="#111" stroke-width="1.1"/>
+      <circle cx="0" cy="0" r="2.2" fill="#111"/>
+      <!-- right stem -->
+      <path d="M 7 0 C 24 -5 46 4 68 -2 C 88 -7 100 -1 108 1"
+            fill="none" stroke="#111" stroke-width="1.1"/>
+      <path d="M 30 -2 C 33 -13 43 -15 40 -5" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M 30 -2 C 36  6 43  4 40 -4" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M 70 -1 C 73 -13 83 -14 80 -4" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M 70 -1 C 76  7 83  5 80 -3" fill="white" stroke="#111" stroke-width="0.85"/>
+      <!-- right stem end flower -->
+      <circle cx="108" cy="1" r="7.5" fill="white" stroke="#111" stroke-width="0.9"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(60,108,1)"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(120,108,1)"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(180,108,1)"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(240,108,1)"/>
+      <ellipse cx="108" cy="-7.5" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(300,108,1)"/>
+      <circle cx="108" cy="1" r="2.8" fill="#111"/>
+      <!-- down stem -->
+      <path d="M 0 7 C -5 24 4 46 -2 68 C -7 88 -1 100 1 108"
+            fill="none" stroke="#111" stroke-width="1.1"/>
+      <path d="M -2 30 C -13 33 -15 43 -5 40" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M -2 30 C  6 36  4 43 -4 40" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M -1 70 C -13 73 -14 83 -4 80" fill="white" stroke="#111" stroke-width="0.85"/>
+      <path d="M -1 70 C  7 76  5 83 -3 80" fill="white" stroke="#111" stroke-width="0.85"/>
+      <!-- down stem end flower -->
+      <circle cx="1" cy="108" r="7.5" fill="white" stroke="#111" stroke-width="0.9"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(90,1,108)"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(150,1,108)"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(210,1,108)"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(270,1,108)"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(330,1,108)"/>
+      <ellipse cx="-7.5" cy="108" rx="3" ry="5.5" fill="white" stroke="#111" stroke-width="0.75" transform="rotate(30,1,108)"/>
+      <circle cx="1" cy="108" r="2.8" fill="#111"/>
+    </g>
+  </defs>
+
+  <!-- Grid strips between outer and inner lines -->
+  <rect x="21" y="21" width="752" height="13" fill="url(#bp)"/>
+  <rect x="21" y="1089" width="752" height="13" fill="url(#bp)"/>
+  <rect x="21" y="21" width="13" height="1081" fill="url(#bp)"/>
+  <rect x="760" y="21" width="13" height="1081" fill="url(#bp)"/>
+
+  <!-- Border lines -->
+  <rect x="21" y="21" width="752" height="1081" fill="none" stroke="#111" stroke-width="1.8"/>
+  <rect x="34" y="34" width="726" height="1055" fill="none" stroke="#111" stroke-width="0.8"/>
+
+  <!-- Corner flowers: TL, TR, BL, BR -->
+  <use href="#cf" transform="translate(21,21)"/>
+  <use href="#cf" transform="translate(773,21) scale(-1,1)"/>
+  <use href="#cf" transform="translate(21,1102) scale(1,-1)"/>
+  <use href="#cf" transform="translate(773,1102) scale(-1,-1)"/>
+
+  <!-- Bottom center ornament -->
+  <g transform="translate(397,1102) scale(1,-1)">
+    <circle cx="0" cy="0" r="14" fill="white"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9" transform="rotate(60)"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9" transform="rotate(120)"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9" transform="rotate(240)"/>
+    <ellipse cx="0" cy="-11" rx="4.5" ry="8" fill="white" stroke="#111" stroke-width="0.9" transform="rotate(300)"/>
+    <circle cx="0" cy="0" r="5" fill="white" stroke="#111" stroke-width="1.1"/>
+    <circle cx="0" cy="0" r="2" fill="#111"/>
+    <path d="M -28 0 C -18 -6 -6 -3 0 0" fill="none" stroke="#111" stroke-width="1"/>
+    <path d="M  28 0 C  18 -6  6 -3 0 0" fill="none" stroke="#111" stroke-width="1"/>
+    <path d="M -16 -3 C -20 -12 -13 -16 -10 -8" fill="white" stroke="#111" stroke-width="0.8"/>
+    <path d="M  16 -3 C  20 -12  13 -16  10 -8" fill="white" stroke="#111" stroke-width="0.8"/>
+  </g>
+</svg>
+
+<!-- 作名證 title -->
+<div class="abs zone-title">{{cert_title}}</div>
+
+<!-- Birth info -->
+<div class="abs zone-birth">
+  <div class="birth-seg"><span class="bko">{{birth_year_ko}}</span><span class="bhan">{{birth_year_gapja}}年</span></div>
+  <div class="birth-seg"><span class="bko">양력</span><span class="bhan">陽曆</span></div>
+  <div class="birth-seg"><span class="bko">{{birth_month_ko}}</span><span class="bhan">{{birth_month_han}}</span></div>
+  <div class="birth-seg"><span class="bko">{{birth_day_ko}}</span><span class="bhan">{{birth_day_han}}</span></div>
+  <div class="birth-seg"><span class="bko">{{birth_hour_ko}}</span><span class="bhan">{{birth_shi_han}}</span></div>
+  <div class="birth-seg"><span class="bko">탄생</span><span class="bhan">誕生</span></div>
+</div>
+
+<!-- Saju pillars -->
+<div class="abs zone-palja">
+  {{PALJA_HTML}}
+</div>
+
+<!-- Name chars (vertical stack) -->
+<div class="abs zone-name">
+  <div class="name-section-label">성  명</div>
+  <div class="name-char-row">
+    <div class="stroke-aside">({{last_name_strokes}})</div>
+    <span class="name-han-big">{{last_name_hanja}}</span>
+  </div>
+  {{GIVEN_NAME_CHARS_HTML}}
+  <div class="name-ko-bottom">{{name_ko}}</div>
+</div>
+
+<!-- Deokdam virtues -->
+<div class="abs zone-deokdam">
+  <div class="dd-section-label">덕  담</div>
+  <div class="dd-list">
+    {{DEOKDAM_HTML}}
+  </div>
+</div>
+
+<!-- Seal + Office -->
+<div class="abs zone-seal">
+  <svg class="seal-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="5" y="5" width="90" height="90" fill="rgba(196,30,58,0.06)" stroke="#c41e3a" stroke-width="4.5"/>
+    <rect x="13" y="13" width="74" height="74" fill="none" stroke="#c41e3a" stroke-width="1.2"/>
+    <text x="50" y="64" text-anchor="middle" font-size="40" font-weight="900" fill="#c41e3a"
+          font-family="'궁서','Gungsuh','Noto Serif KR',serif">{{seal_char}}</text>
+  </svg>
+  <div class="office-name-vert">{{office_name}}</div>
+</div>
+
+</body>
+</html>
