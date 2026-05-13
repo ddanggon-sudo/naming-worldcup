@@ -551,7 +551,7 @@ app.post('/api/hanja/alternatives', async (req, res) => {
       .map(combo => {
         const hanjaStr = combo.map(c => c.char).join('');
         const jawon    = combo.map(c => c.ohaeng_won);
-        let score = 30;
+        let score = 0;
         if (jawon.includes(saju_yongsin))             score += 50;
         if (combo.length === 2 && isSangseong(jawon[0], jawon[1])) score += 20;
         if (combo.length >= 3) {
