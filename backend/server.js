@@ -589,7 +589,7 @@ ${candidateList}
 
 각 항목 평가 기준:
 - hanja: 후보 한자 문자열 (그대로 복사)
-- meaning_score: 이름으로서 의미의 자연스러움 (0~20점)
+- meaning_score: 이름으로서 의미의 자연스러움 (0~30점)
 - meaning: 두 글자 합친 뜻 (10자 이내 한국어)
 - explanation: 사주·이름 조화 설명 (1문장, 해당 한자 언급 포함)
 - category: "saju_match"(용신 보완) | "meaning"(의미 아름다움) | "classic"(전통·인기)
@@ -631,23 +631,7 @@ ${candidateList}
         const cand = candByHanja[item.hanja];
         return {
           hanja:             cand.hanjaStr,
-          score:             (() => {
-            if (elements) {
-              // 사주 분석과 동일한 공식 → 교체 후 실제 나올 점수
-              const fullName = (last_name || '') + name;
-              const eumList  = calcEumryeong(fullName);
-              // 성 한자의 자원오행 포함 (사주 analyze와 동일하게)
-              const lastJawon = [...(last_name || '')].map(ch => hanjaDB[ch]?.ohaeng_won).filter(Boolean);
-              const fullJawon = [...lastJawon, ...cand.jawon];
-              let s = 0;
-              if (eumList.includes(saju_yongsin))    s += 30;
-              if (fullJawon.includes(saju_yongsin))  s += 50;
-              s += calcBalanceScore(elements);
-              if (!hour_known) s -= 5;
-              return Math.max(0, Math.min(100, s));
-            }
-            return Math.min(100, cand.baseScore + (item.meaning_score ?? 0));
-          })(),
+          score:             Math.min(100, cand.baseScore + (item.meaning_score ?? 0)),
           is_recommended:    false,
           elements_jawon:    cand.jawon,
           elements_eumryeong: eumryeongList,
