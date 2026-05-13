@@ -842,9 +842,10 @@ function buildPage2Html(data) {
     is_premium       = false,
   } = data;
 
-  // 성/이름 분리 (성: 첫 글자)
-  const lastHanja  = full_name_hanja[0]  || '';
-  const givenHanja = full_name_hanja.slice(1) || '';
+  // 성/이름 분리: frontend는 이름(given) 한자만 보내므로 성은 SURNAME_MAP으로 조회
+  const lastNameKo = full_name_korean[0] || '';
+  const lastHanja  = SURNAME_MAP[lastNameKo] || full_name_hanja[0] || '';
+  const givenHanja = full_name_hanja; // frontend sends given name hanja only
 
   // 생년월일 파싱
   const [y, mo, d] = birth_date ? birth_date.split('-').map(Number) : [2024, 1, 1];
@@ -865,12 +866,14 @@ function buildPage2Html(data) {
 
   // 수리 5격
   const suri = (lastHanja && givenHanja) ? calculateSuri(lastHanja, givenHanja) : null;
-  const charData      = suri ? suri.chars : [...full_name_hanja].map(c => ({ char: c, strokes: 0, yang_eum: '?' }));
+  const charData = suri
+    ? suri.chars
+    : [lastHanja, ...[...givenHanja]].map(c => ({ char: c, strokes: 0, yang_eum: '?' }));
   const lastCharData  = charData[0] || { char: lastHanja, strokes: 0, yang_eum: '?' };
   const hanjaDB       = loadHanjaDB();
   const givenCharData = charData.slice(1).map(c => ({
     ...c,
-    sound:   hanjaDB[c.char]?.sound   || '',
+    sound:   hanjaDB[c.char]?.sound   || c.char,
     meaning: hanjaDB[c.char]?.meaning || '',
   }));
 
