@@ -876,48 +876,39 @@
 
   /* ─── 감정서 ─── */
   .cert-paper {
-    background: #fff;
-    border: 2px solid #111;
-    border-radius: 0;
-    padding: 28px 24px;
+    background: linear-gradient(135deg, #fffbf0 0%, #fff5dc 100%);
+    border: 2px solid #d4b876;
+    border-radius: 12px;
+    padding: 24px 20px;
     position: relative;
+    overflow: hidden;
     margin-bottom: 14px;
   }
-  /* 내부 얇은 테두리 (이중 선 효과) */
-  .cert-paper::before {
-    content: '';
+  .cert-watermark {
     position: absolute;
-    inset: 7px;
-    border: 0.5px solid #555;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 56px;
+    color: rgba(212,184,118,0.22);
+    font-weight: 900;
     pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
   }
-  /* 모서리 장식 (ㄱ자 꺾쇠) */
-  .cert-corner {
-    position: absolute;
-    width: 16px; height: 16px;
-    border-color: #111;
-    border-style: solid;
-  }
-  .cert-corner-tl { top: 13px; left: 13px; border-width: 2px 0 0 2px; }
-  .cert-corner-tr { top: 13px; right: 13px; border-width: 2px 2px 0 0; }
-  .cert-corner-bl { bottom: 13px; left: 13px; border-width: 0 0 2px 2px; }
-  .cert-corner-br { bottom: 13px; right: 13px; border-width: 0 2px 2px 0; }
   .cert-header {
     text-align: center;
-    border-bottom: 1.5px solid #222;
+    border-bottom: 2px solid #d4b876;
     padding-bottom: 14px;
     margin-bottom: 14px;
-    position: relative;
-    z-index: 1;
   }
   .cert-title {
     font-size: 22px;
     font-weight: 800;
-    color: #111;
+    color: #8b6f3a;
     margin-bottom: 4px;
     letter-spacing: 4px;
   }
-  .cert-sub { font-size: 10px; color: #555; letter-spacing: 2px; }
+  .cert-sub { font-size: 10px; color: var(--sub); letter-spacing: 2px; }
   .cert-name {
     font-size: 32px;
     font-weight: 800;
@@ -925,8 +916,6 @@
     margin: 14px 0;
     color: var(--text);
     letter-spacing: 8px;
-    position: relative;
-    z-index: 1;
   }
   .cert-name .ko {
     font-size: 14px;
@@ -940,17 +929,17 @@
   .cert-section-title {
     font-size: 11px;
     font-weight: 800;
-    color: #333;
+    color: #8b6f3a;
     margin-bottom: 5px;
     padding-bottom: 3px;
-    border-bottom: 1px solid #aaa;
+    border-bottom: 1px dashed #d4b876;
   }
   .cert-section p { font-size: 12.5px; line-height: 1.6; color: var(--text); white-space: pre-line; }
   .cert-footer {
     text-align: center;
     margin-top: 16px;
     padding-top: 14px;
-    border-top: 1px solid #555;
+    border-top: 1px solid #d4b876;
     font-size: 11px;
     color: var(--sub);
     position: relative;
@@ -958,16 +947,16 @@
   }
   .cert-stamp {
     width: 60px; height: 60px;
-    border: 3px solid #333;
+    border: 3px solid var(--accent);
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #333;
+    color: var(--accent);
     font-weight: 800;
     font-size: 12px;
     margin-top: 8px;
-    background: rgba(0,0,0,0.03);
+    background: rgba(255,101,132,0.05);
     line-height: 1.2;
     text-align: center;
   }
@@ -2099,10 +2088,7 @@
 
   <div id="cert-content" style="display:none">
     <div class="cert-paper" id="cert-paper-el">
-      <div class="cert-corner cert-corner-tl"></div>
-      <div class="cert-corner cert-corner-tr"></div>
-      <div class="cert-corner cert-corner-bl"></div>
-      <div class="cert-corner cert-corner-br"></div>
+      <div class="cert-watermark">미리보기</div>
       <div class="cert-header">
         <div class="cert-title">作名鑑定書</div>
         <div class="cert-sub">작 명 감 정 서</div>

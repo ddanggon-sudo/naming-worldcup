@@ -12,9 +12,14 @@
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html {
+    background: #fff;
+    overflow: hidden;
+  }
+
   body {
     font-family: 'HanyangHaeseo', '궁서', 'Gungsuh', 'GungsuhChe', 'Batang', serif;
-    background: #fffef8;
+    background: #fff;
     width: 210mm;
     height: 297mm;
     position: relative;
@@ -22,13 +27,23 @@
     color: #111;
   }
 
-  /* ═══════ 외곽 테두리 이미지 ═══════ */
-  .border-frame {
+  /* ═══════ 검정 이중 테두리 ═══════ */
+  .cert-border-outer {
     position: absolute;
-    top: 0; left: 0;
-    width: 210mm; height: 297mm;
-    z-index: 1;
-    object-fit: fill;
+    top: 7mm; left: 7mm;
+    width: calc(210mm - 14mm);
+    height: calc(297mm - 14mm);
+    border: 0.7mm solid #111;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .cert-border-inner {
+    position: absolute;
+    top: 9.5mm; left: 9.5mm;
+    width: calc(210mm - 19mm);
+    height: calc(297mm - 19mm);
+    border: 0.25mm solid #111;
+    z-index: 2;
     pointer-events: none;
   }
 
@@ -153,6 +168,9 @@
   }
   .ann-strokes-h {
     text-combine-upright: all;
+    text-align: center;
+    display: inline-block;
+    width: 1em;
   }
   .stroke-aside {
     writing-mode: horizontal-tb;
@@ -212,8 +230,9 @@
 </head>
 <body>
 
-<!-- 외곽 테두리 이미지 (배경) -->
-<img class="border-frame" src="data:image/jpeg;base64,{{CERT2_BORDER_B64}}" alt="">
+<!-- 이중 테두리 -->
+<div class="cert-border-outer"></div>
+<div class="cert-border-inner"></div>
 
 <!-- 作名證 title -->
 <div class="abs zone-title">{{cert_title}}</div>

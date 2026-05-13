@@ -1056,6 +1056,7 @@ async function buildCertificatePdf(data) {
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  await page.evaluate(async () => { await document.fonts.ready; });
   const pdfRaw = await page.pdf({
     format: 'A4',
     printBackground: true,
@@ -1098,7 +1099,7 @@ async function buildCertificateFullPdf(data) {
 </head>
 <body>
   <div class="pdf-page" style="padding:20mm 18mm;background:#fff;">${p1.bodyContent}</div>
-  <div class="pdf-page" style="background:#fefdf6;">${p2.bodyContent}</div>
+  <div class="pdf-page" style="background:#fff;">${p2.bodyContent}</div>
 </body>
 </html>`;
 
@@ -1106,6 +1107,7 @@ async function buildCertificateFullPdf(data) {
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(combined, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  await page.evaluate(async () => { await document.fonts.ready; });
   const pdfRaw = await page.pdf({
     format: 'A4',
     printBackground: true,
@@ -1153,6 +1155,7 @@ async function buildCertificateJpg(data) {
   await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  await page.evaluate(async () => { await document.fonts.ready; });
 
   // 실제 렌더 높이 측정 후 viewport 재설정 (내용이 1123px를 넘어도 잘리지 않게)
   const renderHeight = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -1217,6 +1220,7 @@ async function buildCert2Jpg(data) {
   await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  await page.evaluate(async () => { await document.fonts.ready; });
   const renderHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   const captureHeight = Math.max(renderHeight, 1123);
   if (captureHeight > 1123) {
@@ -1239,6 +1243,7 @@ async function buildCert2Pdf(data) {
   const page = await browser.newPage();
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
+  await page.evaluate(async () => { await document.fonts.ready; });
   const pdfRaw = await page.pdf({
     format: 'A4',
     printBackground: true,
