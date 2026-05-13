@@ -636,9 +636,12 @@ ${candidateList}
               // 사주 분석과 동일한 공식 → 교체 후 실제 나올 점수
               const fullName = (last_name || '') + name;
               const eumList  = calcEumryeong(fullName);
+              // 성 한자의 자원오행 포함 (사주 analyze와 동일하게)
+              const lastJawon = [...(last_name || '')].map(ch => hanjaDB[ch]?.ohaeng_won).filter(Boolean);
+              const fullJawon = [...lastJawon, ...cand.jawon];
               let s = 0;
-              if (eumList.includes(saju_yongsin))        s += 30;
-              if (cand.jawon.includes(saju_yongsin))     s += 50;
+              if (eumList.includes(saju_yongsin))    s += 30;
+              if (fullJawon.includes(saju_yongsin))  s += 50;
               s += calcBalanceScore(elements);
               if (!hour_known) s -= 5;
               return Math.max(0, Math.min(100, s));
