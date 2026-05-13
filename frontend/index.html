@@ -494,6 +494,17 @@
     box-shadow: 0 1px 4px rgba(245,166,35,0.4);
   }
   .badge-rarity { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+  /* 희귀도 필터 칩 */
+  .rarity-chip {
+    flex-shrink: 0; white-space: nowrap;
+    padding: 5px 12px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--card); color: var(--sub);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .rarity-chip.active {
+    border-color: var(--primary); background: var(--primary); color: #fff;
+  }
   .rarity-very-rare {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     color: #92400e;
@@ -1943,8 +1954,8 @@
   <p class="sub-title" id="stat-subtitle" style="margin-bottom:14px">저장된 이름 0개</p>
   <div id="migrate-status" style="display:none;font-size:12px;color:var(--primary);margin-bottom:10px;text-align:center;padding:6px 10px;background:var(--primary-light);border-radius:8px;"></div>
 
-  <!-- 필터/정렬/추가 행 -->
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+  <!-- 정렬/추가 행 -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     <select class="small" id="sort-select" onchange="renderSavedNames()" style="flex:1;min-width:76px">
       <option value="newest">최신순</option>
       <option value="abc">가나다순</option>
@@ -1952,6 +1963,9 @@
     <button class="btn btn-outline btn-sm" onclick="copyAllNames(this)" style="flex-shrink:0">📋 전체 복사</button>
     <button class="btn btn-primary btn-sm" onclick="openAddNameModal()" style="flex-shrink:0">+ 추가</button>
   </div>
+
+  <!-- 희귀도 필터 칩 -->
+  <div id="rarity-filter-row" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
 
   <div id="saved-names-list"></div>
 
@@ -3016,6 +3030,8 @@ async function copyAllNames(btn) {
   if (!saved.length) { showToast('보관함이 비어있어요.'); return; }
   if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
   if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  if (_rarityFilter !== 'all') saved = saved.filter(n => n.rarity === _rarityFilter);
+  if (!saved.length) { showToast('필터 결과가 없어요.'); return; }
   const text = saved.map(n => n.full_name || (n.last_name || '') + n.name).join('\n');
   try {
     await navigator.clipboard.writeText(text);
@@ -3030,11 +3046,43 @@ async function copyAllNames(btn) {
 function renderProfile() {
   const saved = getSavedNames();
   document.getElementById('stat-subtitle').textContent = `저장된 이름 ${saved.length}개`;
+  _renderRarityChips();
   renderSavedNames();
 }
 
 
 let _savedCardSajuMap = {};
+let _rarityFilter = 'all';
+
+const _RARITY_CHIPS = [
+  { value: 'all',      label: '전체' },
+  { value: '매우 희귀', label: '💎 매우희귀' },
+  { value: '희귀',     label: '⭐ 희귀' },
+  { value: '보통',     label: '보통' },
+  { value: '흔한 편',  label: '흔한 편' },
+  { value: '매우 흔함', label: '매우 흔함' },
+];
+
+function _renderRarityChips() {
+  const all = getSavedNames();
+  // 현재 데이터에 존재하는 희귀도 값 집합
+  const present = new Set(all.map(n => n.rarity || null));
+  const row = document.getElementById('rarity-filter-row');
+  if (!row) return;
+  row.innerHTML = _RARITY_CHIPS
+    .filter(c => c.value === 'all' || present.has(c.value))
+    .map(c => {
+      const cnt = c.value === 'all' ? all.length : all.filter(n => n.rarity === c.value).length;
+      const active = _rarityFilter === c.value ? ' active' : '';
+      return `<button class="rarity-chip${active}" onclick="setRarityFilter('${c.value}')">${c.label} <span style="opacity:.65">${cnt}</span></button>`;
+    }).join('');
+}
+
+function setRarityFilter(value) {
+  _rarityFilter = value;
+  _renderRarityChips();
+  renderSavedNames();
+}
 
 function _buildSavedCardEl(n) {
   const metaParts = [
@@ -3083,6 +3131,9 @@ function renderSavedNames() {
   if (sort === 'newest') saved = saved.slice().sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at));
   if (sort === 'abc') saved = saved.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
+  // 희귀도 필터
+  const filtered = _rarityFilter === 'all' ? saved : saved.filter(n => n.rarity === _rarityFilter);
+
   const el = document.getElementById('saved-names-list');
   if (!saved.length) {
     if (!_authReady) {
@@ -3097,17 +3148,21 @@ function renderSavedNames() {
     }
     return;
   }
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty">해당 희귀도의 이름이 없어요.</div>`;
+    return;
+  }
 
-  // 보관함 사주 버튼용 매핑 테이블 갱신
+  // 보관함 사주 버튼용 매핑 테이블 갱신 (전체 기준)
   _savedCardSajuMap = {};
   saved.forEach(n => {
     if (n.hanja) _savedCardSajuMap[n.id] = { name: n.name, hanja: n.hanja, last_name: n.last_name || '', gender: n.gender || '남아' };
   });
 
-  // 전체 재빌드
+  // 전체 재빌드 (필터 적용)
   el.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  saved.forEach(n => fragment.appendChild(_buildSavedCardEl(n)));
+  filtered.forEach(n => fragment.appendChild(_buildSavedCardEl(n)));
   el.appendChild(fragment);
 }
 
