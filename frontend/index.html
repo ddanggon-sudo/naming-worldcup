@@ -3859,9 +3859,13 @@ function _renderHanjaAlt(data) {
   const sajuMatches = alternatives.filter(a => a.category === 'saju_match');
   const others      = alternatives.filter(a => a.category !== 'saju_match');
 
-  document.getElementById('hanja-alt-saju-list').innerHTML = sajuMatches.length
-    ? sajuMatches.map(altCardHtml).join('')
-    : '<p style="text-align:center;color:var(--sub);padding:12px 0;font-size:13px">사주 맞춤 조합이 없습니다</p>';
+  const sajuSection = document.getElementById('hanja-saju-section');
+  if (sajuMatches.length) {
+    document.getElementById('hanja-alt-saju-list').innerHTML = sajuMatches.map(altCardHtml).join('');
+    sajuSection.style.display = 'block';
+  } else {
+    sajuSection.style.display = 'none';
+  }
 
   const otherSection = document.getElementById('hanja-other-section');
   if (others.length) {

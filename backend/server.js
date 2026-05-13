@@ -635,7 +635,7 @@ ${candidateList}
           elements_eumryeong: eumryeongList,
           meaning:           item.meaning || '—',
           explanation:       item.explanation || '',
-          category:          item.category || (cand.jawon.includes(saju_yongsin) ? 'saju_match' : 'meaning'),
+          category:          cand.jawon.includes(saju_yongsin) ? 'saju_match' : (item.category || 'meaning'),
         };
       })
       .sort((a, b) => b.score - a.score);
