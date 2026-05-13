@@ -2302,7 +2302,10 @@ function goPage(name) {
   if (name === 'profile') {
     renderProfile();
     if (_currentProfile?.family_id) {
-      loadNamesFromDB().then(() => renderProfile());
+      const _cntBefore = _namesCache.length;
+      loadNamesFromDB().then(() => {
+        if (_namesCache.length >= _cntBefore) renderProfile();
+      });
     }
   }
   if (name === 'grand') renderGrandLobby();
@@ -3024,28 +3027,10 @@ function renderSavedNames() {
     if (n.hanja) _savedCardSajuMap[n.id] = { name: n.name, hanja: n.hanja, last_name: n.last_name || '', gender: n.gender || '남아' };
   });
 
-  // 현재 렌더링된 카드 id 목록
-  const existingIds = new Set(
-    Array.from(el.querySelectorAll('[data-saved-id]')).map(c => c.dataset.savedId)
-  );
-  // 새 목록의 id 집합
-  const newIds = new Set(saved.map(n => n.id));
-
-  // 삭제된 카드 제거
-  existingIds.forEach(id => {
-    if (!newIds.has(id)) {
-      const old = el.querySelector(`[data-saved-id="${id}"]`);
-      if (old) old.remove();
-    }
-  });
-
-  // 항상 최신 데이터로 카드 재빌드
+  // 전체 재빌드
+  el.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  saved.forEach(n => {
-    const existing = el.querySelector(`[data-saved-id="${n.id}"]`);
-    if (existing) existing.remove();
-    fragment.appendChild(_buildSavedCardEl(n));
-  });
+  saved.forEach(n => fragment.appendChild(_buildSavedCardEl(n)));
   el.appendChild(fragment);
 }
 
