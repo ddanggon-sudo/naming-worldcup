@@ -2031,6 +2031,8 @@
   <div id="hanja-alt-content" style="display:none">
     <div class="card" id="hanja-alt-summary-card"></div>
 
+    <div id="hanja-alt-empty" style="display:none;text-align:center;color:var(--sub);padding:24px 0;font-size:14px">추천 가능한 다른 한자 조합이 없습니다.</div>
+
     <div id="hanja-saju-section">
       <div class="section-title">🎯 사주에 더 적합한 조합 (<span id="hanja-yongsin-label"></span> 보완)</div>
       <div id="hanja-alt-saju-list"></div>
@@ -3855,12 +3857,11 @@ function _renderHanjaAlt(data) {
   const others      = alternatives.filter(a => a.category !== 'saju_match');
 
   if (alternatives.length === 0) {
+    document.getElementById('hanja-alt-empty').style.display = 'block';
     document.getElementById('hanja-saju-section').style.display = 'none';
     document.getElementById('hanja-other-section').style.display = 'none';
-    document.getElementById('hanja-alt-summary-card').insertAdjacentHTML('afterend',
-      '<p style="text-align:center;color:var(--sub);padding:24px 0;font-size:14px">추천 가능한 다른 한자 조합이 없습니다.</p>'
-    );
   } else {
+    document.getElementById('hanja-alt-empty').style.display = 'none';
     const sajuSection = document.getElementById('hanja-saju-section');
     if (sajuMatches.length) {
       document.getElementById('hanja-alt-saju-list').innerHTML = sajuMatches.map(altCardHtml).join('');

@@ -578,8 +578,10 @@ app.post('/api/hanja/alternatives', async (req, res) => {
 
     // 후보가 하나도 없는 음절이 있으면 조기 반환
     if (candidatesBySyllable.some(arr => arr.length === 0)) {
+      console.log(`[hanja-alt] 음절 매칭 실패: ${syllables.map((s,i) => s+'='+candidatesBySyllable[i].length+'건').join(', ')}`);
       return res.json({ base_name: name, alternatives: [] });
     }
+    console.log(`[hanja-alt] 이름="${name}" 성="${last_name}" 용신="${saju_yongsin}" 후보=${candidatesBySyllable.map(a=>a.length).join('×')}=${candidatesBySyllable.reduce((s,a)=>s*a.length,1)}조합`);
 
     // 2. 조합 생성 (cartesian product)
     const combos = candidatesBySyllable.reduce((acc, arr) =>
@@ -614,6 +616,7 @@ app.post('/api/hanja/alternatives', async (req, res) => {
       .sort((a, b) => b.baseScore - a.baseScore);
 
     if (scored.length === 0) {
+      console.log(`[hanja-alt] scored 빈 배열 (current_hanja="${current_hanja}"가 유일한 조합?)`);
       return res.json({ base_name: name, alternatives: [] });
     }
 
@@ -696,7 +699,11 @@ ${candidateList}
       })
       .sort((a, b) => b.score - a.score);
 
-    if (alternatives.length > 0) alternatives[0].is_recommended = true;
+    if (alternatives.length > 0) {
+      alternatives[0].is_recommended = true;
+    } else {
+      console.log(`[hanja-alt] LLM 필터링 후 0건: llmItems=${llmItems.length} candByHanja keys=[${Object.keys(candByHanja).slice(0,5).join(',')}] llm hanja=[${llmItems.map(i=>i.hanja).join(',')}]`);
+    }
 
     return res.json({ base_name: name, alternatives });
 
