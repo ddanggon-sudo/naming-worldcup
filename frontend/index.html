@@ -2131,9 +2131,11 @@
   </div>
 
   <div id="cert2-content" style="display:none">
-    <iframe id="cert2-iframe"
-      style="width:100%;border:none;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)"
-      scrolling="no"></iframe>
+    <div id="cert2-wrapper" style="width:100%;overflow:hidden;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">
+      <iframe id="cert2-iframe"
+        style="width:794px;height:1123px;border:none;transform-origin:top left;display:block"
+        scrolling="no"></iframe>
+    </div>
     <div class="cert-action-area" style="margin-top:16px">
       <div class="cert-lock-text">고화질 PDF로 저장하세요.</div>
       <button class="btn btn-accent" onclick="_doCertDownload()" style="font-size:14px">
@@ -4029,12 +4031,15 @@ async function openCert2() {
     const { token } = await res.json();
 
     const iframe = document.getElementById('cert2-iframe');
-    // 컨테이너 너비 기준으로 미리 계산 (iframe이 hidden 상태라 clientWidth=0)
-    const containerW = document.getElementById('page-cert2').clientWidth || window.innerWidth;
-    const scale = Math.min(1, containerW / 794);
-    iframe.style.height = Math.ceil(1123 * scale) + 'px';
+    const wrapper = document.getElementById('cert2-wrapper');
 
     iframe.onload = () => {
+      // page-cert2 너비 기준 (content가 아직 hidden이라 wrapper.clientWidth=0)
+      const pageW = document.getElementById('page-cert2').clientWidth || window.innerWidth;
+      const scale = Math.min(1, pageW / 794);
+      iframe.style.transform = `scale(${scale})`;
+      wrapper.style.height = Math.ceil(1123 * scale) + 'px';
+
       document.getElementById('cert2-loading').style.display = 'none';
       document.getElementById('cert2-content').style.display = 'block';
     };
