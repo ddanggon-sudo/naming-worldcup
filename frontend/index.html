@@ -3859,20 +3859,28 @@ function _renderHanjaAlt(data) {
   const sajuMatches = alternatives.filter(a => a.category === 'saju_match');
   const others      = alternatives.filter(a => a.category !== 'saju_match');
 
-  const sajuSection = document.getElementById('hanja-saju-section');
-  if (sajuMatches.length) {
-    document.getElementById('hanja-alt-saju-list').innerHTML = sajuMatches.map(altCardHtml).join('');
-    sajuSection.style.display = 'block';
+  if (alternatives.length === 0) {
+    document.getElementById('hanja-saju-section').style.display = 'none';
+    document.getElementById('hanja-other-section').style.display = 'none';
+    document.getElementById('hanja-alt-summary-card').insertAdjacentHTML('afterend',
+      '<p style="text-align:center;color:var(--sub);padding:24px 0;font-size:14px">추천 가능한 다른 한자 조합이 없습니다.</p>'
+    );
   } else {
-    sajuSection.style.display = 'none';
-  }
+    const sajuSection = document.getElementById('hanja-saju-section');
+    if (sajuMatches.length) {
+      document.getElementById('hanja-alt-saju-list').innerHTML = sajuMatches.map(altCardHtml).join('');
+      sajuSection.style.display = 'block';
+    } else {
+      sajuSection.style.display = 'none';
+    }
 
-  const otherSection = document.getElementById('hanja-other-section');
-  if (others.length) {
-    document.getElementById('hanja-alt-other-list').innerHTML = others.map(altCardHtml).join('');
-    otherSection.style.display = 'block';
-  } else {
-    otherSection.style.display = 'none';
+    const otherSection = document.getElementById('hanja-other-section');
+    if (others.length) {
+      document.getElementById('hanja-alt-other-list').innerHTML = others.map(altCardHtml).join('');
+      otherSection.style.display = 'block';
+    } else {
+      otherSection.style.display = 'none';
+    }
   }
 
   document.getElementById('hanja-alt-loading').style.display = 'none';
