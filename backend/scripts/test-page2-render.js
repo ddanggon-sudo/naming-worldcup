@@ -29,8 +29,8 @@ const dummy = {
   last_name_strokes: 8,
   last_name_yang_eum: '음',
   given_name_chars: [
-    { char: '智', strokes: 12, yang_eum: '음' },
-    { char: '宇', strokes: 6,  yang_eum: '음' },
+    { char: '智', strokes: 12, yang_eum: '음', sound: '지', meaning: '지혜, 슬기' },
+    { char: '宇', strokes: 6,  yang_eum: '음', sound: '우', meaning: '집, 우주' },
   ],
   name_ko: '김지우',
 
@@ -43,14 +43,14 @@ const dummy = {
   ],
 
   deokdam_items: [
-    { hanja: '父祖有德', ko: '부조유덕' },
-    { hanja: '明哲人物', ko: '명철인물' },
-    { hanja: '博士得名', ko: '박사득명' },
     { hanja: '富家成長', ko: '부가성장' },
+    { hanja: '父祖有德', ko: '부조유덕' },
     { hanja: '人格出衆', ko: '인격출중' },
-    { hanja: '良配貴子', ko: '양배귀자' },
+    { hanja: '明哲人物', ko: '명철인물' },
+    { hanja: '專門家', ko: '전문가' },
+    { hanja: '博士得名', ko: '박사득명' },
     { hanja: '健康長壽', ko: '건강장수' },
-    { hanja: '專門才能', ko: '전문재능' },
+    { hanja: '良配貴子', ko: '양배귀자' },
   ],
 
   office_name: '픽마이네임 작명연구소',
@@ -60,30 +60,37 @@ const dummy = {
 // ── HTML 블록 렌더링 ───────────────────────────────────────────
 
 function renderGivenNameChars(chars) {
-  return chars.map(c => `
+  return chars.map(c => {
+    const meaning = (c.meaning || '').split(',')[0].trim();
+    return `
       <div class="name-char-row">
-        <div class="stroke-aside">(${c.strokes})</div>
+        <div class="ann-left">${meaning} ${c.sound || ''} <span class="ann-strokes-h">(${c.strokes})</span></div>
         <span class="name-han-big">${c.char}</span>
-      </div>`).join('\n');
+      </div>`;
+  }).join('\n');
 }
 
 function renderDeokdam(items) {
-  return items.map(it => `
-      <div class="deokdam-row">
+  const item = (it) => `<div class="deokdam-row">
         <span class="dd-ko-side">${it.ko}</span>
         <span class="dd-han-vert">${it.hanja}</span>
-      </div>`).join('\n');
+      </div>`;
+  const rows = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push(`<div class="dd-row-group">${item(items[i])}${items[i+1] ? item(items[i+1]) : ''}</div>`);
+  }
+  return rows.join('\n      ');
 }
 
 function renderPalja(pillars) {
-  return pillars.map(p => {
+  return [...pillars].reverse().map(p => {
     const cheon = p.cheon
-      ? `<div class="p-unit"><div class="p-ko">${p.cheon_ko || ''}</div><div class="p-han">${p.cheon}</div></div>`
+      ? `<div class="p-unit"><div class="p-han">${p.cheon}</div><div class="p-ko">${p.cheon_ko || ''}</div></div>`
       : `<div class="p-empty">　</div>`;
     const ji = p.ji
-      ? `<div class="p-unit"><div class="p-ko">${p.ji_ko || ''}</div><div class="p-han">${p.ji}</div></div>`
+      ? `<div class="p-unit"><div class="p-han">${p.ji}</div><div class="p-ko">${p.ji_ko || ''}</div></div>`
       : `<div class="p-empty">　</div>`;
-    return `<div class="pillar-block"><div class="pillar-header">${p.header}</div>${cheon}${ji}</div>`;
+    return `<div class="pillar-block">${cheon}${ji}</div>`;
   }).join('\n');
 }
 

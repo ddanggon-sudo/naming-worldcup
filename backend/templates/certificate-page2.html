@@ -5,11 +5,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
+  @font-face {
+    font-family: 'HYGungsuh';
+    src: url('../fonts/hy.ttf') format('truetype');
+  }
+
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: '궁서', 'Gungsuh', 'GungsuhChe', 'Noto Serif KR', 'Nanum Myeongjo', 'Batang', serif;
+    font-family: 'HYGungsuh', '궁서', 'Gungsuh', 'GungsuhChe', 'Noto Serif KR', 'Nanum Myeongjo', 'Batang', serif;
     background: #fff;
     width: 210mm;
     height: 297mm;
@@ -44,13 +49,13 @@
   .birth-seg {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     gap: 1mm;
   }
   .bko {
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-size: 7pt;
+    font-size: 12pt;
     color: #666;
     letter-spacing: 0.05em;
     line-height: 1.4;
@@ -79,9 +84,8 @@
     flex-direction: column;
     align-items: center;
     padding: 0 0.8mm;
-    border-right: 0.5px solid #bbb;
   }
-  .pillar-block:last-child { border-right: none; }
+
   .pillar-header {
     font-size: 6pt;
     color: #aaa;
@@ -94,7 +98,7 @@
     align-items: center;
     margin: 0.3mm 0;
   }
-  .p-ko  { font-size: 6.5pt; color: #888; line-height: 1.3; }
+  .p-ko  { font-size: 12pt; color: #888; line-height: 1.3; }
   .p-han { font-size: 20pt; font-weight: 700; color: #111; line-height: 1.05; }
   .p-empty { font-size: 20pt; color: #ddd; line-height: 1.05; }
 
@@ -119,20 +123,24 @@
     flex-direction: row;
     align-items: center;
   }
-  .stroke-aside {
-    font-size: 8.5pt;
-    color: #555;
-    width: 11mm;
-    text-align: right;
-    padding-right: 2mm;
-    flex-shrink: 0;
-  }
   .name-han-big {
     font-size: 110pt;
     font-weight: 900;
     color: #111;
     line-height: 1.05;
     display: block;
+  }
+  .ann-left {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 12pt;
+    color: #444;
+    letter-spacing: 0.15em;
+    margin-right: 2mm;
+    align-self: center;
+  }
+  .ann-strokes-h {
+    text-combine-upright: all;
   }
   .name-ko-bottom {
     font-size: 9pt;
@@ -159,26 +167,28 @@
     padding-bottom: 2mm;
     border-bottom: 0.6px solid #c9a84c;
   }
-  .dd-list { display: flex; flex-direction: column; gap: 3.5mm; }
+  .dd-list { display: flex; flex-direction: column; gap: 4mm; }
+  .dd-row-group { display: flex; flex-direction: row; gap: 3mm; }
   .deokdam-row {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     gap: 1mm;
   }
   .dd-ko-side {
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-size: 7pt;
+    font-size: 12pt;
     color: #888;
-    letter-spacing: 0.03em;
+    letter-spacing: 1.0em;
     line-height: 1.3;
     min-width: 5mm;
+    align-self: center;
   }
   .dd-han-vert {
     writing-mode: vertical-rl;
     text-orientation: upright;
-    font-size: 13pt;
+    font-size: 25pt;
     font-weight: 800;
     color: #111;
     letter-spacing: 0.06em;
@@ -317,7 +327,6 @@
 
 <!-- Name chars (vertical stack) -->
 <div class="abs zone-name">
-  <div class="name-section-label">성  명</div>
   <div class="name-char-row">
     <div class="stroke-aside">({{last_name_strokes}})</div>
     <span class="name-han-big">{{last_name_hanja}}</span>
@@ -328,7 +337,6 @@
 
 <!-- Deokdam virtues -->
 <div class="abs zone-deokdam">
-  <div class="dd-section-label">덕  담</div>
   <div class="dd-list">
     {{DEOKDAM_HTML}}
   </div>
@@ -340,7 +348,7 @@
     <rect x="5" y="5" width="90" height="90" fill="rgba(196,30,58,0.06)" stroke="#c41e3a" stroke-width="4.5"/>
     <rect x="13" y="13" width="74" height="74" fill="none" stroke="#c41e3a" stroke-width="1.2"/>
     <text x="50" y="64" text-anchor="middle" font-size="40" font-weight="900" fill="#c41e3a"
-          font-family="'궁서','Gungsuh','Noto Serif KR',serif">{{seal_char}}</text>
+          font-family="'HYGungsuh','궁서','Gungsuh','Noto Serif KR',serif">{{seal_char}}</text>
   </svg>
   <div class="office-name-vert">{{office_name}}</div>
 </div>

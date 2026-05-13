@@ -3680,7 +3680,9 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
 
 function _goSajuPage() {
   const active = document.querySelector('.page.active');
-  if (active && active.id !== 'page-saju') _sajuPrevPage = active.id.replace('page-', '');
+  if (active && active.id !== 'page-saju' && active.id !== 'page-hanja-alt') {
+    _sajuPrevPage = active.id.replace('page-', '');
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-saju').classList.add('active');
   window.scrollTo(0, 0);

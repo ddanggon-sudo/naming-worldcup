@@ -675,30 +675,37 @@ function _koreanNum(n) {
 
 // 페이지2 HTML 블록 렌더 헬퍼
 function _renderGivenNameChars(chars) {
-  return chars.map(c => `
+  return chars.map(c => {
+    const meaning = (c.meaning || '').split(',')[0].trim();
+    return `
       <div class="name-char-row">
-        <div class="stroke-aside">(${c.strokes})</div>
+        <div class="ann-left">${meaning} ${c.sound || ''} <span class="ann-strokes-h">(${c.strokes})</span></div>
         <span class="name-han-big">${c.char}</span>
-      </div>`).join('');
+      </div>`;
+  }).join('');
 }
 
 function _renderDeokdam(items) {
-  return items.map(it => `
-      <div class="deokdam-row">
+  const item = (it) => `<div class="deokdam-row">
         <span class="dd-ko-side">${it.ko}</span>
         <span class="dd-han-vert">${it.hanja}</span>
-      </div>`).join('');
+      </div>`;
+  const rows = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push(`<div class="dd-row-group">${item(items[i])}${items[i+1] ? item(items[i+1]) : ''}</div>`);
+  }
+  return rows.join('\n      ');
 }
 
 function _renderPalja(pillars) {
-  return pillars.map(p => {
+  return [...pillars].reverse().map(p => {
     const cheon = p.cheon
-      ? `<div class="p-unit"><div class="p-ko">${p.cheon_ko}</div><div class="p-han">${p.cheon}</div></div>`
+      ? `<div class="p-unit"><div class="p-han">${p.cheon}</div><div class="p-ko">${p.cheon_ko}</div></div>`
       : `<div class="p-empty">　</div>`;
     const ji = p.ji
-      ? `<div class="p-unit"><div class="p-ko">${p.ji_ko}</div><div class="p-han">${p.ji}</div></div>`
+      ? `<div class="p-unit"><div class="p-han">${p.ji}</div><div class="p-ko">${p.ji_ko}</div></div>`
       : `<div class="p-empty">　</div>`;
-    return `<div class="pillar-block"><div class="pillar-header">${p.header}</div>${cheon}${ji}</div>`;
+    return `<div class="pillar-block">${cheon}${ji}</div>`;
   }).join('');
 }
 
@@ -788,7 +795,12 @@ async function buildPage2Html(data) {
   const suri = (lastHanja && givenHanja) ? calculateSuri(lastHanja, givenHanja) : null;
   const charData      = suri ? suri.chars : [...full_name_hanja].map(c => ({ char: c, strokes: 0, yang_eum: '?' }));
   const lastCharData  = charData[0] || { char: lastHanja, strokes: 0, yang_eum: '?' };
-  const givenCharData = charData.slice(1);
+  const hanjaDB       = loadHanjaDB();
+  const givenCharData = charData.slice(1).map(c => ({
+    ...c,
+    sound:   hanjaDB[c.char]?.sound   || '',
+    meaning: hanjaDB[c.char]?.meaning || '',
+  }));
 
   // 사주팔자 재계산
   const sajuResult = (y > 0) ? calculateSaju({ year: y, month: mo, day: d, hour: h }) : null;
@@ -801,10 +813,10 @@ async function buildPage2Html(data) {
 
   // 덕담 LLM 생성 (실패 시 기본값)
   const DEFAULT_DEOKDAM = [
-    { hanja:'父祖有德', ko:'부조유덕' }, { hanja:'明哲人物', ko:'명철인물' },
-    { hanja:'博士得名', ko:'박사득명' }, { hanja:'富家成長', ko:'부가성장' },
-    { hanja:'人格出衆', ko:'인격출중' }, { hanja:'良配貴子', ko:'양배귀자' },
-    { hanja:'健康長壽', ko:'건강장수' }, { hanja:'專門才能', ko:'전문재능' },
+    { hanja:'富家成長', ko:'부가성장' }, { hanja:'父祖有德', ko:'부조유덕' },
+    { hanja:'人格出衆', ko:'인격출중' }, { hanja:'明哲人物', ko:'명철인물' },
+    { hanja:'專門家', ko:'전문가' }, { hanja:'博士得名', ko:'박사득명' },
+    { hanja:'健康長壽', ko:'건강장수' }, { hanja:'良配貴子', ko:'양배귀자' },
   ];
   let deokdamItems = DEFAULT_DEOKDAM;
   try {
@@ -889,7 +901,8 @@ async function buildCertificatePdf(data) {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
   const page = await browser.newPage();
-  await page.setContent(combined, { waitUntil: 'networkidle0' });
+  const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
+  await page.setContent(combined, { waitUntil: 'networkidle0', baseURL: templatesBase });
   const pdfRaw = await page.pdf({
     format: 'A4',
     printBackground: true,
