@@ -14,7 +14,7 @@
 
   body {
     font-family: 'HanyangHaeseo', '궁서', 'Gungsuh', 'GungsuhChe', 'Batang', serif;
-    background: #fff;
+    background: #fffef8;
     width: 210mm;
     height: 297mm;
     position: relative;
@@ -22,12 +22,22 @@
     color: #111;
   }
 
+  /* ═══════ 외곽 테두리 이미지 ═══════ */
+  .border-frame {
+    position: absolute;
+    top: 0; left: 0;
+    width: 210mm; height: 297mm;
+    z-index: 1;
+    object-fit: fill;
+    pointer-events: none;
+  }
+
   .abs { position: absolute; z-index: 3; }
 
   /* ═══════ 作名證 title — far right ═══════ */
   .zone-title {
-    right: 18mm;
-    top: 54mm;
+    right: 26mm;
+    top: 62mm;
     writing-mode: vertical-rl;
     text-orientation: upright;
     font-size: 64pt;
@@ -40,8 +50,8 @@
 
   /* ═══════ Birth info — right center ═══════ */
   .zone-birth {
-    right: 47mm;
-    top: 48mm;
+    right: 50mm;
+    top: 58mm;
     display: flex;
     flex-direction: column;
     gap: 3mm;
@@ -73,8 +83,8 @@
 
   /* ═══════ Saju pillars — top center ═══════ */
   .zone-palja {
-    top: 48mm;
-    left: 74mm;
+    top: 58mm;
+    left: 78mm;
     display: flex;
     flex-direction: row;
     gap: 0;
@@ -105,8 +115,8 @@
 
   /* ═══════ Name chars — center, vertical stack ═══════ */
   .zone-name {
-    top: 80mm;
-    left: 70mm;
+    top: 92mm;
+    left: 68mm;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -155,8 +165,8 @@
 
   /* ═══════ Deokdam virtues — left side ═══════ */
   .zone-deokdam {
-    top: 44mm;
-    left: 13mm;
+    top: 58mm;
+    left: 26mm;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -202,7 +212,8 @@
 </head>
 <body>
 
-
+<!-- 외곽 테두리 이미지 (배경) -->
+<img class="border-frame" src="data:image/jpeg;base64,{{CERT2_BORDER_B64}}" alt="">
 
 <!-- 作名證 title -->
 <div class="abs zone-title">{{cert_title}}</div>

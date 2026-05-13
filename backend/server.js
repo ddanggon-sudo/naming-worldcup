@@ -92,6 +92,15 @@ async function launchBrowser() {
   });
 }
 
+// ── 작명증 외곽 테두리 이미지 base64 (서버 시작 시 1회 로드) ─────
+let _cert2BorderB64 = null;
+function loadCert2BorderB64() {
+  if (_cert2BorderB64) return _cert2BorderB64;
+  const p = path.join(__dirname, '..', 'frontend', 'img', 'cert2-border.jpg');
+  _cert2BorderB64 = readFileSync(p).toString('base64');
+  return _cert2BorderB64;
+}
+
 // ── 한양해서 폰트 base64 (서버 시작 시 1회 로드) ─────────────────
 let _hanyangFontB64 = null;
 function loadHanyangFontB64() {
@@ -984,6 +993,9 @@ function buildPage2Html(data) {
     /src:\s*url\('[^']*UNI_HSR[^']*'\)\s*format\('woff2'\)[^;]*;/,
     `src: url('data:font/woff2;base64,${fontB64}') format('woff2');`
   );
+  // 외곽 테두리 이미지를 data URI로 인라인
+  const borderB64 = loadCert2BorderB64();
+  html = html.replace('{{CERT2_BORDER_B64}}', borderB64);
   const vars = {
     '{{cert_title}}':          '作名證',
     '{{birth_year_gapja}}':    birthYearGapja,

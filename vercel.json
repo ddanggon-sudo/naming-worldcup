@@ -10,7 +10,8 @@
           "backend/data/**",
           "backend/fonts/UNI_HSR_subset.woff2",
           "backend/fonts/UNI_HSR_subset.ttf",
-          "backend/templates/**"
+          "backend/templates/**",
+          "frontend/img/**"
         ]
       }
     }
