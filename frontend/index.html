@@ -3841,9 +3841,9 @@ function _renderHanjaAlt(data) {
         </div>
         <div class="hanja-alt-meaning">${alt.meaning} — ${alt.explanation}</div>
         <div class="hanja-alt-elements">자원오행: ${jawonStr} / 음령오행: ${eumStr}</div>
-        <div style="margin-top:10px">
+        ${_sajuPrevPage !== 'worldcup' ? `<div style="margin-top:10px">
           <button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>
-        </div>
+        </div>` : ''}
       </div>
     `;
   }
