@@ -3812,7 +3812,7 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
     _currentSajuResult = data;
     // 풀이 placeholder로 렌더 먼저 표시
     _renderSajuResult({ ...data, narrative: '' }, nameObj);
-    document.getElementById('saju-narrative').innerHTML = '<span class="narrative-loading">풀이를 생성하는 중...</span>';
+    document.getElementById('saju-narrative').innerHTML = '<span class="narrative-loading">풀이 중...</span>';
 
     // 2. LLM 풀이 스트리밍 (별도 요청)
     _streamSajuNarrative(nameObj, data);
