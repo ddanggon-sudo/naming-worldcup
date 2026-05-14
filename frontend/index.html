@@ -2361,22 +2361,34 @@ function debounce(fn, ms) {
 // ════════════════════════════════
 // 네비게이션
 // ════════════════════════════════
-function goPage(name) {
+
+// DOM만 복원 (pushState 없음 — popstate 핸들러에서 호출)
+function _restorePage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
-
+  const pageEl = document.getElementById('page-' + name);
+  if (!pageEl) return;
+  pageEl.classList.add('active');
+  const navBtn = document.getElementById('nav-' + name);
+  if (navBtn) navBtn.classList.add('active');
+  window.scrollTo(0, 0);
   if (name === 'profile') {
     renderProfile();
     if (_currentProfile?.family_id) {
       const _cntBefore = _namesCache.length;
-      loadNamesFromDB().then(() => {
-        if (_namesCache.length >= _cntBefore) renderProfile();
-      });
+      loadNamesFromDB().then(() => { if (_namesCache.length >= _cntBefore) renderProfile(); });
     }
   }
   if (name === 'grand') renderGrandLobby();
+}
+
+window.addEventListener('popstate', e => {
+  _restorePage(e.state?.page ?? 'home');
+});
+
+function goPage(name) {
+  history.pushState({ page: name }, '');
+  _restorePage(name);
 }
 
 // ════════════════════════════════
@@ -2425,9 +2437,10 @@ function getFrequentNames() {
     });
   };
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => { init(); history.replaceState({ page: 'home' }, ''); });
   } else {
     init();
+    history.replaceState({ page: 'home' }, '');
   }
 })();
 
@@ -3878,13 +3891,14 @@ function _goSajuPage() {
   if (active && active.id !== 'page-saju' && active.id !== 'page-hanja-alt') {
     _sajuPrevPage = active.id.replace('page-', '');
   }
+  history.pushState({ page: 'saju' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-saju').classList.add('active');
   window.scrollTo(0, 0);
 }
 
 function _goBackFromSaju() {
-  goPage(_sajuPrevPage);
+  history.back();
 }
 
 function _buildOhaengSvg(elements, yongsin) {
@@ -3979,6 +3993,7 @@ async function openHanjaAlt() {
 }
 
 function _goHanjaAltPage() {
+  history.pushState({ page: 'hanja-alt' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-hanja-alt').classList.add('active');
   window.scrollTo(0, 0);
@@ -4161,6 +4176,7 @@ function openCertificate() {
   const active = document.querySelector('.page.active');
   _certPrevPage = (active && active.id === 'page-hanja-alt') ? 'hanja-alt' : 'saju';
 
+  history.pushState({ page: 'certificate' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-certificate').classList.add('active');
   window.scrollTo(0, 0);
@@ -4176,6 +4192,7 @@ async function openCert2() {
     showToast('먼저 사주 분석을 완료해주세요.');
     return;
   }
+  history.pushState({ page: 'cert2' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-cert2').classList.add('active');
   window.scrollTo(0, 0);
@@ -4224,16 +4241,11 @@ async function openCert2() {
 }
 
 function _goCert2Back() {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-saju').classList.add('active');
-  window.scrollTo(0, 0);
+  history.back();
 }
 
 function _goCertBack() {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const target = _certPrevPage === 'hanja-alt' ? 'page-hanja-alt' : 'page-saju';
-  document.getElementById(target).classList.add('active');
-  window.scrollTo(0, 0);
+  history.back();
 }
 
 function _renderCertificate() {
