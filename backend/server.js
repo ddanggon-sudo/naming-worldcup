@@ -647,7 +647,7 @@ app.post('/api/saju/narrative', async (req, res) => {
 
   try {
     const stream = await client.chat.completions.create({
-      model: 'anthropic/claude-opus-4',
+      model: 'anthropic/claude-sonnet-4-5',
       messages: [{ role: 'user', content: llmPrompt }],
       temperature: 0.7,
       max_tokens: 300,
