@@ -787,6 +787,14 @@
     background: var(--primary-light); border-radius: 12px; padding: 14px;
     font-size: 13px; line-height: 1.7;
   }
+  @keyframes narrative-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .narrative-loading {
+    color: #888;
+    animation: narrative-blink 1.2s ease-in-out infinite;
+  }
 
   /* 사주 출생정보 수정 바 */
   .saju-birth-bar {
@@ -3804,7 +3812,7 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
     _currentSajuResult = data;
     // 풀이 placeholder로 렌더 먼저 표시
     _renderSajuResult({ ...data, narrative: '' }, nameObj);
-    document.getElementById('saju-narrative').textContent = '풀이를 생성하는 중...';
+    document.getElementById('saju-narrative').innerHTML = '<span class="narrative-loading">풀이를 생성하는 중...</span>';
 
     // 2. LLM 풀이 스트리밍 (별도 요청)
     _streamSajuNarrative(nameObj, data);
@@ -3839,7 +3847,6 @@ async function _streamSajuNarrative(nameObj, sajuData) {
     const decoder = new TextDecoder();
     let buf = '';
     let text = '';
-    narrativeEl.textContent = '';
 
     while (true) {
       const { done, value } = await reader.read();
