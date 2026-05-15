@@ -4090,9 +4090,22 @@ async function _streamSajuNarrative(nameObj, sajuData) {
   const streamLabel = document.getElementById('saju-narrative-stream-label');
 
   if (streamLabel) streamLabel.textContent = '풀이 중... (20~30초 소요됩니다)';
-  if (streamFill) streamFill.style.width = '0%';
+  if (streamFill) {
+    streamFill.style.transition = 'none';
+    streamFill.style.width = '0%';
+    streamFill.offsetWidth; // reflow
+    streamFill.style.transition = '';
+  }
   if (progressWrap) progressWrap.style.display = 'block';
   narrativeEl.innerHTML = '<span class="narrative-cursor"></span>';
+
+  // 시간 기반 프로그레스 바 (25초에 걸쳐 0→88%, 완료 시 100%)
+  const _narrativeStart = Date.now();
+  const _NARRATIVE_DURATION = 25000;
+  let _narrativeProgressTimer = setInterval(() => {
+    const pct = Math.min(88, ((Date.now() - _narrativeStart) / _NARRATIVE_DURATION) * 90);
+    if (streamFill) streamFill.style.width = pct + '%';
+  }, 150);
 
   // SSE 수신 버퍼 / 타이핑 상태
   let fullText = '';     // 서버에서 받은 전체 텍스트
@@ -4134,6 +4147,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
     });
     if (!res.ok) {
       clearTimeout(typeTimer);
+      clearInterval(_narrativeProgressTimer);
       narrativeEl.textContent = '풀이 생성에 실패했습니다.';
       if (progressWrap) progressWrap.style.display = 'none';
       return;
@@ -4155,16 +4169,13 @@ async function _streamSajuNarrative(nameObj, sajuData) {
         if (payload === '[DONE]') break;
         try {
           const { token } = JSON.parse(payload);
-          if (token) {
-            fullText += token;
-            const pct = Math.min(95, Math.round((fullText.length / _NARRATIVE_EST_CHARS) * 95));
-            if (streamFill) streamFill.style.width = pct + '%';
-          }
+          if (token) fullText += token;
         } catch (_) {}
       }
     }
 
     // 스트림 완료 — 타이핑이 끝날 때까지 기다린 후 마무리
+    clearInterval(_narrativeProgressTimer);
     streamDone = true;
     if (!fullText) {
       clearTimeout(typeTimer);
@@ -4185,6 +4196,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
 
   } catch (e) {
     clearTimeout(typeTimer);
+    clearInterval(_narrativeProgressTimer);
     console.warn('[saju/narrative] 스트리밍 실패:', e.message);
     narrativeEl.textContent = '풀이 생성에 실패했습니다.';
     if (progressWrap) progressWrap.style.display = 'none';
