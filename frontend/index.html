@@ -505,6 +505,39 @@
   .rarity-chip.active {
     border-color: var(--primary); background: var(--primary); color: #fff;
   }
+
+  /* 보기 토글 버튼 */
+  .view-toggle-btn {
+    background: none; border: 1.5px solid var(--border); border-radius: 7px;
+    padding: 5px 8px; cursor: pointer; font-size: 15px; line-height: 1;
+    color: var(--sub); transition: background .15s, border-color .15s, color .15s;
+    flex-shrink: 0;
+  }
+  .view-toggle-btn.active {
+    border-color: var(--primary); background: var(--primary-light); color: var(--primary);
+  }
+
+  /* 목록 뷰 */
+  .saved-list-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 4px; border-bottom: 1px solid var(--border);
+  }
+  .saved-list-row:last-child { border-bottom: none; }
+  .saved-list-name {
+    flex: 1; min-width: 0;
+    font-size: 16px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 6px; overflow: hidden;
+  }
+  .saved-list-name .hanja-inline {
+    font-size: 12px; color: var(--sub); font-weight: 400; flex-shrink: 0;
+  }
+  .saved-list-badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .saved-list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .saved-list-actions button {
+    background: none; border: none; cursor: pointer; padding: 4px 6px;
+    font-size: 15px; border-radius: 6px; transition: background .15s;
+  }
+  .saved-list-actions button:hover { background: var(--border); }
   .rarity-very-rare {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     color: #92400e;
@@ -2026,6 +2059,8 @@
     </select>
     <button class="btn btn-outline btn-sm" onclick="copyAllNames(this)" style="flex-shrink:0">📋 목록 복사</button>
     <button class="btn btn-primary btn-sm" onclick="openAddNameModal()" style="flex-shrink:0">+ 추가</button>
+    <button class="view-toggle-btn" id="view-btn-card" onclick="_setViewMode('card')" title="카드 보기">⊞</button>
+    <button class="view-toggle-btn" id="view-btn-list" onclick="_setViewMode('list')" title="목록 보기">☰</button>
   </div>
 
   <!-- 희귀도 필터 칩 -->
@@ -3159,6 +3194,7 @@ async function copyAllNames(btn) {
 function renderProfile() {
   const saved = getSavedNames();
   document.getElementById('stat-subtitle').textContent = `저장된 이름 ${saved.length}개`;
+  _initViewToggle();
   _renderRarityChips();
   renderSavedNames();
 }
@@ -3195,6 +3231,45 @@ function setRarityFilter(value) {
   _rarityFilter = value;
   _renderRarityChips();
   renderSavedNames();
+}
+
+let _savedViewMode = localStorage.getItem('pmb_view_mode') || 'card';
+
+function _setViewMode(mode) {
+  _savedViewMode = mode;
+  localStorage.setItem('pmb_view_mode', mode);
+  document.getElementById('view-btn-card').classList.toggle('active', mode === 'card');
+  document.getElementById('view-btn-list').classList.toggle('active', mode === 'list');
+  renderSavedNames();
+}
+
+function _initViewToggle() {
+  document.getElementById('view-btn-card').classList.toggle('active', _savedViewMode === 'card');
+  document.getElementById('view-btn-list').classList.toggle('active', _savedViewMode === 'list');
+}
+
+function _buildSavedListRowEl(n) {
+  const div = document.createElement('div');
+  div.className = 'saved-list-row';
+  div.dataset.savedId = n.id;
+
+  const badges = [
+    n.is_final ? '<span class="badge badge-final">👑</span>' : '',
+    n.is_manual ? '<span class="badge badge-manual">직접</span>' : '',
+    rarityBadgeHtml(n.rarity),
+  ].filter(Boolean).join('');
+
+  div.innerHTML = `
+    <div class="saved-list-name">
+      ${n.full_name}${n.hanja ? `<span class="hanja-inline">${n.hanja}</span>` : ''}
+    </div>
+    ${badges ? `<div class="saved-list-badges">${badges}</div>` : ''}
+    <div class="saved-list-actions">
+      ${n.hanja ? `<button onclick="openSajuFlow(_savedCardSajuMap['${n.id}'])" title="사주보기">🔮</button>` : ''}
+      <button onclick="openDeleteModal('${n.id}','${n.full_name}')" title="삭제">🗑️</button>
+    </div>
+  `;
+  return div;
 }
 
 function _buildSavedCardEl(n) {
@@ -3270,7 +3345,8 @@ function renderSavedNames() {
   // 전체 재빌드 (필터 적용)
   el.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  filtered.forEach(n => fragment.appendChild(_buildSavedCardEl(n)));
+  const builder = _savedViewMode === 'list' ? _buildSavedListRowEl : _buildSavedCardEl;
+  filtered.forEach(n => fragment.appendChild(builder(n)));
   el.appendChild(fragment);
 }
 
