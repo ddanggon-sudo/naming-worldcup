@@ -3994,6 +3994,22 @@ let _sajuProgressTimers = [];
 function _startSajuProgress() {
   _sajuProgressTimers.forEach(clearTimeout);
   _sajuProgressTimers = [];
+
+  // 트랜지션 없이 0% 리셋 (이전 실행 상태 제거)
+  const fill = document.getElementById('saju-progress-fill');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+    fill.offsetWidth; // reflow 강제 — 다음 width 변경부터 트랜지션 적용
+    fill.style.transition = '';
+  }
+  const pctEl = document.getElementById('saju-progress-pct');
+  if (pctEl) pctEl.textContent = '0%';
+  const iconEl = document.getElementById('saju-progress-icon');
+  if (iconEl) iconEl.textContent = '🔮';
+  const label = document.getElementById('saju-progress-label');
+  if (label) label.textContent = '사주 분석 준비 중...';
+
   _SAJU_STEPS.forEach(step => {
     const t = setTimeout(() => _setSajuProgress(step.pct, step.icon, step.text), step.delay);
     _sajuProgressTimers.push(t);
