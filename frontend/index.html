@@ -2062,7 +2062,7 @@
     <div class="section-title">📝 사주 풀이</div>
     <div class="card">
       <div id="saju-narrative-progress" class="narrative-stream-bar-wrap" style="display:none">
-        <div class="narrative-stream-label" id="saju-narrative-stream-label">풀이 중...</div>
+        <div class="narrative-stream-label" id="saju-narrative-stream-label">풀이 중... (20~30초 소요됩니다)</div>
         <div class="narrative-stream-bar-track">
           <div class="narrative-stream-bar-fill" id="saju-narrative-stream-fill"></div>
         </div>
@@ -3939,7 +3939,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
   const streamLabel = document.getElementById('saju-narrative-stream-label');
 
   // 프로그레스 바 초기화 후 표시
-  if (streamLabel) streamLabel.textContent = '풀이 중...';
+  if (streamLabel) streamLabel.textContent = '풀이 중... (20~30초 소요됩니다)';
   if (streamFill) streamFill.style.width = '0%';
   if (progressWrap) progressWrap.style.display = 'block';
   narrativeEl.innerHTML = '<span class="narrative-cursor"></span>';
