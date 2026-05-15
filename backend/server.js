@@ -603,6 +603,22 @@ const jawonList = [...hanja].map(ch => {
       return { char: ch, sound: entry?.sound || '', meaning: entry?.meaning || '' };
     });
 
+    // 6. 수리오격
+    const lastHanjaForSuri = SURNAME_MAP[last_name] || '';
+    let five_grid = null;
+    if (lastHanjaForSuri && hanja) {
+      try {
+        const sr = calculateSuri(lastHanjaForSuri, hanja);
+        five_grid = {
+          cheon: sr.cheon_gyeok,
+          in:    sr.in_gyeok,
+          ji:    sr.ji_gyeok,
+          oe:    sr.oe_gyeok,
+          chong: sr.chong_gyeok,
+        };
+      } catch (_) {}
+    }
+
     return res.json({
       palja,
       elements,
@@ -616,6 +632,7 @@ const jawonList = [...hanja].map(ch => {
       },
       score,
       score_label: scoreLabel(score),
+      five_grid,
     });
 
   } catch (err) {

@@ -2256,6 +2256,10 @@
         <div class="cert-section-title">📊 이름 적합도</div>
         <p id="cert-score-text"></p>
       </div>
+      <div class="cert-section" id="cert-suri-section" style="display:none">
+        <div class="cert-section-title">🔢 수리오격 (數理五格)</div>
+        <div id="cert-suri-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px"></div>
+      </div>
       <div class="cert-section">
         <div class="cert-section-title">💡 사주 풀이</div>
         <p id="cert-summary-text"></p>
@@ -4724,6 +4728,26 @@ function _renderCertificate() {
   const eumStr   = (name_analysis?.eumryeong || []).join('·') || '—';
   document.getElementById('cert-score-text').textContent =
     `${score}점 / 100점 (${score_label})\n음령오행 ${eumStr} / 자원오행 ${jawonStr}`;
+
+  // ── 수리오격 ──
+  const fg = saju.five_grid;
+  const suriSection = document.getElementById('cert-suri-section');
+  const suriGrid = document.getElementById('cert-suri-grid');
+  if (fg) {
+    const GYEOK_KO = ['천격(天格)', '인격(人格)', '지격(地格)', '외격(外格)', '총격(總格)'];
+    const LEVEL_COLOR = { '吉': '#10b981', '中': '#a16207', '凶': '#ef4444' };
+    const gyeoks = [fg.cheon, fg.in, fg.ji, fg.oe, fg.chong];
+    suriGrid.innerHTML = gyeoks.map((g, i) => `
+      <div style="text-align:center;padding:5px 3px;border:1px solid #d4b876;border-radius:4px;background:rgba(201,168,76,.05)">
+        <div style="font-size:9px;color:#8b6f3a">${GYEOK_KO[i]}</div>
+        <div style="font-size:15px;font-weight:900;color:#3a2d0f;line-height:1.1">${g.num}</div>
+        <div style="font-size:9px;color:#8b6f3a;margin-top:1px">${g.label}</div>
+        <div style="font-size:11px;font-weight:700;color:${LEVEL_COLOR[g.level]||'#555'};margin-top:2px">${g.level}</div>
+      </div>`).join('');
+    suriSection.style.display = 'block';
+  } else {
+    suriSection.style.display = 'none';
+  }
 
   // ── 종합 평가 ──
   const narrative = saju.narrative || '';
