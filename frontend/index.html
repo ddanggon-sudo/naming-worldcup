@@ -4368,6 +4368,27 @@ async function _saveAltToProfile(btn, hanja, meaning) {
   } catch (_) {}
 }
 
+async function _replaceHanjaInBookmark(btn, newHanja, newMeaning) {
+  const n = _currentSajuName;
+  if (!n) return;
+  const fullName = (n.last_name || '') + n.name;
+  const all = getSavedNames();
+  const target = all.find(s => s.full_name === fullName);
+  if (!target) { showToast('보관함에서 이름을 찾을 수 없습니다.'); return; }
+
+  target.hanja = newHanja;
+  if (newMeaning) target.meaning = newMeaning;
+
+  const ok = await setSavedNames(all);
+  if (!ok) return;
+
+  btn.textContent = '✅ 교체 완료';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.onclick = null;
+  showToast(`"${fullName}" 한자를 ${newHanja}(으)로 교체했습니다.`);
+}
+
 function _renderHanjaAlt(data) {
   const { base_name, alternatives } = data;
   const name = _currentSajuName;
@@ -4412,7 +4433,7 @@ function _renderHanjaAlt(data) {
     let actionBtn;
     if (_sajuPrevPage === 'worldcup') {
       actionBtn = alreadyInBookmark
-        ? `<button class="btn btn-outline" disabled style="font-size:13px;padding:8px 14px;width:100%;opacity:0.5;cursor:not-allowed">📦 이미 보관함에 있는 이름</button>`
+        ? `<button class="btn btn-outline" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanjaInBookmark(this, '${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">🔄 보관함 한자 교체</button>`
         : `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_saveAltToProfile(this, '${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">보관함에 저장</button>`;
     } else {
       actionBtn = `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>`;
