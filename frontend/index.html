@@ -814,9 +814,11 @@
 
   /* AI 풀이 카드 */
   .ai-narrative {
-    background: var(--primary-light); border-radius: 12px; padding: 14px;
-    font-size: 13px; line-height: 1.7;
+    background: var(--primary-light); border-radius: 12px; padding: 16px;
+    font-size: 13.5px; line-height: 1.85; color: var(--text);
   }
+  .ai-narrative p { margin: 0 0 14px; }
+  .ai-narrative p:last-child { margin-bottom: 0; }
   @keyframes narrative-blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -3928,7 +3930,7 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
   }
 }
 
-const _NARRATIVE_EST_CHARS = 420;
+const _NARRATIVE_EST_CHARS = 750;
 
 async function _streamSajuNarrative(nameObj, sajuData) {
   const narrativeEl = document.getElementById('saju-narrative');
@@ -3983,7 +3985,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
           if (token) {
             text += token;
             // 텍스트 + 커서 함께 표시
-            narrativeEl.innerHTML = text.replace(/\n/g, '<br>') + '<span class="narrative-cursor"></span>';
+            narrativeEl.innerHTML = _narrativeToHtml(text) + '<span class="narrative-cursor"></span>';
             // 프로그레스 바 갱신 (추정 글자 수 기준, 최대 95%)
             const pct = Math.min(95, Math.round((text.length / _NARRATIVE_EST_CHARS) * 95));
             if (streamFill) streamFill.style.width = pct + '%';
@@ -3996,7 +3998,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
     if (!text) {
       narrativeEl.textContent = '풀이 생성에 실패했습니다.';
     } else {
-      narrativeEl.textContent = text;
+      narrativeEl.innerHTML = _narrativeToHtml(text);
     }
     if (streamFill) streamFill.style.width = '100%';
     if (streamLabel) streamLabel.textContent = '✅ 풀이 완성!';
@@ -4616,6 +4618,12 @@ function closePaywallModal() {
 }
 function buyPass() {
   alert('💎 결제 모듈 연동 예정입니다.\n(토스페이먼츠 연동은 다음 단계)');
+}
+
+function _narrativeToHtml(text) {
+  return text.trim().split(/\n\n+/).map(para =>
+    `<p>${para.replace(/\n/g, '<br>')}</p>`
+  ).join('');
 }
 
 function _getScoreGrade(score) {

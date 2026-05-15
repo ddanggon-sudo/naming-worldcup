@@ -638,25 +638,35 @@ app.post('/api/saju/narrative', async (req, res) => {
   const eumryeongList = calcEumryeong(last_name + name);
   const scoreVal = score ?? 0;
 
-  const llmPrompt = `한국 아기 이름 분석 결과를 자연스러운 한국어로 2~3문장으로 풀어 써주세요.
+  const llmPrompt = `당신은 한국의 전통 작명 전문가입니다. 아래 정보를 바탕으로 부모에게 드리는 정성스러운 작명 풀이를 작성해주세요.
 
+[분석 정보]
 이름: ${last_name}${name} (${hanja})
 성별: ${gender}
 사주팔자: ${sajuStr}
 오행 분포: ${elemStr}
-용신(부족 오행): ${yongsin}
-자원오행: ${jawonList.join(' ')}
-음령오행: ${eumryeongList.join(' ')}
+용신(보완이 필요한 기운): ${yongsin}
+자원오행(이름 한자의 기운): ${jawonList.join(' ')}
+음령오행(이름 소리의 기운): ${eumryeongList.join(' ')}
 적합도 점수: ${scoreVal}점 (${scoreLabel(scoreVal)})
 
-부모가 이 이름을 지어주며 어떤 의미를 담았는지, 사주와 이름의 조화 여부를 따뜻하게 설명해 주세요.`;
+[작성 형식]
+아래 4개 문단으로 구성하세요. 문단 제목은 붙이지 말고 자연스러운 문장으로만 쓰세요. 문단 사이는 반드시 빈 줄 하나로 구분하세요. 각 문단은 3~4문장으로 작성합니다.
+
+문단 1 — 이름의 기운: 이름 한자 각각의 뜻과 소리가 어우러져 만들어내는 전체적인 기운과 이미지를 설명하세요.
+
+문단 2 — 사주 특성: 이 아이의 사주팔자에서 드러나는 타고난 기질과 강점, 오행 분포가 보여주는 성격적 특성을 서술하세요.
+
+문단 3 — 이름과 사주의 조화: 용신(${yongsin})을 기준으로 이름이 사주의 부족한 기운을 어떻게 채워주는지, 또는 보완 방향을 설명하세요.
+
+문단 4 — 부모의 마음과 덕담: 부모가 이 이름을 통해 아이에게 전하고자 하는 마음을 담아, 따뜻하고 진심 어린 덕담으로 마무리하세요.`;
 
   try {
     const stream = await client.chat.completions.create({
       model: 'anthropic/claude-sonnet-4-5',
       messages: [{ role: 'user', content: llmPrompt }],
-      temperature: 0.7,
-      max_tokens: 300,
+      temperature: 0.75,
+      max_tokens: 1200,
       stream: true,
     });
     for await (const chunk of stream) {
