@@ -3512,6 +3512,9 @@ function _showAuthPage() {
 function _showApp() {
   _hideOverlays();
   localStorage.setItem('pmb_session_until', Date.now() + 7 * 24 * 60 * 60 * 1000);
+  if (!document.querySelector('.page.active')) {
+    _restorePage('generate');
+  }
   renderProfile();
 }
 
