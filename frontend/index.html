@@ -913,10 +913,15 @@
   }
 
   /* 기준 이름 요약 */
-  .name-summary { text-align: center; }
-  .name-summary .ns-label { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
-  .name-summary .ns-name { font-size: 28px; font-weight: 800; }
-  .name-summary .ns-sub { font-size: 13px; color: var(--sub); margin-top: 4px; }
+  .name-summary { padding: 4px 0 8px; }
+  .ns-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .ns-label { font-size: 12px; color: var(--primary); font-weight: 600; background: var(--primary-light); padding: 3px 9px; border-radius: 99px; }
+  .ns-name { font-size: 22px; font-weight: 800; }
+  .ns-score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .ns-score-num { font-size: 36px; font-weight: 900; color: var(--primary); line-height: 1; }
+  .ns-score-num .unit { font-size: 14px; color: var(--sub); font-weight: 700; margin-left: 2px; }
+  .ns-bar { height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+  .ns-bar-fill { height: 100%; border-radius: 99px; transition: width .7s cubic-bezier(.4,0,.2,1); }
 
   /* 한자 추천 카드 */
   .hanja-alt-card {
@@ -926,19 +931,21 @@
   }
   .hanja-alt-card:hover { border-color: var(--primary); transform: translateY(-1px); }
   .hanja-alt-card.recommended { border-color: var(--gold); background: #fffdf5; }
-  .hanja-alt-top {
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 6px;
-  }
+  .alt-rec-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #b45309; background: #fffbea; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
+  .alt-name-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }
   .hanja-alt-name { font-size: 20px; font-weight: 800; }
   .hanja-alt-name .han { color: var(--primary); margin-right: 4px; }
   .hanja-alt-card.recommended .hanja-alt-name .han { color: var(--gold); }
-  .hanja-alt-score {
-    background: var(--primary); color: white;
-    padding: 4px 10px; border-radius: 99px;
-    font-size: 11.5px; font-weight: 700; white-space: nowrap;
-  }
-  .hanja-alt-score.recommended { background: var(--gold); }
+  .alt-score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .alt-score-num { font-size: 28px; font-weight: 900; color: var(--primary); line-height: 1; }
+  .alt-score-num .unit { font-size: 13px; color: var(--sub); font-weight: 700; margin-left: 2px; }
+  .alt-delta { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+  .delta-up   { background: #f0fdf4; color: #16a34a; }
+  .delta-same { background: #f3f4f6; color: #6b7280; }
+  .delta-down { background: #fff1f2; color: #be123c; }
+  .alt-mini-bar { position: relative; height: 6px; background: var(--border); border-radius: 99px; overflow: visible; margin-bottom: 10px; }
+  .alt-mini-bar-fill { height: 100%; border-radius: 99px; }
+  .alt-mini-bar-base { position: absolute; top: -3px; width: 3px; height: 12px; background: rgba(0,0,0,0.28); border-radius: 2px; transform: translateX(-50%); }
   .hanja-alt-meaning { font-size: 12.5px; color: var(--sub); line-height: 1.55; }
   .hanja-alt-elements { margin-top: 6px; font-size: 11px; color: var(--primary); font-weight: 600; }
 
@@ -4262,13 +4269,21 @@ function _renderHanjaAlt(data) {
   const { base_name, alternatives } = data;
   const name = _currentSajuName;
   const saju = _currentSajuResult;
+  const baseScore = saju.score;
 
   // 기준 이름 요약 카드
+  const baseGrade = _getScoreGrade(baseScore);
   document.getElementById('hanja-alt-summary-card').innerHTML = `
     <div class="name-summary">
-      <div class="ns-label">기준 이름</div>
-      <div class="ns-name">${name.last_name || ''}${base_name}</div>
-      <div class="ns-sub">현재 한자: ${name.hanja} (적합도 ${saju.score}점)</div>
+      <div class="ns-top-row">
+        <span class="ns-label">기준 이름</span>
+        <span class="ns-name">${name.last_name || ''}${base_name}</span>
+      </div>
+      <div class="ns-score-row">
+        <div class="ns-score-num">${baseScore}<span class="unit">점</span></div>
+        <div class="score-grade-badge ${baseGrade.cls}">${baseGrade.icon} ${saju.score_label}</div>
+      </div>
+      <div class="ns-bar"><div class="ns-bar-fill" style="width:${baseScore}%;background:${baseGrade.barColor}"></div></div>
     </div>
   `;
 
@@ -4284,6 +4299,13 @@ function _renderHanjaAlt(data) {
     const isRec = alt.is_recommended;
     const jawonStr = [...alt.hanja].map((ch, i) => `${ch}(${alt.elements_jawon[i] || ''})`).join('·');
     const eumStr = alt.elements_eumryeong.join('·');
+
+    const delta = alt.score - baseScore;
+    const deltaAbs = Math.abs(delta);
+    const deltaCls = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-same';
+    const deltaText = delta > 0 ? `+${deltaAbs}점 ↑` : delta < 0 ? `-${deltaAbs}점 ↓` : `±0점`;
+    const altGrade = _getScoreGrade(alt.score);
+
     let actionBtn;
     if (_sajuPrevPage === 'worldcup') {
       actionBtn = alreadyInBookmark
@@ -4294,9 +4316,17 @@ function _renderHanjaAlt(data) {
     }
     return `
       <div class="hanja-alt-card${isRec ? ' recommended' : ''}">
-        <div class="hanja-alt-top">
+        ${isRec ? '<div class="alt-rec-badge">⭐ 사주 최적 추천</div>' : ''}
+        <div class="alt-name-row">
           <div class="hanja-alt-name"><span class="han">${alt.hanja}</span>${base_name}</div>
-          <div class="hanja-alt-score${isRec ? ' recommended' : ''}">${isRec ? '⭐ ' : ''}${alt.score}점</div>
+        </div>
+        <div class="alt-score-row">
+          <div class="alt-score-num">${alt.score}<span class="unit">점</span></div>
+          <div class="alt-delta ${deltaCls}">${deltaText}</div>
+        </div>
+        <div class="alt-mini-bar">
+          <div class="alt-mini-bar-fill" style="width:${alt.score}%;background:${altGrade.barColor}"></div>
+          <div class="alt-mini-bar-base" style="left:${baseScore}%"></div>
         </div>
         <div class="hanja-alt-meaning">${alt.meaning} — ${alt.explanation}</div>
         <div class="hanja-alt-elements">자원오행: ${jawonStr} / 음령오행: ${eumStr}</div>
