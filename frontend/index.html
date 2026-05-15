@@ -4440,6 +4440,8 @@ function _renderHanjaAlt(data) {
       actionBtn = alreadyInBookmark
         ? `<button class="btn btn-outline" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanjaInBookmark(this, '${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">🔄 보관함 한자 교체</button>`
         : `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_saveAltToProfile(this, '${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">보관함에 저장</button>`;
+    } else if (_sajuPrevPage === 'profile') {
+      actionBtn = `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanjaInBookmark(this, '${alt.hanja}', '${(alt.meaning||'').replace(/'/g,"\\'")}')">🔄 이 한자로 교체</button>`;
     } else {
       actionBtn = `<button class="btn btn-primary" style="font-size:13px;padding:8px 14px;width:100%" onclick="_replaceHanja('${alt.hanja}')">이 한자로 교체</button>`;
     }
