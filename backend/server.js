@@ -584,12 +584,18 @@ const jawonList = [...hanja].map(ch => {
     });
 
     // 5. 즉시 반환 (LLM 풀이는 /api/saju/narrative 에서 스트리밍)
+    const hanja_details = [...hanja].map(ch => {
+      const entry = hanjaDB[ch];
+      return { char: ch, sound: entry?.sound || '', meaning: entry?.meaning || '' };
+    });
+
     return res.json({
       palja,
       elements,
       yongsin,
       yongsin_desc,
       hour_known,
+      hanja_details,
       name_analysis: {
         eumryeong: eumryeongList,
         jawon:     jawonList,
