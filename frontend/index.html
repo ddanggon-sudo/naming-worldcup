@@ -2183,8 +2183,12 @@
   </div>
 
   <div id="hanja-alt-loading" class="loading visible">
-    <div class="spinner"></div>
-    <p style="font-size:14px;color:var(--sub);margin-top:4px">한자 조합을 분석하는 중...</p>
+    <span class="saju-progress-icon" id="hanja-alt-progress-icon">✨</span>
+    <div class="saju-progress-label" id="hanja-alt-progress-label">한자 후보를 탐색하고 있어요...</div>
+    <div class="saju-progress-track">
+      <div class="saju-progress-fill" id="hanja-alt-progress-fill"></div>
+    </div>
+    <div class="saju-progress-pct" id="hanja-alt-progress-pct">0%</div>
   </div>
 
   <div id="hanja-alt-error" style="display:none;text-align:center;padding:40px 0">
@@ -4269,6 +4273,49 @@ function _buildOhaengSvg(elements, yongsin) {
 
 let _currentHanjaAlt = null;
 
+const _HANJA_ALT_STEPS = [
+  { delay: 0,    pct: 10, icon: '🔍', text: '한자 후보를 탐색하고 있어요...' },
+  { delay: 1800, pct: 38, icon: '⚖️', text: '사주 용신에 맞는 한자를 찾고 있어요...' },
+  { delay: 4000, pct: 65, icon: '🤖', text: 'AI가 최적 조합을 선별하고 있어요...' },
+  { delay: 6500, pct: 82, icon: '🎯', text: '마지막 검토 중이에요...' },
+];
+let _hanjaAltProgressTimers = [];
+
+function _startHanjaAltProgress() {
+  _hanjaAltProgressTimers.forEach(clearTimeout);
+  _hanjaAltProgressTimers = [];
+  const fill = document.getElementById('hanja-alt-progress-fill');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+    fill.offsetWidth;
+    fill.style.transition = '';
+  }
+  document.getElementById('hanja-alt-progress-pct').textContent = '0%';
+  _HANJA_ALT_STEPS.forEach(step => {
+    const t = setTimeout(() => {
+      const f = document.getElementById('hanja-alt-progress-fill');
+      const icon = document.getElementById('hanja-alt-progress-icon');
+      const label = document.getElementById('hanja-alt-progress-label');
+      const pct = document.getElementById('hanja-alt-progress-pct');
+      if (f) f.style.width = step.pct + '%';
+      if (icon) icon.textContent = step.icon;
+      if (label) label.textContent = step.text;
+      if (pct) pct.textContent = step.pct + '%';
+    }, step.delay);
+    _hanjaAltProgressTimers.push(t);
+  });
+}
+
+function _finishHanjaAltProgress() {
+  _hanjaAltProgressTimers.forEach(clearTimeout);
+  _hanjaAltProgressTimers = [];
+  const f = document.getElementById('hanja-alt-progress-fill');
+  const pct = document.getElementById('hanja-alt-progress-pct');
+  if (f) f.style.width = '100%';
+  if (pct) pct.textContent = '100%';
+}
+
 async function openHanjaAlt() {
   if (!_currentSajuName || !_currentSajuResult) {
     showToast('먼저 사주 분석을 완료해주세요.');
@@ -4278,6 +4325,7 @@ async function openHanjaAlt() {
   document.getElementById('hanja-alt-loading').style.display = 'block';
   document.getElementById('hanja-alt-content').style.display = 'none';
   document.getElementById('hanja-alt-error').style.display = 'none';
+  _startHanjaAltProgress();
 
   try {
     const res = await fetch(API + '/api/hanja/alternatives', {
@@ -4300,8 +4348,11 @@ async function openHanjaAlt() {
     }
     const data = await res.json();
     _currentHanjaAlt = data;
-    _renderHanjaAlt(data);
+    _finishHanjaAltProgress();
+    setTimeout(() => { _renderHanjaAlt(data); }, 350);
   } catch (e) {
+    _hanjaAltProgressTimers.forEach(clearTimeout);
+    _hanjaAltProgressTimers = [];
     console.error('[hanja-alt]', e);
     document.getElementById('hanja-alt-loading').style.display = 'none';
     document.getElementById('hanja-alt-error').style.display = 'block';

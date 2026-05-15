@@ -848,7 +848,22 @@ ${candidateList}
       .sort((a, b) => b.score - a.score);
 
     if (alternatives.length > 0) {
-      alternatives[0].is_recommended = true;
+      // 기준 점수 계산
+      const baseScore = calcUnifiedScore({
+        lastNameKo: last_name,
+        givenHanja: current_hanja,
+        givenNameKo: name,
+        yongsin: saju_yongsin,
+        elements,
+        hour_known,
+      });
+      // 기준보다 높은 경우에만 추천 표시, 동점 모두 표시
+      const topScore = alternatives[0].score;
+      if (topScore > baseScore) {
+        alternatives.forEach(alt => {
+          if (alt.score === topScore) alt.is_recommended = true;
+        });
+      }
     } else {
       console.log(`[hanja-alt] LLM 필터링 후 0건: llmItems=${llmItems.length} candByHanja keys=[${Object.keys(candByHanja).slice(0,5).join(',')}] llm hanja=[${llmItems.map(i=>i.hanja).join(',')}]`);
     }
