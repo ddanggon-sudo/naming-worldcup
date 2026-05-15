@@ -4068,11 +4068,33 @@ async function _streamSajuNarrative(nameObj, sajuData) {
   const streamFill = document.getElementById('saju-narrative-stream-fill');
   const streamLabel = document.getElementById('saju-narrative-stream-label');
 
-  // 프로그레스 바 초기화 후 표시
   if (streamLabel) streamLabel.textContent = '풀이 중... (20~30초 소요됩니다)';
   if (streamFill) streamFill.style.width = '0%';
   if (progressWrap) progressWrap.style.display = 'block';
   narrativeEl.innerHTML = '<span class="narrative-cursor"></span>';
+
+  // SSE 수신 버퍼 / 타이핑 상태
+  let fullText = '';     // 서버에서 받은 전체 텍스트
+  let displayedLen = 0;  // 현재 화면에 표시된 글자 수
+  let streamDone = false;
+  let typeTimer = null;
+  const TYPING_MS = 18;  // 글자당 간격 (ms)
+
+  function _typeStep() {
+    if (displayedLen < fullText.length) {
+      displayedLen++;
+      const shown = fullText.slice(0, displayedLen);
+      const showCursor = !(streamDone && displayedLen >= fullText.length);
+      narrativeEl.innerHTML = _narrativeToHtml(shown) + (showCursor ? '<span class="narrative-cursor"></span>' : '');
+      typeTimer = setTimeout(_typeStep, TYPING_MS);
+    } else if (!streamDone) {
+      // 받은 텍스트를 모두 표시했지만 스트림이 아직 오는 중 — 대기
+      typeTimer = setTimeout(_typeStep, TYPING_MS);
+    }
+    // streamDone && displayedLen >= fullText.length → 타이핑 자연 종료
+  }
+
+  typeTimer = setTimeout(_typeStep, TYPING_MS);
 
   try {
     const res = await fetch(API + '/api/saju/narrative', {
@@ -4090,6 +4112,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
       }),
     });
     if (!res.ok) {
+      clearTimeout(typeTimer);
       narrativeEl.textContent = '풀이 생성에 실패했습니다.';
       if (progressWrap) progressWrap.style.display = 'none';
       return;
@@ -4098,7 +4121,6 @@ async function _streamSajuNarrative(nameObj, sajuData) {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = '';
-    let text = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -4113,29 +4135,35 @@ async function _streamSajuNarrative(nameObj, sajuData) {
         try {
           const { token } = JSON.parse(payload);
           if (token) {
-            text += token;
-            // 텍스트 + 커서 함께 표시
-            narrativeEl.innerHTML = _narrativeToHtml(text) + '<span class="narrative-cursor"></span>';
-            // 프로그레스 바 갱신 (추정 글자 수 기준, 최대 95%)
-            const pct = Math.min(95, Math.round((text.length / _NARRATIVE_EST_CHARS) * 95));
+            fullText += token;
+            const pct = Math.min(95, Math.round((fullText.length / _NARRATIVE_EST_CHARS) * 95));
             if (streamFill) streamFill.style.width = pct + '%';
           }
         } catch (_) {}
       }
     }
 
-    // 완료
-    if (!text) {
+    // 스트림 완료 — 타이핑이 끝날 때까지 기다린 후 마무리
+    streamDone = true;
+    if (!fullText) {
+      clearTimeout(typeTimer);
       narrativeEl.textContent = '풀이 생성에 실패했습니다.';
-    } else {
-      narrativeEl.innerHTML = _narrativeToHtml(text);
+      if (progressWrap) progressWrap.style.display = 'none';
+      return;
     }
-    if (streamFill) streamFill.style.width = '100%';
-    if (streamLabel) streamLabel.textContent = '✅ 풀이 완성!';
-    setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 1200);
 
-    if (_currentSajuResult) _currentSajuResult.narrative = text;
+    function _waitTypingDone() {
+      if (displayedLen < fullText.length) { setTimeout(_waitTypingDone, 50); return; }
+      narrativeEl.innerHTML = _narrativeToHtml(fullText);
+      if (streamFill) streamFill.style.width = '100%';
+      if (streamLabel) streamLabel.textContent = '✅ 풀이 완성!';
+      setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 1200);
+      if (_currentSajuResult) _currentSajuResult.narrative = fullText;
+    }
+    _waitTypingDone();
+
   } catch (e) {
+    clearTimeout(typeTimer);
     console.warn('[saju/narrative] 스트리밍 실패:', e.message);
     narrativeEl.textContent = '풀이 생성에 실패했습니다.';
     if (progressWrap) progressWrap.style.display = 'none';
