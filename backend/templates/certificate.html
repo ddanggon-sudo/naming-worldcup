@@ -12,7 +12,9 @@
     background: #fff;
     color: #2D2D2D;
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
+    max-height: 297mm;
+    overflow: hidden;
     padding: 20mm 18mm;
   }
 
@@ -22,7 +24,8 @@
     border-radius: 8px;
     padding: 32px 28px 28px;
     position: relative;
-    min-height: 250mm;
+    height: 100%;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -151,8 +154,8 @@
   }
 
   .cert-section p.summary {
-    font-size: 12.5px;
-    line-height: 1.8;
+    font-size: 11px;
+    line-height: 1.7;
     font-family: 'Noto Serif KR', serif;
     color: #3a2d0f;
   }
@@ -255,7 +258,7 @@
     </div>
 
     <div class="cert-section full-width">
-      <div class="cert-section-title">💡 종합 평가</div>
+      <div class="cert-section-title">💡 사주 풀이</div>
       <p class="summary">{{SUMMARY}}</p>
     </div>
   </div>

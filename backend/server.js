@@ -1195,22 +1195,16 @@ async function buildCertificateJpg(data) {
 
   const browser = await launchBrowser();
   const page = await browser.newPage();
-  await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
+  const A4_W = 794, A4_H = 1123;
+  await page.setViewport({ width: A4_W, height: A4_H, deviceScaleFactor: 2 });
   const templatesBase = 'file:///' + path.join(__dirname, 'templates').replace(/\\/g, '/') + '/';
   await page.setContent(html, { waitUntil: 'networkidle0', baseURL: templatesBase });
   await page.evaluate(async () => { await document.fonts.ready; });
 
-  // 실제 렌더 높이 측정 후 viewport 재설정 (내용이 1123px를 넘어도 잘리지 않게)
-  const renderHeight = await page.evaluate(() => document.documentElement.scrollHeight);
-  const captureHeight = Math.max(renderHeight, 1123);
-  if (captureHeight > 1123) {
-    await page.setViewport({ width: 794, height: captureHeight, deviceScaleFactor: 2 });
-  }
-
   const jpgBuffer = await page.screenshot({
     type: 'jpeg',
     quality: 95,
-    clip: { x: 0, y: 0, width: 794, height: captureHeight },
+    clip: { x: 0, y: 0, width: A4_W, height: A4_H },
   });
   await page.close();
   await releaseBrowser(browser);
