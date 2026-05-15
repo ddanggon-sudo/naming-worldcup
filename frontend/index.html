@@ -3856,8 +3856,8 @@ function _setSajuProgress(pct, icon, text) {
 function _finishSajuProgress(cb) {
   _sajuProgressTimers.forEach(clearTimeout);
   _sajuProgressTimers = [];
-  _setSajuProgress(100, '🎉', '분석 완료!');
-  setTimeout(cb, 450);
+  _setSajuProgress(100, _SAJU_STEPS[3].icon, _SAJU_STEPS[3].text);
+  setTimeout(cb, 350);
 }
 
 async function _runSajuAnalysis(nameObj, birthInfo) {
@@ -3915,9 +3915,10 @@ async function _streamSajuNarrative(nameObj, sajuData) {
   const streamFill = document.getElementById('saju-narrative-stream-fill');
   const streamLabel = document.getElementById('saju-narrative-stream-label');
 
-  // 프로그레스 바 표시, 커서 준비
-  if (progressWrap) progressWrap.style.display = 'block';
+  // 프로그레스 바 초기화 후 표시
+  if (streamLabel) streamLabel.textContent = '풀이 중...';
   if (streamFill) streamFill.style.width = '0%';
+  if (progressWrap) progressWrap.style.display = 'block';
   narrativeEl.innerHTML = '<span class="narrative-cursor"></span>';
 
   try {
