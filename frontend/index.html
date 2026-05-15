@@ -621,6 +621,22 @@
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* 사주 로딩 프로그레스 */
+  .saju-progress-icon { font-size: 44px; margin-bottom: 14px; display: block; animation: saju-float 1.8s ease-in-out infinite; }
+  @keyframes saju-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+  .saju-progress-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 18px; min-height: 20px; transition: opacity 0.3s; }
+  .saju-progress-track { width: 100%; max-width: 260px; height: 8px; background: var(--primary-light); border-radius: 99px; overflow: hidden; margin: 0 auto 8px; }
+  .saju-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 99px; transition: width 0.7s cubic-bezier(.4,0,.2,1); width: 0%; }
+  .saju-progress-pct { font-size: 12px; color: var(--sub); font-weight: 700; letter-spacing: 0.3px; }
+
+  /* 풀이 스트리밍 프로그레스 */
+  .narrative-stream-bar-wrap { margin-bottom: 10px; }
+  .narrative-stream-bar-track { height: 4px; background: var(--primary-light); border-radius: 99px; overflow: hidden; }
+  .narrative-stream-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 99px; transition: width 0.4s ease; width: 0%; }
+  .narrative-stream-label { font-size: 11px; color: var(--primary); font-weight: 600; margin-bottom: 6px; }
+  .narrative-cursor { display: inline-block; width: 2px; height: 1em; background: var(--primary); margin-left: 2px; vertical-align: text-bottom; animation: cursor-blink 0.8s step-end infinite; }
+  @keyframes cursor-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
   /* 로딩 도트 애니메이션 */
   .loading-dots { display: inline-flex; gap: 5px; align-items: center; justify-content: center; margin-bottom: 10px; }
   .loading-dots span {
@@ -1979,8 +1995,12 @@
 
   <!-- 로딩 -->
   <div id="saju-loading" class="loading visible">
-    <div class="spinner"></div>
-    <p style="font-size:14px;color:var(--sub);margin-top:4px">사주를 분석하는 중...</p>
+    <span class="saju-progress-icon" id="saju-progress-icon">🔮</span>
+    <div class="saju-progress-label" id="saju-progress-label">사주 분석 준비 중...</div>
+    <div class="saju-progress-track">
+      <div class="saju-progress-fill" id="saju-progress-fill"></div>
+    </div>
+    <div class="saju-progress-pct" id="saju-progress-pct">0%</div>
   </div>
 
   <!-- 오류 -->
@@ -2018,6 +2038,12 @@
 
     <div class="section-title">📝 사주 풀이</div>
     <div class="card">
+      <div id="saju-narrative-progress" class="narrative-stream-bar-wrap" style="display:none">
+        <div class="narrative-stream-label" id="saju-narrative-stream-label">✍️ AI가 풀이를 작성하고 있어요...</div>
+        <div class="narrative-stream-bar-track">
+          <div class="narrative-stream-bar-fill" id="saju-narrative-stream-fill"></div>
+        </div>
+      </div>
       <div class="ai-narrative" id="saju-narrative"></div>
     </div>
 
@@ -3798,12 +3824,50 @@ async function submitBirthInfo() {
   _runSajuAnalysis(_currentSajuName, birthInfo);
 }
 
+// ── 사주 로딩 프로그레스 ──────────────────────
+const _SAJU_STEPS = [
+  { delay: 0,    pct: 8,  icon: '📅', text: '출생 정보를 처리하고 있어요...' },
+  { delay: 350,  pct: 28, icon: '🔮', text: '사주팔자를 산출하고 있어요...' },
+  { delay: 1100, pct: 55, icon: '⚖️', text: '오행 균형을 분석하고 있어요...' },
+  { delay: 2200, pct: 78, icon: '✨', text: '이름 궁합 점수를 계산하고 있어요...' },
+];
+let _sajuProgressTimers = [];
+
+function _startSajuProgress() {
+  _sajuProgressTimers.forEach(clearTimeout);
+  _sajuProgressTimers = [];
+  _SAJU_STEPS.forEach(step => {
+    const t = setTimeout(() => _setSajuProgress(step.pct, step.icon, step.text), step.delay);
+    _sajuProgressTimers.push(t);
+  });
+}
+
+function _setSajuProgress(pct, icon, text) {
+  const fill = document.getElementById('saju-progress-fill');
+  const iconEl = document.getElementById('saju-progress-icon');
+  const label = document.getElementById('saju-progress-label');
+  const pctEl = document.getElementById('saju-progress-pct');
+  if (fill) fill.style.width = pct + '%';
+  if (iconEl) iconEl.textContent = icon;
+  if (label) label.textContent = text;
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+function _finishSajuProgress(cb) {
+  _sajuProgressTimers.forEach(clearTimeout);
+  _sajuProgressTimers = [];
+  _setSajuProgress(100, '🎉', '분석 완료!');
+  setTimeout(cb, 450);
+}
+
 async function _runSajuAnalysis(nameObj, birthInfo) {
   _goSajuPage();
   document.getElementById('saju-loading').style.display = 'block';
   document.getElementById('saju-content').style.display = 'none';
   document.getElementById('saju-error').style.display = 'none';
   document.getElementById('saju-page-title').textContent = `🔮 ${nameObj.last_name || ''}${nameObj.name} 사주 풀이`;
+
+  _startSajuProgress();
 
   try {
     // 1. 즉시 결과 수신
@@ -3826,13 +3890,16 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
     }
     const data = await res.json();
     _currentSajuResult = data;
-    // 풀이 placeholder로 렌더 먼저 표시
-    _renderSajuResult({ ...data, narrative: '' }, nameObj);
-    document.getElementById('saju-narrative').innerHTML = '<span class="narrative-loading">풀이 중...</span>';
 
-    // 2. LLM 풀이 스트리밍 (별도 요청)
-    _streamSajuNarrative(nameObj, data);
+    // 100% 완료 후 결과 렌더
+    _finishSajuProgress(() => {
+      _renderSajuResult({ ...data, narrative: '' }, nameObj);
+      // 2. LLM 풀이 스트리밍
+      _streamSajuNarrative(nameObj, data);
+    });
   } catch (e) {
+    _sajuProgressTimers.forEach(clearTimeout);
+    _sajuProgressTimers = [];
     console.error('[saju] 분석 실패:', e);
     document.getElementById('saju-loading').style.display = 'none';
     document.getElementById('saju-error').style.display = 'block';
@@ -3840,8 +3907,19 @@ async function _runSajuAnalysis(nameObj, birthInfo) {
   }
 }
 
+const _NARRATIVE_EST_CHARS = 420;
+
 async function _streamSajuNarrative(nameObj, sajuData) {
   const narrativeEl = document.getElementById('saju-narrative');
+  const progressWrap = document.getElementById('saju-narrative-progress');
+  const streamFill = document.getElementById('saju-narrative-stream-fill');
+  const streamLabel = document.getElementById('saju-narrative-stream-label');
+
+  // 프로그레스 바 표시, 커서 준비
+  if (progressWrap) progressWrap.style.display = 'block';
+  if (streamFill) streamFill.style.width = '0%';
+  narrativeEl.innerHTML = '<span class="narrative-cursor"></span>';
+
   try {
     const res = await fetch(API + '/api/saju/narrative', {
       method: 'POST',
@@ -3857,7 +3935,11 @@ async function _streamSajuNarrative(nameObj, sajuData) {
         score: sajuData.score,
       }),
     });
-    if (!res.ok) { narrativeEl.textContent = '풀이 생성에 실패했습니다.'; return; }
+    if (!res.ok) {
+      narrativeEl.textContent = '풀이 생성에 실패했습니다.';
+      if (progressWrap) progressWrap.style.display = 'none';
+      return;
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -3876,16 +3958,33 @@ async function _streamSajuNarrative(nameObj, sajuData) {
         if (payload === '[DONE]') break;
         try {
           const { token } = JSON.parse(payload);
-          if (token) { text += token; narrativeEl.textContent = text; }
+          if (token) {
+            text += token;
+            // 텍스트 + 커서 함께 표시
+            narrativeEl.innerHTML = text.replace(/\n/g, '<br>') + '<span class="narrative-cursor"></span>';
+            // 프로그레스 바 갱신 (추정 글자 수 기준, 최대 95%)
+            const pct = Math.min(95, Math.round((text.length / _NARRATIVE_EST_CHARS) * 95));
+            if (streamFill) streamFill.style.width = pct + '%';
+          }
         } catch (_) {}
       }
     }
-    if (!text) narrativeEl.textContent = '풀이 생성에 실패했습니다.';
-    // _currentSajuResult에도 narrative 업데이트 (증명서 생성 등에 활용)
+
+    // 완료
+    if (!text) {
+      narrativeEl.textContent = '풀이 생성에 실패했습니다.';
+    } else {
+      narrativeEl.textContent = text;
+    }
+    if (streamFill) streamFill.style.width = '100%';
+    if (streamLabel) streamLabel.textContent = '✅ 풀이 완성!';
+    setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 1200);
+
     if (_currentSajuResult) _currentSajuResult.narrative = text;
   } catch (e) {
     console.warn('[saju/narrative] 스트리밍 실패:', e.message);
     narrativeEl.textContent = '풀이 생성에 실패했습니다.';
+    if (progressWrap) progressWrap.style.display = 'none';
   }
 }
 
