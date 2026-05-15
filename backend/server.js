@@ -652,7 +652,7 @@ app.post('/api/saju/narrative', async (req, res) => {
   const eumryeongList = calcEumryeong(last_name + name);
   const scoreVal = score ?? 0;
 
-  const llmPrompt = `당신은 한국의 전통 작명 전문가입니다. 아래 정보를 바탕으로 부모에게 드리는 정성스러운 작명 풀이를 작성해주세요.
+  const llmPrompt = `당신은 한국의 전통 작명 전문가입니다. 아래 정보를 바탕으로 부모에게 드리는 정성스러운 작명 풀이를 작성해주세요. 반드시 첫 문단부터 바로 시작하세요. "풀이를 올립니다", "작명 풀이를 드립니다", "아기의 이름 풀이" 같은 서두나 인사말은 절대 쓰지 마세요.
 
 [분석 정보]
 이름: ${last_name}${name} (${hanja})
