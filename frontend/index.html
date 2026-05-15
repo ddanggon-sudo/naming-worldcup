@@ -4435,6 +4435,7 @@ function _renderHanjaAlt(data) {
       <div class="ns-top-row">
         <span class="ns-label">기준 이름</span>
         <span class="ns-name">${name.last_name || ''}${base_name}</span>
+        ${name.hanja ? `<span style="font-size:14px;color:var(--sub);font-weight:400">${name.hanja}</span>` : ''}
       </div>
       <div class="ns-score-row">
         <div class="ns-score-num">${baseScore}<span class="unit">점</span></div>
