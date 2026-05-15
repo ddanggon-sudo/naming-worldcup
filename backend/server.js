@@ -956,6 +956,28 @@ function buildPage1Html(data) {
     return `<span class="ohaeng-pill${isLow ? ' low' : ''}" style="color:${isLow ? '#ef4444' : OHAENG_COLOR[k]}">${k} ${cnt}</span>`;
   }).join('');
 
+  // 수리오격 계산
+  const _lastNameKo  = full_name_korean[0] || '';
+  const _lastHanja   = SURNAME_MAP[_lastNameKo] || '';
+  const _givenHanja  = full_name_hanja;
+  const LEVEL_CLASS  = { '吉': 'gil', '中': 'jung', '凶': 'hyung' };
+  const GYEOK_NAMES  = ['天格', '人格', '地格', '外格', '總格'];
+  const GYEOK_KO     = ['천격', '인격', '지격', '외격', '총격'];
+  let suriGyeokHtml  = '';
+  if (_lastHanja && _givenHanja) {
+    try {
+      const sr = calculateSuri(_lastHanja, _givenHanja);
+      const gyeoks = [sr.cheon_gyeok, sr.in_gyeok, sr.ji_gyeok, sr.oe_gyeok, sr.chong_gyeok];
+      suriGyeokHtml = `<div class="gyeok-row">${gyeoks.map((g, i) => `
+        <div class="gyeok-cell">
+          <div class="gyeok-name">${GYEOK_KO[i]}(${GYEOK_NAMES[i]})</div>
+          <div class="gyeok-num">${g.num}</div>
+          <div class="gyeok-label">${g.label}</div>
+          <div class="gyeok-level ${LEVEL_CLASS[g.level] || ''}">${g.level}</div>
+        </div>`).join('')}</div>`;
+    } catch (_) {}
+  }
+
   const today   = new Date();
   const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
   const hanjaSpaced = [...full_name_hanja].join(' ');
@@ -980,7 +1002,8 @@ function buildPage1Html(data) {
     .replace('{{EUM_STR}}',      eum_str)
     .replace('{{JAWON_STR}}',    jawon_str)
     .replace('{{SUMMARY}}',      summary)
-    .replace('{{DATE}}',         dateStr);
+    .replace('{{DATE}}',         dateStr)
+    .replace('{{SURI_GYEOK}}',   suriGyeokHtml);
 }
 
 // 덕담 고정 8개 (LLM 생성 불필요)
