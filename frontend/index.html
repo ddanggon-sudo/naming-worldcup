@@ -4078,7 +4078,7 @@ async function _streamSajuNarrative(nameObj, sajuData) {
   let displayedLen = 0;  // 현재 화면에 표시된 글자 수
   let streamDone = false;
   let typeTimer = null;
-  const TYPING_MS = 18;  // 글자당 간격 (ms)
+  const TYPING_MS = 10;  // 글자당 간격 (ms)
 
   function _typeStep() {
     if (displayedLen < fullText.length) {
