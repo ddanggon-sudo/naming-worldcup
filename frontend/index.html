@@ -2908,12 +2908,17 @@ async function showWcResult() {
     document.getElementById('rarity-content').style.display = 'block';
   }
 
-  // 이미 보관함에 있으면 저장 프롬프트 대신 안내 멘트
   const savePrompt = document.getElementById('wc-save-prompt');
   if (alreadySaved) {
     savePrompt.innerHTML = `<p style="color:var(--sub);font-size:14px">이미 보관함에 저장된 이름이에요 📦</p>
       <div class="wc-save-actions">
         <button class="btn btn-outline" onclick="goPage('generate')">이름 탐색으로 돌아가기</button>
+      </div>`;
+  } else {
+    savePrompt.innerHTML = `<p>이 이름을 보관함에 저장할까요?</p>
+      <div class="wc-save-actions">
+        <button class="btn btn-primary" onclick="saveWinner()">저장하기</button>
+        <button class="btn btn-outline" onclick="skipSave()">저장 안 함</button>
       </div>`;
   }
   savePrompt.style.display = 'block';
