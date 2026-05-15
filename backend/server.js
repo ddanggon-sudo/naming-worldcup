@@ -55,20 +55,37 @@ const CHROMIUM_REMOTE_URL =
   'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar';
 
 async function _createBrowser() {
-  // Vercel/Lambda: @sparticuz/chromium-min + 원격 바이너리 다운로드
+  const isLinux = process.platform === 'linux';
+
+  // Vercel/Lambda(Linux): @sparticuz/chromium-min + 원격 바이너리
+  if (isLinux) {
+    try {
+      const { default: chromium } = await import('@sparticuz/chromium-min');
+      const executablePath = await chromium.executablePath(CHROMIUM_REMOTE_URL);
+      return await puppeteerCore.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath,
+        headless: chromium.headless,
+      });
+    } catch (e) {
+      console.log('[launchBrowser] chromium-min 실패:', e.message);
+    }
+  }
+
+  // 로컬 개발: puppeteer 관리 Chrome (npx puppeteer browsers install chrome)
   try {
-    const { default: chromium } = await import('@sparticuz/chromium-min');
-    const executablePath = await chromium.executablePath(CHROMIUM_REMOTE_URL);
-    return puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
+    const executablePath = puppeteer.executablePath();
+    return await puppeteerCore.launch({
       executablePath,
-      headless: chromium.headless,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
   } catch (e) {
-    console.log('[launchBrowser] chromium-min 실패, 로컬 Chrome 시도:', e.message);
+    console.log('[launchBrowser] puppeteer 관리 Chrome 실패:', e.message);
   }
-  // 로컬 개발: 시스템에 설치된 Chrome으로 fallback
+
+  // 시스템 Chrome 경로 fallback
   const localPaths = [
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -85,11 +102,8 @@ async function _createBrowser() {
       });
     } catch {}
   }
-  // 최후 수단: puppeteer 관리 Chrome
-  return puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+
+  throw new Error('사용 가능한 Chrome/Chromium을 찾을 수 없습니다.');
 }
 
 // Item 6: warm 인스턴스에서 브라우저 재사용 (cold start 비용 1회로 감소)
