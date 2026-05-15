@@ -4734,15 +4734,23 @@ function _renderCertificate() {
   const suriSection = document.getElementById('cert-suri-section');
   const suriGrid = document.getElementById('cert-suri-grid');
   if (fg) {
-    const GYEOK_KO = ['천격(天格)', '인격(人格)', '지격(地格)', '외격(外格)', '총격(總格)'];
+    const GYEOK_KO    = ['천격(天格)', '인격(人格)', '지격(地格)', '외격(外格)', '총격(總格)'];
+    const GYEOK_ROLE  = ['조상·가문', '성격·사회운', '초년·성장운', '대외·활동운', '종합 일생운'];
     const LEVEL_COLOR = { '吉': '#10b981', '中': '#a16207', '凶': '#ef4444' };
     const gyeoks = [fg.cheon, fg.in, fg.ji, fg.oe, fg.chong];
+    suriGrid.style.gridTemplateColumns = '1fr';
+    suriGrid.style.gap = '5px';
     suriGrid.innerHTML = gyeoks.map((g, i) => `
-      <div style="text-align:center;padding:5px 3px;border:1px solid #d4b876;border-radius:4px;background:rgba(201,168,76,.05)">
-        <div style="font-size:9px;color:#8b6f3a">${GYEOK_KO[i]}</div>
-        <div style="font-size:15px;font-weight:900;color:#3a2d0f;line-height:1.1">${g.num}</div>
-        <div style="font-size:9px;color:#8b6f3a;margin-top:1px">${g.label}</div>
-        <div style="font-size:11px;font-weight:700;color:${LEVEL_COLOR[g.level]||'#555'};margin-top:2px">${g.level}</div>
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border:1px solid #d4b876;border-radius:4px;background:rgba(201,168,76,.04)">
+        <div style="min-width:52px;text-align:center;flex-shrink:0">
+          <div style="font-size:10px;color:#8b6f3a;font-weight:700">${GYEOK_KO[i]}</div>
+          <div style="font-size:18px;font-weight:900;color:#3a2d0f;line-height:1.1">${g.num}</div>
+          <div style="font-size:11px;font-weight:700;color:${LEVEL_COLOR[g.level]||'#555'}">${g.level} ${g.label}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;color:#a08040;margin-bottom:2px">${GYEOK_ROLE[i]}</div>
+          <div style="font-size:11px;color:#4a3a1a;line-height:1.5">${g.desc}</div>
+        </div>
       </div>`).join('');
     suriSection.style.display = 'block';
   } else {

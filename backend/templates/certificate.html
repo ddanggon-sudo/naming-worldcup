@@ -220,26 +220,23 @@
   .ohaeng-pill.low { color: #ef4444; }
 
   /* 수리오격 */
-  .gyeok-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
-    margin-top: 2px;
-  }
-  .gyeok-cell {
-    text-align: center;
-    padding: 5px 3px;
-    border: 1px solid #d4b876;
-    border-radius: 4px;
+  .gyeok-list { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+  .gyeok-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 7px;
+    border: 1px solid #d4b876; border-radius: 4px;
     background: rgba(201,168,76,0.04);
   }
-  .gyeok-name { font-size: 10px; color: #8b6f3a; font-family: 'Noto Sans KR', sans-serif; letter-spacing: 1px; }
-  .gyeok-num  { font-size: 16px; font-weight: 900; color: #3a2d0f; line-height: 1.1; }
-  .gyeok-label { font-size: 9px; color: #8b6f3a; font-family: 'Noto Sans KR', sans-serif; margin-top: 1px; }
-  .gyeok-level { font-size: 11px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; margin-top: 2px; }
+  .gyeok-left  { min-width: 56px; text-align: center; flex-shrink: 0; }
+  .gyeok-name  { font-size: 9.5px; font-weight: 700; color: #8b6f3a; font-family: 'Noto Sans KR', sans-serif; }
+  .gyeok-num   { font-size: 15px; font-weight: 900; color: #3a2d0f; line-height: 1.1; }
+  .gyeok-level { font-size: 10px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; }
   .gyeok-level.gil   { color: #10b981; }
   .gyeok-level.jung  { color: #a16207; }
   .gyeok-level.hyung { color: #ef4444; }
+  .gyeok-right { flex: 1; }
+  .gyeok-role  { font-size: 9px; color: #a08040; font-family: 'Noto Sans KR', sans-serif; margin-bottom: 1px; }
+  .gyeok-desc  { font-size: 9.5px; color: #4a3a1a; line-height: 1.5; font-family: 'Noto Sans KR', sans-serif; }
 </style>
 </head>
 <body>

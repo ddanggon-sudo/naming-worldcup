@@ -978,19 +978,24 @@ function buildPage1Html(data) {
   const _lastHanja   = SURNAME_MAP[_lastNameKo] || '';
   const _givenHanja  = full_name_hanja;
   const LEVEL_CLASS  = { '吉': 'gil', '中': 'jung', '凶': 'hyung' };
-  const GYEOK_NAMES  = ['天格', '人格', '地格', '外格', '總格'];
-  const GYEOK_KO     = ['천격', '인격', '지격', '외격', '총격'];
+  const GYEOK_LABELS = ['천격(天格)', '인격(人格)', '지격(地格)', '외격(外格)', '총격(總格)'];
+  const GYEOK_ROLE   = ['조상·가문', '성격·사회운', '초년·성장운', '대외·활동운', '종합 일생운'];
   let suriGyeokHtml  = '';
   if (_lastHanja && _givenHanja) {
     try {
       const sr = calculateSuri(_lastHanja, _givenHanja);
       const gyeoks = [sr.cheon_gyeok, sr.in_gyeok, sr.ji_gyeok, sr.oe_gyeok, sr.chong_gyeok];
-      suriGyeokHtml = `<div class="gyeok-row">${gyeoks.map((g, i) => `
-        <div class="gyeok-cell">
-          <div class="gyeok-name">${GYEOK_KO[i]}(${GYEOK_NAMES[i]})</div>
-          <div class="gyeok-num">${g.num}</div>
-          <div class="gyeok-label">${g.label}</div>
-          <div class="gyeok-level ${LEVEL_CLASS[g.level] || ''}">${g.level}</div>
+      suriGyeokHtml = `<div class="gyeok-list">${gyeoks.map((g, i) => `
+        <div class="gyeok-item">
+          <div class="gyeok-left">
+            <div class="gyeok-name">${GYEOK_LABELS[i]}</div>
+            <div class="gyeok-num">${g.num}</div>
+            <div class="gyeok-level ${LEVEL_CLASS[g.level] || ''}">${g.level} ${g.label}</div>
+          </div>
+          <div class="gyeok-right">
+            <div class="gyeok-role">${GYEOK_ROLE[i]}</div>
+            <div class="gyeok-desc">${g.desc}</div>
+          </div>
         </div>`).join('')}</div>`;
     } catch (_) {}
   }
