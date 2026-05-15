@@ -2829,7 +2829,7 @@ async function saveWcName(side) {
   const saved = getSavedNames();
   const full = (n.last_name || '') + n.name;
   if (saved.find(s => s.full_name === full)) { showToast('이미 저장된 이름이에요.'); return; }
-  saved.push({
+  const newEntry = {
     id: uuid(),
     name: n.name,
     hanja: n.hanja || '',
@@ -2844,9 +2844,28 @@ async function saveWcName(side) {
     is_final: false,
     author: null,
     saved_at: new Date().toISOString(),
-  });
+  };
+  saved.push(newEntry);
   const ok = await setSavedNames(saved);
-  if (ok) showToast(`"${full}" 저장 완료!`);
+  if (!ok) return;
+  showToast(`"${full}" 저장 완료! 희귀도 조회 중...`);
+  try {
+    const res = await fetch(API + '/api/worldcup/rarity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: n.name, gender: n.gender }),
+    });
+    const d = await res.json();
+    const all = getSavedNames();
+    const target = all.find(s => s.id === newEntry.id);
+    if (target) {
+      target.rarity = d.rarity ?? null;
+      target.estimated_population = d.estimated_population ?? null;
+      target.data_year = d.data_year ?? null;
+      await setSavedNames(all);
+      renderProfile();
+    }
+  } catch (_) {}
 }
 
 function wcAdvance(winner) {
