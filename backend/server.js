@@ -1008,7 +1008,8 @@ function buildPage1Html(data) {
   let paljaDisplay = palja_str;
   if (birth_date) {
     const bd = birth_date.replace(/-/g, '.');
-    const bh = birth_hour != null ? ` ${String(birth_hour).padStart(2,'0')}:00` : '';
+    const SHI = {23:'자시',1:'축시',3:'인시',5:'묘시',7:'진시',9:'사시',11:'오시',13:'미시',15:'신시',17:'유시',19:'술시',21:'해시'};
+    const bh = birth_hour != null ? ` ${SHI[Number(birth_hour)] || birth_hour + '시'}` : '';
     paljaDisplay += `\n(양력 ${bd}${bh})`;
   }
 

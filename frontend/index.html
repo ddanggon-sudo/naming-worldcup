@@ -4698,21 +4698,23 @@ function _renderCertificate() {
 
   // ── 사주팔자 ──
   const { palja, hour_known } = saju;
-  const pillarStr = [
+  const _pillarParts = [
     `${palja.year.cheon}${palja.year.ji}`,
     `${palja.month.cheon}${palja.month.ji}`,
     `${palja.day.cheon}${palja.day.ji}`,
-    hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주 모름',
-  ].join(' / ');
+  ];
+  if (hour_known) _pillarParts.push(`${palja.hour.cheon}${palja.hour.ji}`);
+  const pillarStr = _pillarParts.join(' / ');
   const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
   const birthDateStr = birthInfo?.birth_date
     ? birthInfo.birth_date.replace(/-/g, '.')
     : '';
+  const _SHI_CERT = {23:'자시',1:'축시',3:'인시',5:'묘시',7:'진시',9:'사시',11:'오시',13:'미시',15:'신시',17:'유시',19:'술시',21:'해시'};
   const hourLabel = (birthInfo?.birth_hour != null)
-    ? `${String(birthInfo.birth_hour).padStart(2,'0')}:00`
-    : '시간 모름';
+    ? (_SHI_CERT[Number(birthInfo.birth_hour)] || birthInfo.birth_hour + '시')
+    : null;
   document.getElementById('cert-palja-text').textContent =
-    `${pillarStr}${birthDateStr ? '\n(양력 ' + birthDateStr + (birthInfo.birth_hour != null ? ' ' + hourLabel : '') + ')' : ''}`;
+    `${pillarStr}${birthDateStr ? '\n(양력 ' + birthDateStr + (hourLabel ? ' ' + hourLabel : '') + ')' : ''}`;
 
   // ── 오행 분포 ──
   const { elements, yongsin } = saju;
@@ -4821,12 +4823,13 @@ function _buildCertPayload() {
   const saju = _currentSajuResult;
   const name = _currentSajuName;
   const { palja, hour_known } = saju;
-  const paljaStr = [
+  const _certPillarParts = [
     `${palja.year.cheon}${palja.year.ji}`,
     `${palja.month.cheon}${palja.month.ji}`,
     `${palja.day.cheon}${palja.day.ji}`,
-    hour_known ? `${palja.hour.cheon}${palja.hour.ji}` : '시주모름',
-  ].join(' / ');
+  ];
+  if (hour_known) _certPillarParts.push(`${palja.hour.cheon}${palja.hour.ji}`);
+  const paljaStr = _certPillarParts.join(' / ');
   const birthInfo = _currentProfile?.birth_info || JSON.parse(localStorage.getItem('pmb_birth_info') || 'null');
   const jawonArr  = saju.name_analysis?.jawon     || [];
   const eumArr    = saju.name_analysis?.eumryeong || [];
